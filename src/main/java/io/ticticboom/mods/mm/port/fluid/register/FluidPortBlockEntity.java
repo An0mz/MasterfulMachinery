@@ -31,8 +31,6 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import org.jetbrains.annotations.NotNull;
@@ -91,12 +89,6 @@ public class FluidPortBlockEntity extends AbstractPortBlockEntity {
     public PortModel getModel() {
         return model;
     }
-
-    @Override
-    public <T> @NotNull LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
-        return storage.getCapability(cap);
-    }
-
     public void tick() {
         if(lastTick == level.getGameTime()) return;
         lastTick = level.getGameTime();

@@ -1,16 +1,63 @@
 package io.ticticboom.mods.mm.cap;
 
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityManager;
-import net.minecraftforge.common.capabilities.CapabilityToken;
+import io.ticticboom.mods.mm.port.IPortBlockEntity;
+import io.ticticboom.mods.mm.port.MMPortRegistry;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.capabilities.BlockCapability;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.items.IItemHandler;
 
+/**
+ * On Forge a block entity answered capability queries itself by overriding getCapability, and MM's
+ * port block entities delegated that to their IPortStorage.
+ * <p>
+ * NeoForge inverts this: capabilities are registered up front against a BlockEntityType and the
+ * query is answered by a lookup function. The per-block-entity overrides are therefore gone, and
+ * the delegation to IPortStorage happens here instead, once for every port type MM registered.
+ * <p>
+ * The capability objects are no longer created by the mod either. NeoForge ships the item, fluid
+ * and energy block capabilities, so these constants are aliases kept only so the rest of the
+ * codebase can carry on referring to MMCapabilities.
+ */
 @EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD)
 public class MMCapabilities {
-    public static final Capability<IItemHandler> ITEM = CapabilityManager.get(new CapabilityToken<>() {});
-    public static final Capability<IFluidHandler> FLUID = CapabilityManager.get(new CapabilityToken<>() {});
-    public static final Capability<IEnergyStorage> ENERGY = CapabilityManager.get(new CapabilityToken<>() {});
+    public static final BlockCapability<IItemHandler, Direction> ITEM = Capabilities.ItemHandler.BLOCK;
+    public static final BlockCapability<IFluidHandler, Direction> FLUID = Capabilities.FluidHandler.BLOCK;
+    public static final BlockCapability<IEnergyStorage, Direction> ENERGY = Capabilities.EnergyStorage.BLOCK;
+
+    @SubscribeEvent
+    public static void registerCapabilities(RegisterCapabilitiesEvent event) {
+        // Port block entity types are built from data at load time rather than declared
+        // statically, so this walks whatever MMPortRegistry ended up with.
+        for (var holder : MMPortRegistry.PORTS) {
+            var beType = holder.getBe().get();
+            if (beType == null) {
+                continue;
+            }
+            registerPortCapability(event, beType, ITEM);
+            registerPortCapability(event, beType, FLUID);
+            registerPortCapability(event, beType, ENERGY);
+        }
+    }
+
+    private static <T> void registerPortCapability(RegisterCapabilitiesEvent event,
+                                                   BlockEntityType<?> beType,
+                                                   BlockCapability<T, Direction> capability) {
+        @SuppressWarnings("unchecked")
+        var typed = (BlockEntityType<BlockEntity>) beType;
+        event.registerBlockEntity(capability, typed, (be, side) -> {
+            if (be instanceof IPortBlockEntity port) {
+                var storage = port.getStorage();
+                return storage == null ? null : storage.getCapability(capability);
+            }
+            return null;
+        });
+    }
 }

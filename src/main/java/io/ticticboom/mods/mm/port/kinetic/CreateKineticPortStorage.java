@@ -7,8 +7,8 @@ import io.ticticboom.mods.mm.port.common.INotifyChangeFunction;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
+import net.neoforged.neoforge.capabilities.BlockCapability;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -30,12 +30,12 @@ public class CreateKineticPortStorage implements IPortStorage {
     }
 
     @Override
-    public <T> LazyOptional<T> getCapability(Capability<T> capability) {
-        return LazyOptional.empty();
+    public <T> @Nullable T getCapability(BlockCapability<T, ?> capability) {
+        return null;
     }
 
     @Override
-    public <T> boolean hasCapability(Capability<T> capability) {
+    public <T> boolean hasCapability(BlockCapability<T, ?> capability) {
         return false;
     }
 

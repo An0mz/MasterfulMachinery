@@ -17,7 +17,8 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
+import net.neoforged.neoforge.capabilities.BlockCapability;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -26,7 +27,6 @@ public class ItemPortStorage implements IPortStorage {
 
     @Getter
     private final ItemPortHandler handler;
-    private final LazyOptional<ItemPortHandler> handlerLazyOptional;
     private final ItemPortStorageModel model;
     private final UUID uid = UUID.randomUUID();
 
@@ -39,19 +39,16 @@ public class ItemPortStorage implements IPortStorage {
         this.model = model;
         int capacity = model.slotCapacity();
         handler = new ItemPortHandler(model.rows() * model.columns(), capacity, changed);
-        handlerLazyOptional = LazyOptional.of(() -> handler);
     }
 
     @Override
-    public <T> LazyOptional<T> getCapability(Capability<T> capability) {
-        if (hasCapability(capability)) {
-            return handlerLazyOptional.cast();
-        }
-        return LazyOptional.empty();
+    public <T> @Nullable T getCapability(BlockCapability<T, ?> capability) {
+        @SuppressWarnings("unchecked") var cast = (T) handler;
+        return hasCapability(capability) ? cast : null;
     }
 
     @Override
-    public <T> boolean hasCapability(Capability<T> capability) {
+    public <T> boolean hasCapability(BlockCapability<T, ?> capability) {
         return capability == MMCapabilities.ITEM;
     }
 

@@ -33,8 +33,6 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
@@ -105,15 +103,6 @@ public class PneumaticAirPortBlockEntity extends AbstractTickingBlockEntity impl
     public IItemHandler getPrimaryInventory() {
         return null;
     }
-
-    public <T> @NotNull LazyOptional<T> getCapability(@Nonnull Capability<T> cap, @javax.annotation.Nullable Direction side) {
-        if (cap != PNCCapabilities.AIR_HANDLER_MACHINE_CAPABILITY) {
-            return super.getCapability(cap, side);
-        } else {
-            return this.storage.getCapability(cap);
-        }
-    }
-
 
     @Nullable
     @Override

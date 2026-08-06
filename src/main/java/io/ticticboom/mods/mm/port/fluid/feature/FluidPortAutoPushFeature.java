@@ -8,7 +8,8 @@ import io.ticticboom.mods.mm.port.fluid.FluidPortRouting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.common.util.LazyOptional;
+import net.minecraft.server.level.ServerLevel;
+import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 import java.util.HashMap;
@@ -31,16 +32,24 @@ public class FluidPortAutoPushFeature extends AbstractPortAutoPushFeature<FluidH
             return;
         }
 
-        LazyOptional<IFluidHandler> neighborCap = neighborBe.getCapability(MMCapabilities.FLUID, neighborFace);
-        if (!neighborCap.isPresent()) {
+        // A BlockCapabilityCache re-resolves when the neighbour is replaced or removed, which is
+        // what LazyOptional invalidation used to provide.
+        if (!(neighborBe.getLevel() instanceof ServerLevel serverLevel)) {
             return;
         }
+        if (serverLevel.getCapability(MMCapabilities.FLUID, neighborPos, neighborFace) == null) {
+            return;
+        }
+        var neighborCap = BlockCapabilityCache.create(MMCapabilities.FLUID, serverLevel, neighborPos, neighborFace);
 
         if (autoPushNeighbors.containsKey(neighborPos)) {
             FluidHandlerCoupling pairing = autoPushNeighbors.get(neighborPos);
             pairing.setToHandler(neighborCap);
         } else {
-            LazyOptional<IFluidHandler> capability = this.portBlockEntity.getCapability(MMCapabilities.FLUID);
+            // The block entity no longer answers capability queries itself, so ask its storage.
+            var capability = this.portBlockEntity instanceof IPortBlockEntity port
+                    ? port.getStorage().getCapability(MMCapabilities.FLUID)
+                    : null;
             autoPushNeighbors.put(neighborPos, new FluidHandlerCoupling(capability, neighborCap));
         }
     }

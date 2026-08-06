@@ -62,6 +62,14 @@ runs {
     }
 }
 
+minecraft {
+    // NeoGradle does not pick the file up from its conventional location on its own here, and
+    // without it AbstractContainerMenu.addSlot stays protected and every menu fails to compile.
+    accessTransformers {
+        file rootProject.file('src/main/resources/META-INF/accesstransformer.cfg')
+    }
+}
+
 subsystems {
     parchment {
         minecraftVersion = parchment_minecraft_version

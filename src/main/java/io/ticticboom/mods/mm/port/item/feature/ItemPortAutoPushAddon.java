@@ -10,7 +10,8 @@ import io.ticticboom.mods.mm.Ref;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.common.util.LazyOptional;
+import net.minecraft.server.level.ServerLevel;
+import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.items.IItemHandler;
 
 import java.util.HashMap;
@@ -38,16 +39,24 @@ public class ItemPortAutoPushAddon extends AbstractPortAutoPushFeature<ItemHandl
             return;
         }
 
-        LazyOptional<IItemHandler> neighborCap = neighborBe.getCapability(MMCapabilities.ITEM, neighborFace);
-        if (!neighborCap.isPresent()) {
+        // A BlockCapabilityCache re-resolves when the neighbour is replaced or removed, which is
+        // what LazyOptional invalidation used to provide.
+        if (!(level instanceof ServerLevel serverLevel)) {
             return;
         }
+        if (serverLevel.getCapability(MMCapabilities.ITEM, neighborPos, neighborFace) == null) {
+            return;
+        }
+        var neighborCap = BlockCapabilityCache.create(MMCapabilities.ITEM, serverLevel, neighborPos, neighborFace);
 
         if (autoPushNeighbors.containsKey(neighborPos)) {
             ItemHandlerCoupling pairing = autoPushNeighbors.get(neighborPos);
             pairing.setToHandler(neighborCap);
         } else {
-            LazyOptional<IItemHandler> capability = this.portBlockEntity.getCapability(MMCapabilities.ITEM);
+            // The block entity no longer answers capability queries itself, so ask its storage.
+            var capability = this.portBlockEntity instanceof IPortBlockEntity port
+                    ? port.getStorage().getCapability(MMCapabilities.ITEM)
+                    : null;
             autoPushNeighbors.put(neighborPos, new ItemHandlerCoupling(capability, neighborCap));
         }
     }

@@ -9,7 +9,8 @@ import io.ticticboom.mods.mm.port.energy.EnergyPortRouting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.common.util.LazyOptional;
+import net.minecraft.server.level.ServerLevel;
+import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 
 import java.util.HashMap;
@@ -64,16 +65,24 @@ public class EnergyPortAutoPushFeature extends AbstractPortAutoPushFeature<Energ
             return;
         }
 
-        LazyOptional<IEnergyStorage> neighborCap = neighborBe.getCapability(MMCapabilities.ENERGY, neighborFace);
-        if (!neighborCap.isPresent()) {
+        // A BlockCapabilityCache re-resolves when the neighbour is replaced or removed, which is
+        // what LazyOptional invalidation used to provide.
+        if (!(neighborBe.getLevel() instanceof ServerLevel serverLevel)) {
             return;
         }
+        if (serverLevel.getCapability(MMCapabilities.ENERGY, neighborPos, neighborFace) == null) {
+            return;
+        }
+        var neighborCap = BlockCapabilityCache.create(MMCapabilities.ENERGY, serverLevel, neighborPos, neighborFace);
 
         if (autoPushNeighbors.containsKey(neighborPos)) {
             EnergyHandlerCoupling pairing = autoPushNeighbors.get(neighborPos);
             pairing.setToHandler(neighborCap);
         } else {
-            LazyOptional<IEnergyStorage> capability = this.portBlockEntity.getCapability(MMCapabilities.ENERGY);
+            // The block entity no longer answers capability queries itself, so ask its storage.
+            var capability = this.portBlockEntity instanceof IPortBlockEntity port
+                    ? port.getStorage().getCapability(MMCapabilities.ENERGY)
+                    : null;
             autoPushNeighbors.put(neighborPos, new EnergyHandlerCoupling(capability, neighborCap));
         }
     }

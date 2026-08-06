@@ -11,7 +11,8 @@ import lombok.Getter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.util.LazyOptional;
+import net.neoforged.neoforge.capabilities.BlockCapability;
+import org.jetbrains.annotations.Nullable;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
@@ -22,7 +23,6 @@ public class FluidPortStorage implements IPortStorage {
 
     @Getter
     private final FluidPortHandler handler;
-    private final LazyOptional<FluidPortHandler> handlerLazyOptional;
     private final UUID uid = UUID.randomUUID();
 
     // Priority for outputs. Default 0. Range 0..10.
@@ -32,7 +32,6 @@ public class FluidPortStorage implements IPortStorage {
     public FluidPortStorage(FluidPortStorageModel model, INotifyChangeFunction changed) {
         this.model = model;
         handler = new FluidPortHandler(model.rows() * model.columns(), model.slotCapacity(), changed);
-        handlerLazyOptional = LazyOptional.of(() -> handler);
     }
 
     public IFluidHandler getWrappedHandler() {
@@ -40,15 +39,13 @@ public class FluidPortStorage implements IPortStorage {
     }
 
     @Override
-    public <T> LazyOptional<T> getCapability(Capability<T> capability) {
-        if (hasCapability(capability)) {
-            return handlerLazyOptional.cast();
-        }
-        return LazyOptional.empty();
+    public <T> @Nullable T getCapability(BlockCapability<T, ?> capability) {
+        @SuppressWarnings("unchecked") var cast = (T) handler;
+        return hasCapability(capability) ? cast : null;
     }
 
     @Override
-    public <T> boolean hasCapability(Capability<T> capability) {
+    public <T> boolean hasCapability(BlockCapability<T, ?> capability) {
         return MMCapabilities.FLUID == capability;
     }
 

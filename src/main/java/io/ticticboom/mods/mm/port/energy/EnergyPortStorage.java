@@ -8,7 +8,8 @@ import io.ticticboom.mods.mm.port.common.INotifyChangeFunction;
 import lombok.Getter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
+import net.neoforged.neoforge.capabilities.BlockCapability;
+import org.jetbrains.annotations.Nullable;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 
 import java.util.UUID;
@@ -19,7 +20,6 @@ public class EnergyPortStorage implements IPortStorage {
     private final EnergyPortStorageModel model;
     @Getter
     private final EnergyPortHandler handler;
-    private final LazyOptional<IEnergyStorage> handlerLazyOptional;
     private final UUID uid = UUID.randomUUID();
 
     // Priority for outputs. Default 0. Range 0..10.
@@ -28,19 +28,16 @@ public class EnergyPortStorage implements IPortStorage {
     public EnergyPortStorage(EnergyPortStorageModel model, INotifyChangeFunction changed) {
         this.model = model;
         handler = new EnergyPortHandler(model.capacity(), model.maxReceive(), model.maxExtract(), changed);
-        handlerLazyOptional = LazyOptional.of(() -> handler);
     }
 
     @Override
-    public <T> LazyOptional<T> getCapability(Capability<T> capability) {
-        if (hasCapability(capability)) {
-            return handlerLazyOptional.cast();
-        }
-        return LazyOptional.empty();
+    public <T> @Nullable T getCapability(BlockCapability<T, ?> capability) {
+        @SuppressWarnings("unchecked") var cast = (T) handler;
+        return hasCapability(capability) ? cast : null;
     }
 
     @Override
-    public <T> boolean hasCapability(Capability<T> capability) {
+    public <T> boolean hasCapability(BlockCapability<T, ?> capability) {
         return MMCapabilities.ENERGY == capability;
     }
 

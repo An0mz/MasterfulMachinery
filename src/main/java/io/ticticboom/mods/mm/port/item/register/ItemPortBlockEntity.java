@@ -17,8 +17,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -50,12 +48,6 @@ public class ItemPortBlockEntity extends AbstractPortBlockEntity {
             autoPushAddon = Optional.empty();
         }
     }
-
-    @Override
-    public <T> @NotNull LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
-        return storage.getCapability(cap);
-    }
-
     @Override
     public IPortStorage getStorage() {
         return storage;

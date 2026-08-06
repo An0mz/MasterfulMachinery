@@ -17,7 +17,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.Tag;
 import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
+import net.neoforged.neoforge.capabilities.BlockCapability;
+import org.jetbrains.annotations.Nullable;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 import java.util.*;
@@ -28,7 +29,6 @@ public class PneumaticAirPortStorage implements IPortStorage {
 
     @Getter
     private PneumaticAirPortHandler airhandler;
-    private final LazyOptional<PneumaticAirPortHandler> airhandlerLO;
     public final Map<IAirHandlerMachine, List<Direction>> airHandlerMap = new IdentityHashMap();
     private final UUID uid = UUID.randomUUID();
 
@@ -36,22 +36,18 @@ public class PneumaticAirPortStorage implements IPortStorage {
         this.model = model;
         this.changed = changed;
         airhandler = new PneumaticAirPortHandler(model.tier(), model.volume(), changed);
-        airhandlerLO = LazyOptional.of(() -> airhandler);
         this.onNeighborBlockUpdate();
     }
 
     @Override
-    public <T> LazyOptional<T> getCapability(Capability<T> capability) {
-        if (hasCapability(capability)) {
-            return airhandlerLO.cast();
-        } else {
-            return LazyOptional.empty();
-        }
+    public <T> @Nullable T getCapability(BlockCapability<T, ?> capability) {
+        @SuppressWarnings("unchecked") var cast = (T) airhandler;
+        return hasCapability(capability) ? cast : null;
     }
 
 
     @Override
-    public <T> boolean hasCapability(Capability<T> capability) {
+    public <T> boolean hasCapability(BlockCapability<T, ?> capability) {
         return capability == PNCCapabilities.AIR_HANDLER_MACHINE_CAPABILITY;
     }
 

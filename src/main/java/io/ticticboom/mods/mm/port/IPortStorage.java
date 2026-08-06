@@ -6,15 +6,19 @@ import io.ticticboom.mods.mm.util.BlockUtils;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
+import net.neoforged.neoforge.capabilities.BlockCapability;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
 public interface IPortStorage {
-    <T> LazyOptional<T> getCapability(Capability<T> capability);
+    /**
+     * NeoForge replaced LazyOptional with plain nullable returns, and Capability with
+     * BlockCapability. Absent capability is now null rather than LazyOptional.empty().
+     */
+    <T> @Nullable T getCapability(BlockCapability<T, ?> capability);
 
-    <T> boolean hasCapability(Capability<T> capability);
+    <T> boolean hasCapability(BlockCapability<T, ?> capability);
 
     CompoundTag save(CompoundTag tag);
 
