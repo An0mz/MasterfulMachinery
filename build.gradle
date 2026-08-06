@@ -46,6 +46,10 @@ minecraft {
     runs {
         client {
             workingDirectory project.file('run/client')
+            // AllowEnhancedClassRedefinition is a JetBrains Runtime (DCEVM) flag enabling enhanced
+            // hot-swap. Standard JDKs reject unknown -XX options and refuse to start, so pair it with
+            // IgnoreUnrecognizedVMOptions: JBR still gets hot-swap, other JDKs just skip the flag.
+            jvmArg "-XX:+IgnoreUnrecognizedVMOptions"
             jvmArg "-XX:+AllowEnhancedClassRedefinition"
             // Recommended logging data for a userdev environment
             // The markers can be added/remove as needed separated by commas.
@@ -81,7 +85,7 @@ minecraft {
             property 'forge.logging.console.level', 'debug'
 
             // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
-            property 'forge.enabledGameTestNamespaces', 'examplemod'
+            property 'forge.enabledGameTestNamespaces', 'mm'
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
             mods {
@@ -113,7 +117,7 @@ minecraft {
             property 'forge.logging.console.level', 'debug'
 
             // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
-            property 'forge.enabledGameTestNamespaces', 'examplemod'
+            property 'forge.enabledGameTestNamespaces', 'mm'
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
             mods {
@@ -135,7 +139,7 @@ minecraft {
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
             // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
-            args '--mod', 'examplemod', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+            args '--mod', 'mm', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
 
             mods {
                 mm {
@@ -303,12 +307,12 @@ dependencies {
 jar {
     manifest {
         attributes([
-                'Specification-Title'     : 'examplemod',
-                'Specification-Vendor'    : 'examplemodsareus',
+                'Specification-Title'     : mod_archive_name,
+                'Specification-Vendor'    : mod_authors,
                 'Specification-Version'   : '1', // We are version 1 of ourselves
                 'Implementation-Title'    : project.name,
                 'Implementation-Version'  : project.jar.archiveVersion,
-                'Implementation-Vendor'   : 'examplemodsareus',
+                'Implementation-Vendor'   : mod_authors,
                 'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
         ])
     }
