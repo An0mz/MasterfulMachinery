@@ -1,7 +1,7 @@
 package io.ticticboom.mods.mm.config;
 
 import io.ticticboom.mods.mm.Ref;
-import net.minecraftforge.common.ForgeConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModLoadingContext;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -12,10 +12,10 @@ import org.apache.commons.lang3.tuple.Pair;
 @EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD, modid = Ref.ID)
 public class MMConfigSetup {
     public static final MMCommonConfig COMMON;
-    private static final ForgeConfigSpec commonSpec;
+    private static final ModConfigSpec commonSpec;
 
     static {
-        final Pair<MMCommonConfig, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(MMCommonConfig::new);
+        final Pair<MMCommonConfig, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(MMCommonConfig::new);
         COMMON = specPair.getKey();
         commonSpec = specPair.getRight();
     }

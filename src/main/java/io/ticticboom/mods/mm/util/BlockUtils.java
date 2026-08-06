@@ -18,7 +18,6 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Function;
@@ -35,7 +34,8 @@ public class BlockUtils {
             var be = WorldUtil.getBlockEntity(pos, (ServerLevel) level);
             if (be != null && clz.isAssignableFrom(be.getClass())) {
                 if (preScreenCheck.get()) {
-                    NetworkHooks.openScreen((ServerPlayer) player, (T) be, pos);
+                    // NeoForge folded NetworkHooks.openScreen into an extension method on the player.
+                    ((ServerPlayer) player).openMenu((T) be, pos);
                 }
             }
         }

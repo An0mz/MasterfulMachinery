@@ -1,19 +1,19 @@
 package io.ticticboom.mods.mm.config;
 
-import net.minecraftforge.common.ForgeConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
 public class MMCommonConfig {
-    public final ForgeConfigSpec.BooleanValue debugTool;
-    public final ForgeConfigSpec.BooleanValue splitRecipesJei;
-    public final ForgeConfigSpec.BooleanValue portsAutoExtractByDefault;
-    public final ForgeConfigSpec.BooleanValue asyncStructureValidation;
-    public final ForgeConfigSpec.IntValue structureValidationRate;
-    public final ForgeConfigSpec.BooleanValue previewBlueprintScreen;
-    public final ForgeConfigSpec.BooleanValue parallelProcessingDefault;
-    public final ForgeConfigSpec.IntValue maxParallelRecipes;
-    public final ForgeConfigSpec.BooleanValue showJeiMaxParallel;
+    public final ModConfigSpec.BooleanValue debugTool;
+    public final ModConfigSpec.BooleanValue splitRecipesJei;
+    public final ModConfigSpec.BooleanValue portsAutoExtractByDefault;
+    public final ModConfigSpec.BooleanValue asyncStructureValidation;
+    public final ModConfigSpec.IntValue structureValidationRate;
+    public final ModConfigSpec.BooleanValue previewBlueprintScreen;
+    public final ModConfigSpec.BooleanValue parallelProcessingDefault;
+    public final ModConfigSpec.IntValue maxParallelRecipes;
+    public final ModConfigSpec.BooleanValue showJeiMaxParallel;
 
-    public MMCommonConfig(ForgeConfigSpec.Builder builder) {
+    public MMCommonConfig(ModConfigSpec.Builder builder) {
         asyncStructureValidation = builder.comment("Enables async structure validation to improve TPS. Disable in case of issues. Default: true")
                 .define("asyncValidation", true);
         structureValidationRate = builder.comment("How often controller will check structure. 1 means every tick, 20 means every second. Default: 10")

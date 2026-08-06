@@ -6,13 +6,23 @@ import io.ticticboom.mods.mm.structure.StructureManager;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+import io.ticticboom.mods.mm.Ref;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Supplier;
 
-public class StructureSyncPkt {
+public class StructureSyncPkt implements CustomPacketPayload {
+
+    public static final CustomPacketPayload.Type<StructureSyncPkt> TYPE =
+            new CustomPacketPayload.Type<>(Ref.id("structure_sync"));
+
+    public static final StreamCodec<RegistryFriendlyByteBuf, StructureSyncPkt> STREAM_CODEC =
+            StreamCodec.of(StructureSyncPkt::encode, StructureSyncPkt::decode);
+
     public Map<ResourceLocation, JsonElement> structures;
 
     public StructureSyncPkt(final Map<ResourceLocation, StructureModel> structures) {
@@ -25,7 +35,7 @@ public class StructureSyncPkt {
     protected StructureSyncPkt() {
     }
 
-    public static void encode(StructureSyncPkt packet, FriendlyByteBuf buf) {
+    public static void encode(RegistryFriendlyByteBuf buf, StructureSyncPkt packet) {
         buf.writeInt(packet.structures.size());
         for (Map.Entry<ResourceLocation, JsonElement> strcture : packet.structures.entrySet()) {
             String string = strcture.getValue().toString();
@@ -34,7 +44,7 @@ public class StructureSyncPkt {
         }
     }
 
-    public static StructureSyncPkt decode(FriendlyByteBuf buf) {
+    public static StructureSyncPkt decode(RegistryFriendlyByteBuf buf) {
         StructureSyncPkt packet = new StructureSyncPkt();
         int initialCapacity = buf.readInt();
         packet.structures = new HashMap<>(initialCapacity);
@@ -46,8 +56,13 @@ public class StructureSyncPkt {
         return packet;
     }
 
-    public static void handle(StructureSyncPkt packet, Supplier<NetworkEvent.Context> context) {
-        handler(packet);
+    public static void handle(StructureSyncPkt packet, IPayloadContext context) {
+        context.enqueueWork(() -> handler(packet));
+    }
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 
     public static void handler(StructureSyncPkt packet) {

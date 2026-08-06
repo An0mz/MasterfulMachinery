@@ -1,6 +1,5 @@
 package io.ticticboom.mods.mm.event;
 
-import io.ticticboom.mods.mm.net.MMNetwork;
 import io.ticticboom.mods.mm.net.packet.ProcessesSyncPkt;
 import io.ticticboom.mods.mm.net.packet.StructureSyncPkt;
 import io.ticticboom.mods.mm.recipe.MachineRecipeManager;
@@ -13,7 +12,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.minecraftforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 @EventBusSubscriber(bus = EventBusSubscriber.Bus.GAME)
 public class ForgeEventsListener {
@@ -30,10 +29,10 @@ public class ForgeEventsListener {
         if (event.getEntity() instanceof ServerPlayer sp) clearSavedCorners(sp);
 
         var structurePacket = new StructureSyncPkt(StructureManager.STRUCTURES);
-        MMNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> ((ServerPlayer) event.getEntity())), structurePacket);
+        PacketDistributor.sendToPlayer((ServerPlayer) event.getEntity(), structurePacket);
         
         var processPacket  = new ProcessesSyncPkt(MachineRecipeManager.RECIPES);
-        MMNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> ((ServerPlayer) event.getEntity())), processPacket);
+        PacketDistributor.sendToPlayer((ServerPlayer) event.getEntity(), processPacket);
     }
 
     @SubscribeEvent

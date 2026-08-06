@@ -104,7 +104,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
                 BlockEntity beEntity = menu.getBe().getBlockEntity();
                 var pos = beEntity.getBlockPos();
                 int next = (be.getRedstoneModeOrdinal() + 1) % 3;
-                io.ticticboom.mods.mm.net.MMNetwork.INSTANCE.sendToServer(new io.ticticboom.mods.mm.net.packet.ToggleRedstoneModePkt(pos, next));
+                net.neoforged.neoforge.network.PacketDistributor.sendToServer(new io.ticticboom.mods.mm.net.packet.ToggleRedstoneModePkt(pos, next));
             } catch (Throwable ignored) { }
             return true;
         }

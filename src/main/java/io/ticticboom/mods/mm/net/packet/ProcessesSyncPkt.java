@@ -6,13 +6,23 @@ import io.ticticboom.mods.mm.recipe.MachineRecipeManager;
 import io.ticticboom.mods.mm.recipe.RecipeModel;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+import io.ticticboom.mods.mm.Ref;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Supplier;
 
-public class ProcessesSyncPkt {
+public class ProcessesSyncPkt implements CustomPacketPayload {
+
+    public static final CustomPacketPayload.Type<ProcessesSyncPkt> TYPE =
+            new CustomPacketPayload.Type<>(Ref.id("processes_sync"));
+
+    public static final StreamCodec<RegistryFriendlyByteBuf, ProcessesSyncPkt> STREAM_CODEC =
+            StreamCodec.of(ProcessesSyncPkt::encode, ProcessesSyncPkt::decode);
+
     public Map<ResourceLocation, JsonElement> recipes;
 
     public ProcessesSyncPkt(Map<ResourceLocation, RecipeModel> recipes) {
@@ -27,7 +37,7 @@ public class ProcessesSyncPkt {
     }
 
 
-    public static void encode(ProcessesSyncPkt packet, FriendlyByteBuf buf) {
+    public static void encode(RegistryFriendlyByteBuf buf, ProcessesSyncPkt packet) {
         buf.writeVarInt(packet.recipes.size());
         for (Map.Entry<ResourceLocation, JsonElement> entry : packet.recipes.entrySet()) {
             buf.writeResourceLocation(entry.getKey());
@@ -35,7 +45,7 @@ public class ProcessesSyncPkt {
         }
     }
 
-    public static ProcessesSyncPkt decode(FriendlyByteBuf buf) {
+    public static ProcessesSyncPkt decode(RegistryFriendlyByteBuf buf) {
         ProcessesSyncPkt packet = new ProcessesSyncPkt();
         packet.recipes = new HashMap<>();
         int count = buf.readVarInt();
@@ -45,8 +55,13 @@ public class ProcessesSyncPkt {
         return packet;
     }
 
-    public static void handle(ProcessesSyncPkt packet, Supplier<NetworkEvent.Context> context) {
-        handler(packet);
+    public static void handle(ProcessesSyncPkt packet, IPayloadContext context) {
+        context.enqueueWork(() -> handler(packet));
+    }
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 
     public static void handler(ProcessesSyncPkt packet) {
