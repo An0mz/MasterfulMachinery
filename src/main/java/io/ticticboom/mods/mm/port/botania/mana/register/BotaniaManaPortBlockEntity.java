@@ -12,6 +12,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
@@ -171,15 +172,15 @@ public class BotaniaManaPortBlockEntity extends BlockEntity implements ManaPool,
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag);
-        tag.put(Ref.NBT_STORAGE_KEY, storage.save(new CompoundTag()));
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
+        tag.put(Ref.NBT_STORAGE_KEY, storage.save(new CompoundTag(), registries));
     }
 
     @Override
-    public void load(CompoundTag tag) {
-        super.load(tag);
-        storage.load(tag.getCompound(Ref.NBT_STORAGE_KEY));
+    public void load(CompoundTag tag, HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
+        storage.load(tag.getCompound(Ref.NBT_STORAGE_KEY), registries);
     }
 
     @Override
@@ -192,9 +193,9 @@ public class BotaniaManaPortBlockEntity extends BlockEntity implements ManaPool,
     }
 
     @Override
-    public CompoundTag getUpdateTag() {
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         var tag = new CompoundTag();
-        saveAdditional(tag);
+        saveAdditional(tag, registries);
         return tag;
     }
 

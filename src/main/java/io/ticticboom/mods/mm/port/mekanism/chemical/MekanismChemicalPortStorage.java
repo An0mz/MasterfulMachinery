@@ -4,51 +4,75 @@ import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.port.IPortStorage;
 import io.ticticboom.mods.mm.port.IPortStorageModel;
 import io.ticticboom.mods.mm.port.common.INotifyChangeFunction;
+import io.ticticboom.mods.mm.port.mekanism.NotifyChangeContentsListener;
 import mekanism.api.Action;
 import mekanism.api.AutomationType;
-import mekanism.api.chemical.Chemical;
+import mekanism.api.MekanismAPI;
+import mekanism.api.chemical.BasicChemicalTank;
 import mekanism.api.chemical.ChemicalStack;
 import mekanism.api.chemical.IChemicalTank;
+import mekanism.common.capabilities.Capabilities;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
+import net.neoforged.neoforge.capabilities.BlockCapability;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
-public abstract class MekanismChemicalPortStorage<CHEMICAL extends Chemical<CHEMICAL>, STACK extends ChemicalStack<CHEMICAL>> implements IPortStorage {
+/**
+ * Mekanism 1.21.1 merged the gas, slurry, pigment and infusion registries into a single Chemical
+ * type with no discriminator, so this class is no longer generic over a chemical/stack pair and
+ * every Mekanism port shares one tank implementation. The four port ids MM exposes to packs are
+ * kept as aliases over this, which means the distinction between them is now cosmetic: a port
+ * declared as mm:mekanism/gas will accept any chemical, because Mekanism itself no longer
+ * separates them.
+ */
+public class MekanismChemicalPortStorage implements IPortStorage {
 
-    public IChemicalTank<CHEMICAL, STACK> chemicalTank;
+    public IChemicalTank chemicalTank;
     private final MekanismChemicalPortStorageModel model;
-    private final LazyOptional<IChemicalTank<CHEMICAL, STACK>> handleL0;
     private final UUID uid = UUID.randomUUID();
 
-    protected MekanismChemicalPortStorage(MekanismChemicalPortStorageModel model, INotifyChangeFunction changed) {
+    public MekanismChemicalPortStorage(MekanismChemicalPortStorageModel model, INotifyChangeFunction changed) {
         this.model = model;
-        chemicalTank = createTank(model.amount(), changed);
-        handleL0 = LazyOptional.of(() -> chemicalTank);
+        this.chemicalTank = createTank(model.amount(), changed);
     }
 
-    protected abstract IChemicalTank<CHEMICAL, STACK> createTank(long capacity, INotifyChangeFunction changed);
-    protected abstract JsonObject debugStack(STACK stack);
+    /** ChemicalTankBuilder.GAS/SLURRY/... collapsed into the single BasicChemicalTank factory. */
+    protected IChemicalTank createTank(long capacity, INotifyChangeFunction changed) {
+        return BasicChemicalTank.createAllValid(capacity, new NotifyChangeContentsListener(changed));
+    }
 
-    @Override
-    public <T> LazyOptional<T> getCapability(Capability<T> capability) {
-        if (hasCapability(capability)) {
-            return handleL0.cast();
-        }
-        return LazyOptional.empty();
+    protected JsonObject debugStack(ChemicalStack stack) {
+        var json = new JsonObject();
+        var key = MekanismAPI.CHEMICAL_REGISTRY.getKey(stack.getChemical());
+        json.addProperty("chemical", key == null ? "null" : key.toString());
+        json.addProperty("amount", stack.getAmount());
+        return json;
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag) {
-        tag.put("handler", chemicalTank.serializeNBT());
+    @SuppressWarnings("unchecked")
+    public <T> @Nullable T getCapability(BlockCapability<T, ?> capability) {
+        // BasicChemicalTank implements IChemicalHandler as well as IChemicalTank, so the tank
+        // itself satisfies Mekanism's chemical capability.
+        return hasCapability(capability) ? (T) chemicalTank : null;
+    }
+
+    @Override
+    public <T> boolean hasCapability(BlockCapability<T, ?> capability) {
+        return capability == Capabilities.CHEMICAL.block();
+    }
+
+    @Override
+    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
+        tag.put("handler", chemicalTank.serializeNBT(registries));
         return tag;
     }
 
     @Override
-    public void load(CompoundTag tag) {
-        chemicalTank.deserializeNBT(tag.getCompound("handler"));
+    public void load(CompoundTag tag, HolderLookup.Provider registries) {
+        chemicalTank.deserializeNBT(registries, tag.getCompound("handler"));
     }
 
     @Override
@@ -66,16 +90,15 @@ public abstract class MekanismChemicalPortStorage<CHEMICAL extends Chemical<CHEM
         JsonObject json = new JsonObject();
         json.addProperty("uid", uid.toString());
         json.addProperty("amount", model.amount());
-        var stack = debugStack(chemicalTank.getStack());
-        json.add("stack", stack);
+        json.add("stack", debugStack(chemicalTank.getStack()));
         return json;
     }
 
-    public STACK extract(long amount, Action action) {
+    public ChemicalStack extract(long amount, Action action) {
         return chemicalTank.extract(amount, action, AutomationType.INTERNAL);
     }
 
-    public STACK insert(STACK stack, Action action) {
+    public ChemicalStack insert(ChemicalStack stack, Action action) {
         var leftInStack = chemicalTank.insert(stack, action, AutomationType.INTERNAL);
         long remainingToInsert = stack.getAmount() - leftInStack.getAmount();
         stack.setAmount(remainingToInsert);

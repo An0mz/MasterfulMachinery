@@ -3,8 +3,6 @@ package io.ticticboom.mods.mm.port.mekanism.infuse.register;
 import io.ticticboom.mods.mm.model.PortModel;
 import io.ticticboom.mods.mm.port.mekanism.chemical.register.MekanismChemicalPortBlockEntity;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
-import mekanism.api.chemical.infuse.InfuseType;
-import mekanism.api.chemical.infuse.InfusionStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -14,7 +12,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
-public class MekanismInfusePortBlockEntity extends MekanismChemicalPortBlockEntity<InfuseType, InfusionStack> {
+public class MekanismInfusePortBlockEntity extends MekanismChemicalPortBlockEntity {
 
     private final PortModel model;
     private final RegistryGroupHolder groupHolder;

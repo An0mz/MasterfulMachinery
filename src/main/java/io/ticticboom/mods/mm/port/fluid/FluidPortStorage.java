@@ -8,6 +8,7 @@ import io.ticticboom.mods.mm.port.IPortStorage;
 import io.ticticboom.mods.mm.port.IPortStorageModel;
 import io.ticticboom.mods.mm.port.common.INotifyChangeFunction;
 import lombok.Getter;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
@@ -50,7 +51,7 @@ public class FluidPortStorage implements IPortStorage {
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag) {
+    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         var compoundTag = handler.serializeNBT();
         tag.put("handler", compoundTag);
         tag.putInt("Priority", this.priority);
@@ -58,7 +59,7 @@ public class FluidPortStorage implements IPortStorage {
     }
 
     @Override
-    public void load(CompoundTag tag) {
+    public void load(CompoundTag tag, HolderLookup.Provider registries) {
         var compoundTag = tag.get("handler");
         handler.deserializeNBT(compoundTag);
         if (tag.contains("Priority")) {

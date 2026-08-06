@@ -14,7 +14,7 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.neoforged.neoforge.common.extensions.IForgeMenuType;
+import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
 import net.neoforged.neoforge.registries.DeferredHolder;
 
 import java.util.function.Consumer;
@@ -46,7 +46,7 @@ public class FluidPortType extends PortType {
 
     @Override
     public DeferredHolder<MenuType<?>, MenuType<?>> registerMenu(PortModel model, RegistryGroupHolder groupHolder) {
-        return MMRegisters.MENUS.register(model.id(), () -> IForgeMenuType
+        return MMRegisters.MENUS.register(model.id(), () -> IMenuTypeExtension
                 .create((i, o, u) -> new FluidPortMenu(model, groupHolder, model.input(), i, o, u)));
     }
 

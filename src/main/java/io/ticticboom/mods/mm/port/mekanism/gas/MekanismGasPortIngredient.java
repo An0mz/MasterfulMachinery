@@ -5,10 +5,8 @@ import io.ticticboom.mods.mm.compat.jei.SlotGrid;
 import io.ticticboom.mods.mm.port.mekanism.chemical.MekanismChemicalPortIngredient;
 import io.ticticboom.mods.mm.port.mekanism.chemical.MekanismChemicalPortStorage;
 import io.ticticboom.mods.mm.recipe.RecipeModel;
-import mekanism.api.MekanismAPI;
-import mekanism.api.chemical.gas.Gas;
-import mekanism.api.chemical.gas.GasStack;
-import mekanism.client.jei.MekanismJEI;
+import mekanism.api.chemical.ChemicalStack;
+import mekanism.client.recipe_viewer.jei.MekanismJEI;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
 import mezz.jei.api.helpers.IJeiHelpers;
@@ -16,24 +14,14 @@ import mezz.jei.api.recipe.IFocusGroup;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
-public class MekanismGasPortIngredient extends MekanismChemicalPortIngredient<Gas, GasStack> {
+public class MekanismGasPortIngredient extends MekanismChemicalPortIngredient {
 
     public MekanismGasPortIngredient(ResourceLocation chemical, long amount) {
         super(chemical, amount);
     }
 
     @Override
-    public GasStack createStack(Gas id, long amount) {
-        return new GasStack(id, amount);
-    }
-
-    @Override
-    public Gas findChemical(ResourceLocation id) {
-        return MekanismAPI.gasRegistry().getValue(id);
-    }
-
-    @Override
-    public Class<? extends MekanismChemicalPortStorage<Gas, GasStack>> getStorageClass() {
+    public Class<? extends MekanismChemicalPortStorage> getStorageClass() {
         return MekanismGasPortStorage.class;
     }
 
@@ -44,9 +32,9 @@ public class MekanismGasPortIngredient extends MekanismChemicalPortIngredient<Ga
 
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, RecipeModel model, IFocusGroup focus, IJeiHelpers helpers, SlotGrid grid, IRecipeSlotBuilder recipeSlot) {
-        GasStack s = createStack(chemical, amount);
+        ChemicalStack s = createStack(chemical, amount);
         s.setAmount(1000);
-        recipeSlot.addIngredient(MekanismJEI.TYPE_GAS, s);
+        recipeSlot.addIngredient(MekanismJEI.TYPE_CHEMICAL, s);
         super.setRecipe(builder, model, focus, helpers, grid, recipeSlot);
     }
 }

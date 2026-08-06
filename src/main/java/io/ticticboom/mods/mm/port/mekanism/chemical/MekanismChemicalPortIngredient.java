@@ -8,6 +8,7 @@ import io.ticticboom.mods.mm.recipe.RecipeModel;
 import io.ticticboom.mods.mm.recipe.RecipeStateModel;
 import io.ticticboom.mods.mm.recipe.RecipeStorages;
 import mekanism.api.Action;
+import mekanism.api.MekanismAPI;
 import mekanism.api.chemical.Chemical;
 import mekanism.api.chemical.ChemicalStack;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
@@ -18,17 +19,24 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 
-public abstract class MekanismChemicalPortIngredient<CHEMICAL extends Chemical<CHEMICAL>, STACK extends ChemicalStack<CHEMICAL>> implements IPortIngredient {
+public abstract class MekanismChemicalPortIngredient implements IPortIngredient {
 
     protected final ResourceLocation id;
     protected final long amount;
 
-    protected final STACK stack;
-    protected final CHEMICAL chemical;
+    protected final ChemicalStack stack;
+    protected final Chemical chemical;
 
-    public abstract STACK createStack(CHEMICAL id, long amount);
-    public abstract CHEMICAL findChemical(ResourceLocation id);
-    public abstract Class<? extends MekanismChemicalPortStorage<CHEMICAL, STACK>> getStorageClass();
+    /** All four chemical kinds share one stack type and one registry on 1.21.1. */
+    public ChemicalStack createStack(Chemical id, long amount) {
+        return new ChemicalStack(id, amount);
+    }
+
+    public Chemical findChemical(ResourceLocation id) {
+        return MekanismAPI.CHEMICAL_REGISTRY.get(id);
+    }
+
+    public abstract Class<? extends MekanismChemicalPortStorage> getStorageClass();
     public abstract ResourceLocation getTypeId();
 
     public MekanismChemicalPortIngredient(ResourceLocation chemical, long amount) {
@@ -51,10 +59,10 @@ public abstract class MekanismChemicalPortIngredient<CHEMICAL extends Chemical<C
         if (storages == null) return false;
         var inputStorages = storages.getInputStorages(getStorageClass());
         long remaining = amount;
-        for (MekanismChemicalPortStorage<CHEMICAL, STACK> storage : inputStorages) {
+        for (MekanismChemicalPortStorage storage : inputStorages) {
             var stored = storage.chemicalTank.getStack();
             if (stored.isEmpty()) continue;
-            if (!stored.getType().equals(this.chemical)) continue;
+            if (!stored.getChemical().equals(this.chemical)) continue;
             long available = stored.getAmount();
             long toTake = Math.min(available, remaining);
             remaining -= toTake;
@@ -67,10 +75,10 @@ public abstract class MekanismChemicalPortIngredient<CHEMICAL extends Chemical<C
     public void process(Level level, RecipeStorages storages, RecipeStateModel state) {
         var inputStorages = storages.getInputStorages(getStorageClass());
         long remaining = amount;
-        for (MekanismChemicalPortStorage<CHEMICAL, STACK> storage : inputStorages) {
+        for (MekanismChemicalPortStorage storage : inputStorages) {
             var stored = storage.chemicalTank.getStack();
             if (stored.isEmpty()) continue;
-            if (!stored.getType().equals(this.chemical)) continue;
+            if (!stored.getChemical().equals(this.chemical)) continue;
             long toExtract = Math.min(remaining, stored.getAmount());
             var extracted = storage.extract(toExtract, Action.EXECUTE);
             remaining -= extracted.getAmount();
@@ -82,7 +90,7 @@ public abstract class MekanismChemicalPortIngredient<CHEMICAL extends Chemical<C
     public boolean canOutput(Level level, RecipeStorages storages, RecipeStateModel state) {
         var outputStorages = storages.getOutputStorages(getStorageClass());
         long remaining = amount;
-        for (MekanismChemicalPortStorage<CHEMICAL, STACK> storage : outputStorages) {
+        for (MekanismChemicalPortStorage storage : outputStorages) {
             var inserted = storage.insert(createStack(this.chemical, remaining), Action.SIMULATE);
             remaining -= inserted.getAmount();
         }
@@ -93,7 +101,7 @@ public abstract class MekanismChemicalPortIngredient<CHEMICAL extends Chemical<C
     public void output(Level level, RecipeStorages storages, RecipeStateModel state) {
         var outputStorages = storages.getOutputStorages(getStorageClass());
         long remaining = amount;
-        for (MekanismChemicalPortStorage<CHEMICAL, STACK> storage : outputStorages) {
+        for (MekanismChemicalPortStorage storage : outputStorages) {
             var inserted = storage.insert(createStack(this.chemical, remaining), Action.EXECUTE);
             remaining -= inserted.getAmount();
         }
@@ -108,9 +116,9 @@ public abstract class MekanismChemicalPortIngredient<CHEMICAL extends Chemical<C
         json.addProperty("amountToInsert", amount);
 
         long remaining = amount;
-        for (MekanismChemicalPortStorage<CHEMICAL, STACK> storage : inputStorages) {
+        for (MekanismChemicalPortStorage storage : inputStorages) {
             var stored = storage.chemicalTank.getStack();
-            if (!stored.isEmpty() && stored.getType().equals(this.chemical)) {
+            if (!stored.isEmpty() && stored.getChemical().equals(this.chemical)) {
                 long avail = stored.getAmount();
                 long toTake = Math.min(avail, remaining);
                 remaining -= toTake;
@@ -131,9 +139,9 @@ public abstract class MekanismChemicalPortIngredient<CHEMICAL extends Chemical<C
         json.addProperty("amountToInsert", amount);
 
         long remaining = amount;
-        for (MekanismChemicalPortStorage<CHEMICAL, STACK> storage : outputStorages) {
+        for (MekanismChemicalPortStorage storage : outputStorages) {
             var stored = storage.chemicalTank.getStack();
-            if (!stored.isEmpty() && stored.getType().equals(this.chemical)) {
+            if (!stored.isEmpty() && stored.getChemical().equals(this.chemical)) {
                 long avail = stored.getAmount();
                 long toTake = Math.min(avail, remaining);
                 remaining -= toTake;

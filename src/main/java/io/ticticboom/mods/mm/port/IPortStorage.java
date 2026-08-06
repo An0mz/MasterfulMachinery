@@ -3,6 +3,7 @@ package io.ticticboom.mods.mm.port;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.model.PortModel;
 import io.ticticboom.mods.mm.util.BlockUtils;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -20,9 +21,10 @@ public interface IPortStorage {
 
     <T> boolean hasCapability(BlockCapability<T, ?> capability);
 
-    CompoundTag save(CompoundTag tag);
+    // 1.21.1 serialises through a registry lookup, so the provider has to reach the storages.
+    CompoundTag save(CompoundTag tag, HolderLookup.Provider registries);
 
-    void load(CompoundTag tag);
+    void load(CompoundTag tag, HolderLookup.Provider registries);
 
     IPortStorageModel getStorageModel();
 

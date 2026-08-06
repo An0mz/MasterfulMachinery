@@ -6,9 +6,9 @@ import io.ticticboom.mods.mm.port.IPortStorageFactory;
 import mekanism.api.chemical.Chemical;
 import mekanism.api.chemical.ChemicalStack;
 
-public abstract class MekanismChemicalPortParser<CHEMICAL extends Chemical<CHEMICAL>, STACK extends ChemicalStack<CHEMICAL>> implements IPortParser {
+public abstract class MekanismChemicalPortParser implements IPortParser {
 
-    public abstract MekanismChemicalPortStorageFactory<CHEMICAL, STACK> createFactory(long amount);
+    public abstract MekanismChemicalPortStorageFactory createFactory(long amount);
 
     @Override
     public IPortStorageFactory parseStorage(JsonObject json) {

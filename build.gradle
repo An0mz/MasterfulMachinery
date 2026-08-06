@@ -119,6 +119,9 @@ repositories {
     }
     maven { url = "https://maven.createmod.net" } // Create, Ponder, Flywheel
     maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // ForgeConfigAPIPort
+
+    mavenCentral()
+    maven { url = "https://jitpack.io" }
 }
 
 // NeoForge ships Mixin, and production runs on Mojang mappings, so neither the Mixin

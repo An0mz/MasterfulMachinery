@@ -6,12 +6,10 @@ import io.ticticboom.mods.mm.port.mekanism.chemical.MekanismChemicalPortParser;
 import io.ticticboom.mods.mm.port.mekanism.chemical.MekanismChemicalPortStorageFactory;
 import io.ticticboom.mods.mm.port.mekanism.chemical.MekanismChemicalPortStorageModel;
 import io.ticticboom.mods.mm.util.ParserUtils;
-import mekanism.api.chemical.gas.Gas;
-import mekanism.api.chemical.gas.GasStack;
 
-public class MekanismGasPortParser extends MekanismChemicalPortParser<Gas, GasStack> {
+public class MekanismGasPortParser extends MekanismChemicalPortParser {
     @Override
-    public MekanismChemicalPortStorageFactory<Gas, GasStack> createFactory(long amount) {
+    public MekanismChemicalPortStorageFactory createFactory(long amount) {
         return new MekanismGasPortStorageFactory(new MekanismChemicalPortStorageModel(amount));
     }
 

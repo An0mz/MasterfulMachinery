@@ -4,14 +4,12 @@ import io.ticticboom.mods.mm.model.PortModel;
 import io.ticticboom.mods.mm.port.mekanism.chemical.register.MekanismChemicalPortBlockEntity;
 import io.ticticboom.mods.mm.port.mekanism.chemical.register.MekanismChemicalPortMenu;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
-import mekanism.api.chemical.slurry.Slurry;
-import mekanism.api.chemical.slurry.SlurryStack;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 
-public class MekanismSlurryPortMenu extends MekanismChemicalPortMenu<Slurry, SlurryStack> {
+public class MekanismSlurryPortMenu extends MekanismChemicalPortMenu {
 
-    public MekanismSlurryPortMenu(PortModel model, RegistryGroupHolder groupHolder, int windowId, Inventory inv,  MekanismChemicalPortBlockEntity<Slurry, SlurryStack> be) {
+    public MekanismSlurryPortMenu(PortModel model, RegistryGroupHolder groupHolder, int windowId, Inventory inv,  MekanismChemicalPortBlockEntity be) {
         super(model, groupHolder, windowId, be, inv);
     }
 

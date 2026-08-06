@@ -22,6 +22,7 @@ import me.desht.pneumaticcraft.common.upgrades.ModUpgrades;
 import me.desht.pneumaticcraft.common.util.DirectionUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
@@ -122,21 +123,21 @@ public class PneumaticAirPortBlockEntity extends AbstractTickingBlockEntity impl
 
 
     @Override
-    public void saveAdditional(CompoundTag tag) {
-        tag.put(Ref.NBT_STORAGE_KEY, storage.save(new CompoundTag()));
-        super.saveAdditional(tag);
+    public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        tag.put(Ref.NBT_STORAGE_KEY, storage.save(new CompoundTag(), registries));
+        super.saveAdditional(tag, registries);
     }
 
     @Override
-    public void load(CompoundTag tag) {
-        storage.load(tag.getCompound(Ref.NBT_STORAGE_KEY));
-        super.load(tag);
+    public void load(CompoundTag tag, HolderLookup.Provider registries) {
+        storage.load(tag.getCompound(Ref.NBT_STORAGE_KEY), registries);
+        super.loadAdditional(tag, registries);
     }
 
     @Override
-    public CompoundTag getUpdateTag() {
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         var tag = new CompoundTag();
-        saveAdditional(tag);
+        saveAdditional(tag, registries);
         return tag;
     }
 

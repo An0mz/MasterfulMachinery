@@ -9,6 +9,7 @@ import io.ticticboom.mods.mm.port.IPortStorage;
 import io.ticticboom.mods.mm.port.IPortStorageModel;
 import io.ticticboom.mods.mm.port.common.INotifyChangeFunction;
 import lombok.Getter;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.player.Inventory;
@@ -53,7 +54,7 @@ public class ItemPortStorage implements IPortStorage {
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag) {
+    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         Tag compoundTag = handler.serializeStacks();
         tag.put("handler", compoundTag);
         // save priority
@@ -62,7 +63,7 @@ public class ItemPortStorage implements IPortStorage {
     }
 
     @Override
-    public void load(CompoundTag tag) {
+    public void load(CompoundTag tag, HolderLookup.Provider registries) {
         Tag compoundTag = tag.get("handler");
         if (compoundTag != null) {
             handler.deserializeStacks(compoundTag);

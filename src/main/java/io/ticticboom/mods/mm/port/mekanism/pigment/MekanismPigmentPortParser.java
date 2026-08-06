@@ -6,13 +6,11 @@ import io.ticticboom.mods.mm.port.mekanism.chemical.MekanismChemicalPortParser;
 import io.ticticboom.mods.mm.port.mekanism.chemical.MekanismChemicalPortStorageFactory;
 import io.ticticboom.mods.mm.port.mekanism.chemical.MekanismChemicalPortStorageModel;
 import io.ticticboom.mods.mm.util.ParserUtils;
-import mekanism.api.chemical.pigment.Pigment;
-import mekanism.api.chemical.pigment.PigmentStack;
 
-public class MekanismPigmentPortParser extends MekanismChemicalPortParser<Pigment, PigmentStack>
+public class MekanismPigmentPortParser extends MekanismChemicalPortParser
 {
     @Override
-    public MekanismChemicalPortStorageFactory<Pigment, PigmentStack> createFactory(long amount) {
+    public MekanismChemicalPortStorageFactory createFactory(long amount) {
         return new MekanismPigmentPortStorageFactory(new MekanismChemicalPortStorageModel(amount));
     }
 

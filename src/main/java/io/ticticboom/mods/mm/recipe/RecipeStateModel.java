@@ -3,6 +3,7 @@ package io.ticticboom.mods.mm.recipe;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 
 import java.util.HashMap;
@@ -21,7 +22,7 @@ public class RecipeStateModel {
         tickProgress++;
     }
 
-    public CompoundTag save(CompoundTag tag) {
+    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         tag.putBoolean("canProcess", canProcess);
         tag.putInt("tickProgress", tickProgress);
         tag.putDouble("tickPercentage", tickPercentage);

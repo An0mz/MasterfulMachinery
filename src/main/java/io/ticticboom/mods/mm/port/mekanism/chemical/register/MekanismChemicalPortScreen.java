@@ -5,8 +5,6 @@ import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.port.IPortStorage;
 import io.ticticboom.mods.mm.port.mekanism.chemical.MekanismChemicalPortStorage;
 import io.ticticboom.mods.mm.util.WidgetUtils;
-import mekanism.api.chemical.Chemical;
-import mekanism.api.chemical.ChemicalStack;
 import mekanism.client.gui.GuiUtils;
 import mekanism.client.render.MekanismRenderer;
 import net.minecraft.client.gui.GuiGraphics;
@@ -19,11 +17,11 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 import java.util.List;
 
-public class MekanismChemicalPortScreen<CHEMICAL extends Chemical<CHEMICAL>, STACK extends ChemicalStack<CHEMICAL>, T extends MekanismChemicalPortMenu<CHEMICAL, STACK>> extends AbstractContainerScreen<T> {
+public class MekanismChemicalPortScreen<T extends MekanismChemicalPortMenu> extends AbstractContainerScreen<T> {
 
     private final FormattedText header;
-    protected final MekanismChemicalPortBlockEntity<CHEMICAL, STACK> be;
-    protected final MekanismChemicalPortStorage<CHEMICAL, STACK> storage;
+    protected final MekanismChemicalPortBlockEntity be;
+    protected final MekanismChemicalPortStorage storage;
 
 
     public MekanismChemicalPortScreen(T menu, Inventory inv, Component title) {
@@ -34,7 +32,7 @@ public class MekanismChemicalPortScreen<CHEMICAL extends Chemical<CHEMICAL>, STA
         int subStrLength = Math.min(55, name.length());
         header = FormattedText.of(name.substring(0, subStrLength) + (subStrLength < 55 ? "" : "..."));
         be = this.menu.getBlockEntity();
-        storage = (MekanismChemicalPortStorage<CHEMICAL, STACK>) be.getStorage();
+        storage = (MekanismChemicalPortStorage) be.getStorage();
 
     }
 

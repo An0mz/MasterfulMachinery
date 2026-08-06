@@ -19,7 +19,7 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.neoforged.neoforge.common.extensions.IForgeMenuType;
+import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
 import net.neoforged.neoforge.registries.DeferredHolder;
 
 import java.util.function.Consumer;
@@ -48,7 +48,7 @@ public class MekanismSlurryPortType extends PortType {
 
     @Override
     public DeferredHolder<MenuType<?>, MenuType<?>> registerMenu(PortModel model, RegistryGroupHolder groupHolder) {
-        return MMRegisters.MENUS.register(model.id(), () -> IForgeMenuType.create((i, o, u) -> new MekanismSlurryPortMenu(model, groupHolder, i, o, u)));
+        return MMRegisters.MENUS.register(model.id(), () -> IMenuTypeExtension.create((i, o, u) -> new MekanismSlurryPortMenu(model, groupHolder, i, o, u)));
     }
 
     @Override

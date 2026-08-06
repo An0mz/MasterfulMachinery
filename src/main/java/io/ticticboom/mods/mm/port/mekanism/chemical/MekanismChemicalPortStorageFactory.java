@@ -6,7 +6,7 @@ import io.ticticboom.mods.mm.port.IPortStorageModel;
 import mekanism.api.chemical.Chemical;
 import mekanism.api.chemical.ChemicalStack;
 
-public abstract class MekanismChemicalPortStorageFactory<CHEMICAL extends Chemical<CHEMICAL>, STACK extends ChemicalStack<CHEMICAL>> implements IPortStorageFactory {
+public abstract class MekanismChemicalPortStorageFactory implements IPortStorageFactory {
 
 
     protected final MekanismChemicalPortStorageModel model;

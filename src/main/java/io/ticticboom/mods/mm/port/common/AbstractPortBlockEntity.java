@@ -4,6 +4,8 @@ import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.port.IPortBlockEntity;
 import io.ticticboom.mods.mm.port.IPortPart;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -23,21 +25,22 @@ public abstract class AbstractPortBlockEntity extends BlockEntity implements IPo
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        tag.put(Ref.NBT_STORAGE_KEY, getStorage().save(new CompoundTag()));
-        super.saveAdditional(tag);
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        tag.put(Ref.NBT_STORAGE_KEY, getStorage().save(new CompoundTag(), registries));
+        super.saveAdditional(tag, registries);
     }
 
     @Override
-    public void load(CompoundTag tag) {
-        getStorage().load(tag.getCompound(Ref.NBT_STORAGE_KEY));
-        super.load(tag);
+    // load(CompoundTag) became loadAdditional(CompoundTag, Provider) in 1.21.1.
+    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        getStorage().load(tag.getCompound(Ref.NBT_STORAGE_KEY), registries);
+        super.loadAdditional(tag, registries);
     }
 
     @Override
-    public @NotNull CompoundTag getUpdateTag() {
+    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         var tag = new CompoundTag();
-        saveAdditional(tag);
+        saveAdditional(tag, registries);
         return tag;
     }
 

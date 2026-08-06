@@ -10,6 +10,7 @@ import io.ticticboom.mods.mm.port.energy.feature.EnergyPortAutoPushFeature;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
@@ -75,21 +76,21 @@ public class  EnergyPortBlockEntity extends AbstractPortBlockEntity {
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        tag.put(Ref.NBT_STORAGE_KEY, storage.save(new CompoundTag()));
-        super.saveAdditional(tag);
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        tag.put(Ref.NBT_STORAGE_KEY, storage.save(new CompoundTag(), registries));
+        super.saveAdditional(tag, registries);
     }
 
     @Override
-    public void load(CompoundTag tag) {
-        storage.load(tag.getCompound(Ref.NBT_STORAGE_KEY));
-        super.load(tag);
+    public void load(CompoundTag tag, HolderLookup.Provider registries) {
+        storage.load(tag.getCompound(Ref.NBT_STORAGE_KEY), registries);
+        super.loadAdditional(tag, registries);
     }
 
     @Override
-    public @NotNull CompoundTag getUpdateTag() {
+    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         var tag = new CompoundTag();
-        saveAdditional(tag);
+        saveAdditional(tag, registries);
         return tag;
     }
 
