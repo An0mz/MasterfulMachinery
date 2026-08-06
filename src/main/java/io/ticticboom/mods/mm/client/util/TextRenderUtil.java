@@ -5,24 +5,24 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
-import net.neoforged.neoforge.client.extensions.IForgeFont;
+import net.neoforged.neoforge.client.extensions.IFontExtension;
 
 public class TextRenderUtil {
     private static final Minecraft mc = Minecraft.getInstance();
 
     public static FormattedText ellipsizeAlways(Font font, FormattedText text, int maxWidth) {
         final int strWidth = font.width(text);
-        final int ellipsisWidth = font.width(IForgeFont.ELLIPSIS);
+        final int ellipsisWidth = font.width(IFontExtension.ELLIPSIS);
         if (strWidth > maxWidth) {
             return FormattedText.composite(
                     font.substrByWidth(text, maxWidth - ellipsisWidth),
-                    IForgeFont.ELLIPSIS);
+                    IFontExtension.ELLIPSIS);
         } else if (strWidth + ellipsisWidth > maxWidth) {
             return FormattedText.composite(
                     font.substrByWidth(text, maxWidth - ellipsisWidth),
-                    IForgeFont.ELLIPSIS);
+                    IFontExtension.ELLIPSIS);
         }
-        return FormattedText.composite(text, IForgeFont.ELLIPSIS);
+        return FormattedText.composite(text, IFontExtension.ELLIPSIS);
     }
 
     public static void renderWordWrapLimit(GuiGraphics guiGraphics, Font font, FormattedText text, int x, int y, int lineWidth, int lineLimit, int color) {

@@ -17,12 +17,10 @@ import net.minecraft.data.DataGenerator;
 import net.minecraft.server.packs.repository.PackRepository;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
-import net.minecraftforge.fml.DistExecutor;
 import net.neoforged.fml.ModLoader;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.fml.loading.FMLPaths;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraftforge.registries.RegistryManager;
 import net.neoforged.neoforge.resource.ResourcePackLoader;
 
 import java.io.File;
