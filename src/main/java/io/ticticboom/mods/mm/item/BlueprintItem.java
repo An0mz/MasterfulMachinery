@@ -40,8 +40,8 @@ public class BlueprintItem extends Item {
     }
 
     @Override
-    public void appendHoverText(@NotNull ItemStack stack, @Nullable Level level, @NotNull List<Component> texts, @NotNull TooltipFlag tipFlag) {
-        super.appendHoverText(stack, level, texts, tipFlag);
+    public void appendHoverText(@NotNull ItemStack stack, Item.TooltipContext context, @NotNull List<Component> texts, @NotNull TooltipFlag tipFlag) {
+        super.appendHoverText(stack, context, texts, tipFlag);
         var structure = getStructure(stack);
         if (structure == null) {
             return;

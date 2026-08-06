@@ -102,12 +102,12 @@ public class PrioritySetterItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack pStack, @Nullable Level pLevel, List<Component> pTooltipComponents, TooltipFlag pIsAdvanced) {
+    public void appendHoverText(ItemStack pStack, Item.TooltipContext pContext, List<Component> pTooltipComponents, TooltipFlag pIsAdvanced) {
         int prio = getPriorityFromItem(pStack);
         pTooltipComponents.add(Component.translatable("item.mm.priority_setter.tooltip.line1", prio));
         pTooltipComponents.add(Component.translatable("item.mm.priority_setter.tooltip.line2"));
         pTooltipComponents.add(Component.translatable("item.mm.priority_setter.tooltip.line3"));
         pTooltipComponents.add(Component.translatable("item.mm.priority_setter.tooltip.line4"));
-        super.appendHoverText(pStack, pLevel, pTooltipComponents, pIsAdvanced);
+        super.appendHoverText(pStack, pContext, pTooltipComponents, pIsAdvanced);
     }
 }

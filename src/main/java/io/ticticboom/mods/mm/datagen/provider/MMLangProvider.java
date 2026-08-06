@@ -17,7 +17,7 @@ public class MMLangProvider extends LanguageProvider {
 
     @Override
     protected void addTranslations() {
-        for (DeferredHolder<Block, Block> entry : MMRegisters.BLOCKS.getEntries()) {
+        for (DeferredHolder<Block, ? extends Block> entry : MMRegisters.BLOCKS.getEntries()) {
             if (entry.get() instanceof IControllerPart controllerPart) {
                 this.add(entry.get(), controllerPart.getModel().name());
             }

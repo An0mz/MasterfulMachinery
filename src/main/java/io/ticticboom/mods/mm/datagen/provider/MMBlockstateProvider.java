@@ -28,7 +28,7 @@ public class MMBlockstateProvider extends BlockStateProvider {
 
     @Override
     protected void registerStatesAndModels() {
-        for (DeferredHolder<Block, Block> entry : MMRegisters.BLOCKS.getEntries()) {
+        for (DeferredHolder<Block, ? extends Block> entry : MMRegisters.BLOCKS.getEntries()) {
             Block block = entry.get();
             if (block instanceof IControllerBlock controllerPart) {
                 controllerPart.generateModel(this);

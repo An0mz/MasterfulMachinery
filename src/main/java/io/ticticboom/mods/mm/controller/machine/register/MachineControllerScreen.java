@@ -88,7 +88,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
 
     @Override
     public void render(@NotNull GuiGraphics gfx, int mouseX, int mouseY, float partial) {
-        renderBackground(gfx);
+        renderBackground(gfx, mouseX, mouseY, partial);
         super.render(gfx, mouseX, mouseY, partial);
         renderTooltip(gfx, mouseX, mouseY);
     }

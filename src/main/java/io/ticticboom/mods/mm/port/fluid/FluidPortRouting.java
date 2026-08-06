@@ -14,7 +14,7 @@ public class FluidPortRouting {
         Map<Integer, List<Map.Entry<BlockPos, FluidPortStorage>>> grouped = new HashMap<>();
         for (var entry : candidates.entrySet()) {
             var storage = entry.getValue();
-            int space = storage.getWrappedHandler().fill(new FluidStack(stack, Integer.MAX_VALUE), FluidAction.SIMULATE);
+            int space = storage.getWrappedHandler().fill(stack.copyWithAmount(Integer.MAX_VALUE), FluidAction.SIMULATE);
             if (space <= 0) continue;
             int prio = storage.getPriority();
             grouped.computeIfAbsent(prio, k -> new ArrayList<>()).add(entry);
@@ -28,8 +28,8 @@ public class FluidPortRouting {
             // snapshot remaining for comparator
             int remForSort = remaining;
             list.sort((a, b) -> {
-                int sa = a.getValue().getWrappedHandler().fill(new FluidStack(stack, Integer.MAX_VALUE), FluidAction.SIMULATE);
-                int sb = b.getValue().getWrappedHandler().fill(new FluidStack(stack, Integer.MAX_VALUE), FluidAction.SIMULATE);
+                int sa = a.getValue().getWrappedHandler().fill(stack.copyWithAmount(Integer.MAX_VALUE), FluidAction.SIMULATE);
+                int sb = b.getValue().getWrappedHandler().fill(stack.copyWithAmount(Integer.MAX_VALUE), FluidAction.SIMULATE);
                 if (sa != sb) return Integer.compare(sb, sa);
                 long pa = a.getKey().asLong();
                 long pb = b.getKey().asLong();
@@ -39,9 +39,9 @@ public class FluidPortRouting {
             for (var entry : list) {
                 if (remaining <= 0) break;
                 var target = entry.getValue();
-                int canAccept = target.getWrappedHandler().fill(new FluidStack(stack, remaining), FluidAction.SIMULATE);
+                int canAccept = target.getWrappedHandler().fill(stack.copyWithAmount(remaining), FluidAction.SIMULATE);
                 if (canAccept <= 0) continue;
-                int accepted = target.getWrappedHandler().fill(new FluidStack(stack, canAccept), FluidAction.EXECUTE);
+                int accepted = target.getWrappedHandler().fill(stack.copyWithAmount(canAccept), FluidAction.EXECUTE);
                 if (accepted > 0) {
                     // remove from source: drain accepted amount
                     source.getHandler().drain(accepted, FluidAction.EXECUTE);

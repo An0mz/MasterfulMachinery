@@ -79,9 +79,9 @@ public abstract class AbstractWidget implements IWidget {
     }
 
     @Override
-    public boolean mouseScrolled(double pMouseX, double pMouseY, double pDelta) {
+    public boolean mouseScrolled(double pMouseX, double pMouseY, double pScrollX, double pScrollY) {
         for (IWidget child : children) {
-            child.mouseScrolled(pMouseX, pMouseY, pDelta);
+            child.mouseScrolled(pMouseX, pMouseY, pScrollX, pScrollY);
         }
         return false;
     }

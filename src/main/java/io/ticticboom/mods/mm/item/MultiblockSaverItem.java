@@ -118,7 +118,7 @@ public class MultiblockSaverItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack pStack, @Nullable Level pLevel, @NotNull List<Component> pTooltipComponents, @NotNull TooltipFlag pIsAdvanced) {
+    public void appendHoverText(ItemStack pStack, Item.TooltipContext pContext, @NotNull List<Component> pTooltipComponents, @NotNull TooltipFlag pIsAdvanced) {
         var tag = ItemNbtUtil.getTag(pStack);
         if (tag != null) {
             if (tag.contains(NBT_POS1)) {
@@ -132,7 +132,7 @@ public class MultiblockSaverItem extends Item {
                 pTooltipComponents.add(Component.translatable("item.mm.multiblock_saver.tooltip.corner2", pos.getX(), pos.getY(), pos.getZ()));
             }
         }
-        super.appendHoverText(pStack, pLevel, pTooltipComponents, pIsAdvanced);
+        super.appendHoverText(pStack, pContext, pTooltipComponents, pIsAdvanced);
     }
 }
 

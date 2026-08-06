@@ -26,11 +26,12 @@ import java.util.function.Supplier;
 
 public class BlockUtils {
     public static <T extends MenuProvider> InteractionResult commonUse(BlockState state, Level level, BlockPos pos,
-                                                                       Player player, InteractionHand hand, BlockHitResult hitResult, Class<T> clz, @Nullable Supplier<Boolean> preScreenCheck) {
+                                                                       Player player, BlockHitResult hitResult, Class<T> clz, @Nullable Supplier<Boolean> preScreenCheck) {
         if (preScreenCheck == null) {
             preScreenCheck = () -> true;
         }
-        if (!level.isClientSide() && hand == InteractionHand.MAIN_HAND) {
+        // useWithoutItem is only fired for the main hand, so the old hand check is redundant.
+        if (!level.isClientSide()) {
             var be = WorldUtil.getBlockEntity(pos, (ServerLevel) level);
             if (be != null && clz.isAssignableFrom(be.getClass())) {
                 if (preScreenCheck.get()) {

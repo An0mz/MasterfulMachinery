@@ -49,7 +49,7 @@ public class MekanismChemicalPortScreen<T extends MekanismChemicalPortMenu> exte
 
     @Override
     public void render(GuiGraphics gfx, int mouseX, int mouseY, float partialTick) {
-        renderBackground(gfx);
+        renderBackground(gfx, mouseX, mouseY, partialTick);
         super.render(gfx, mouseX, mouseY, partialTick);
         renderTooltip(gfx, mouseX, mouseY);
         var type = storage.chemicalTank.getStack();

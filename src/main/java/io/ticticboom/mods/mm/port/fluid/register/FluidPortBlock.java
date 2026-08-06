@@ -62,9 +62,8 @@ public class FluidPortBlock extends Block implements IPortBlock, EntityBlock {
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
-                                 InteractionHand hand, BlockHitResult hitResult) {
-        return BlockUtils.commonUse(state, level, pos, player, hand, hitResult, FluidPortBlockEntity.class, () -> {
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
+        return BlockUtils.commonUse(state, level, pos, player, hitResult, FluidPortBlockEntity.class, () -> {
             IFluidHandler handler = getHandler(level, pos);
             if (handler == null){
                 return true;

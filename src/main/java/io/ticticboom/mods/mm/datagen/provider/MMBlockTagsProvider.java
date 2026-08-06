@@ -24,7 +24,7 @@ public class MMBlockTagsProvider extends BlockTagsProvider {
     protected void addTags(HolderLookup.Provider provider) {
         var pickaxeTool = this.tag(BlockTags.MINEABLE_WITH_PICKAXE);
 
-        for (DeferredHolder<Block, Block> entry : MMRegisters.BLOCKS.getEntries()) {
+        for (DeferredHolder<Block, ? extends Block> entry : MMRegisters.BLOCKS.getEntries()) {
             Block block = entry.get();
             if (block instanceof IControllerBlock || block instanceof IPortBlock || block instanceof IExtraBlock) {
                 pickaxeTool.add(block);

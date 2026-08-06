@@ -44,7 +44,7 @@ public abstract class MekanismChemicalPortBlock extends Block implements EntityB
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
-        return BlockUtils.commonUse(state, level, pos, player, hand, hitResult, MekanismChemicalPortBlockEntity.class, null);
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
+        return BlockUtils.commonUse(state, level, pos, player, hitResult, MekanismChemicalPortBlockEntity.class, null);
     }
 }

@@ -47,7 +47,7 @@ public class ItemPortHandler extends ItemStackHandler {
         // store both display stacks and actualCounts into a compound
         var compound = new CompoundTag();
         var tag = NbtOps.INSTANCE.withEncoder(STACKS_CODEC).apply(stacks);
-        compound.put("stacks", tag.getOrThrow(false, Ref.LOG::error));
+        compound.put("stacks", tag.getOrThrow(__msg -> { Ref.LOG.error(__msg); return new IllegalStateException(__msg); }));
         compound.putIntArray("counts", actualCounts);
         return compound;
     }
@@ -58,7 +58,7 @@ public class ItemPortHandler extends ItemStackHandler {
         Tag stacksTag = ct.get("stacks");
         if (stacksTag != null) {
             var res = NbtOps.INSTANCE.withDecoder(STACKS_CODEC).apply(stacksTag);
-            var pair = res.getOrThrow(false, Ref.LOG::error);
+            var pair = res.getOrThrow(__msg -> { Ref.LOG.error(__msg); return new IllegalStateException(__msg); });
             this.stacks.clear();
             List<ItemStack> list = pair.getFirst();
             for (int i = 0; i < list.size(); i++) {
