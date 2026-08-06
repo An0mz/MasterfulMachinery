@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.item;
 
+import io.ticticboom.mods.mm.util.ItemNbtUtil;
+
 import io.ticticboom.mods.mm.port.IPortBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -88,7 +90,7 @@ public class PrioritySetterItem extends Item {
     }
 
     public static int getPriorityFromItem(ItemStack stack) {
-        var tag = stack.getTag();
+        var tag = ItemNbtUtil.getTag(stack);
         if (tag != null && tag.contains(NBT_KEY)) {
             return Math.max(0, Math.min(MAX_PRIORITY, tag.getInt(NBT_KEY)));
         }
@@ -96,8 +98,7 @@ public class PrioritySetterItem extends Item {
     }
 
     public static void setPriorityInItem(ItemStack stack, int prio) {
-        var tag = stack.getOrCreateTag();
-        tag.putInt(NBT_KEY, Math.max(0, Math.min(MAX_PRIORITY, prio)));
+        ItemNbtUtil.mutate(stack, tag -> tag.putInt(NBT_KEY, Math.max(0, Math.min(MAX_PRIORITY, prio))));
     }
 
     @Override

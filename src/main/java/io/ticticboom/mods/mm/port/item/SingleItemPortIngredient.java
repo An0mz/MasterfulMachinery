@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.port.item;
 
+import io.ticticboom.mods.mm.util.ItemNbtUtil;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.Ref;
@@ -42,7 +44,7 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
         // that read the ItemStack count (rather than the JEI badge) get the correct amount.
         stack = new ItemStack(item, count);
         if (requiredNbt != null) {
-            stack.setTag(requiredNbt.copy());
+            ItemNbtUtil.setTag(stack, requiredNbt.copy());
         }
     }
 
@@ -75,7 +77,7 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
             if (remainingToInsert <= 0) break;
             if (this.requiredNbt != null) {
                 ItemStack probe = new ItemStack(item, remainingToInsert);
-                probe.setTag(this.requiredNbt.copy());
+                ItemNbtUtil.setTag(probe, this.requiredNbt.copy());
                 remainingToInsert = s.insert(probe, remainingToInsert);
             } else {
                 remainingToInsert = s.insert(item, remainingToInsert);

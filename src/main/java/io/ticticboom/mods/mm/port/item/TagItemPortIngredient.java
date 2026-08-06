@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.port.item;
 
+import io.ticticboom.mods.mm.util.ItemNbtUtil;
+
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.compat.jei.SlotGrid;
 import io.ticticboom.mods.mm.recipe.RecipeModel;
@@ -38,7 +40,7 @@ public class TagItemPortIngredient extends BaseItemPortIngredient {
                     // use display stacks with the real required count so external transfer/encode handlers
                     // that read the ItemStack count (rather than the JEI badge) get the correct amount.
                     var s = new ItemStack(holder.value(), count);
-                    if (requiredNbt != null) s.setTag(requiredNbt.copy());
+                    if (requiredNbt != null) ItemNbtUtil.setTag(s, requiredNbt.copy());
                     return s;
                 }).toList())
                 .orElseGet(List::of),

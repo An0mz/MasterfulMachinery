@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.port.item;
 
+import io.ticticboom.mods.mm.util.ItemNbtUtil;
+
 import java.util.List;
 
 import com.mojang.serialization.Codec;
@@ -151,7 +153,7 @@ public class ItemPortHandler extends ItemStackHandler {
                 return stack; // different item
             }
             // respect NBT: only merge when tags are equal or both null
-            if (areTagsDifferentOrNull(existing.getTag(), stack.getTag())) {
+            if (areTagsDifferentOrNull(ItemNbtUtil.getTag(existing), ItemNbtUtil.getTag(stack))) {
                 return stack; // different tag -> do not merge here
             }
             int existingCount = actualCounts[slot];
@@ -203,7 +205,7 @@ public class ItemPortHandler extends ItemStackHandler {
         if (stack == null || stack.isEmpty()) return count;
         int remainingToInsert = count;
         Item stackItem = stack.getItem();
-        CompoundTag stackTag = stack.getTag();
+        CompoundTag stackTag = ItemNbtUtil.getTag(stack);
 
         // Check all slots for available space
         for (int slot = 0; slot < getSlots(); slot++) {
@@ -215,7 +217,7 @@ public class ItemPortHandler extends ItemStackHandler {
                 int limit = getSlotLimit(slot);
                 int toPlace = Math.min(limit, remainingToInsert);
                 remainingToInsert -= toPlace;
-            } else if (existing.getItem() == stackItem && !areTagsDifferentOrNull(existing.getTag(), stackTag)) {
+            } else if (existing.getItem() == stackItem && !areTagsDifferentOrNull(ItemNbtUtil.getTag(existing), stackTag)) {
                 // Compatible existing stack - can merge
                 int limit = getSlotLimit(slot);
                 int actualCount = actualCounts[slot];
@@ -317,7 +319,7 @@ public class ItemPortHandler extends ItemStackHandler {
             ItemStack existing = getStackInSlot(slot);
             if (existing.isEmpty()) continue;
             if (existing.getItem() != template.getItem()) continue;
-            if (checkNbt && areTagsDifferentOrNull(existing.getTag(), template.getTag())) continue;
+            if (checkNbt && areTagsDifferentOrNull(ItemNbtUtil.getTag(existing), ItemNbtUtil.getTag(template))) continue;
             int limit = getSlotLimit(slot);
             int space = limit - actualCounts[slot];
             if (space <= 0) continue;

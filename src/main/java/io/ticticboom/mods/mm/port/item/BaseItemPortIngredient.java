@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.port.item;
 
+import io.ticticboom.mods.mm.util.ItemNbtUtil;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.Ref;
@@ -38,7 +40,7 @@ public abstract class BaseItemPortIngredient implements IPortIngredient {
         // wrap the provided filter to include NBT-check if requiredNbt present
         if (requiredNbt != null) {
             this.filter = filter.and(s -> {
-                var tag = s.getTag();
+                var tag = ItemNbtUtil.getTag(s);
                 if (tag == null) return false;
                 if (nbtStrong) {
                     return tag.equals(requiredNbt);

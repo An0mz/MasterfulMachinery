@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.controller.machine.register;
 
+import io.ticticboom.mods.mm.util.ItemNbtUtil;
+
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.config.MMConfig;
 import io.ticticboom.mods.mm.controller.IControllerBlockEntity;
@@ -336,8 +338,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                                 // compute NBT fingerprint for this exact stack
                                 ResourceLocation composed = key;
                                 try {
-                                    if (stack.hasTag()) {
-                                        String json = io.ticticboom.mods.mm.util.NbtMatchUtils.toJson(stack.getTag()).toString();
+                                    if (ItemNbtUtil.hasTag(stack)) {
+                                        String json = io.ticticboom.mods.mm.util.NbtMatchUtils.toJson(ItemNbtUtil.getTag(stack)).toString();
                                         String hex = Integer.toHexString(json.hashCode());
                                         String namespaced = key.getNamespace() + ":" + key.getPath() + "__W__" + hex;
                                         var parsed = ResourceLocation.tryParse(namespaced);
@@ -616,7 +618,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                                         if (!key.equals(baseId)) continue;
                                         // check NBT match according to ingredient
                                         net.minecraft.nbt.CompoundTag req = singleIng.getRequiredNbt();
-                                        net.minecraft.nbt.CompoundTag stackTag = stack.getTag();
+                                        net.minecraft.nbt.CompoundTag stackTag = ItemNbtUtil.getTag(stack);
                                         boolean matches;
                                         if (req == null) {
                                             matches = true;

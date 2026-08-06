@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.item;
 
+import io.ticticboom.mods.mm.util.ItemNbtUtil;
+
 import io.ticticboom.mods.mm.structure.StructureManager;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import io.ticticboom.mods.mm.util.StructurePasteUtil;
@@ -90,11 +92,11 @@ public class BlueprintItem extends Item {
 
     public ItemStack getStructureInstance(ResourceLocation structureId) {
         ItemStack defaultInstance = getDefaultInstance();
-        defaultInstance.getOrCreateTag().putString(TAG_STRUCTURE, structureId.toString());
+        ItemNbtUtil.mutate(defaultInstance, __t -> __t.putString(TAG_STRUCTURE, structureId.toString()));
 
         StructureModel structure = StructureManager.STRUCTURES.get(structureId);
         if (structure != null && structure.name() != null && !structure.name().isBlank()) {
-            defaultInstance.getOrCreateTag().putString(TAG_STRUCTURE_NAME, structure.name());
+            ItemNbtUtil.mutate(defaultInstance, __t -> __t.putString(TAG_STRUCTURE_NAME, structure.name()));
         }
 
         return defaultInstance;
@@ -102,12 +104,12 @@ public class BlueprintItem extends Item {
 
     @Nullable
     public static ResourceLocation getStructureId(ItemStack stack) {
-        if (!stack.hasTag()) {
+        if (!ItemNbtUtil.hasTag(stack)) {
             return null;
         }
 
-        assert stack.getTag() != null;
-        return ResourceLocation.tryParse(stack.getTag().getString(TAG_STRUCTURE));
+        assert ItemNbtUtil.getTag(stack) != null;
+        return ResourceLocation.tryParse(ItemNbtUtil.getTag(stack).getString(TAG_STRUCTURE));
     }
 
     public static StructureModel getStructure(ItemStack stack) {
@@ -128,9 +130,9 @@ public class BlueprintItem extends Item {
 
         // Fallbacks only apply once the structure no longer resolves (removed from the pack), so the
         // stored value is shown literally rather than treated as a translation key.
-        if (stack.hasTag()) {
-            assert stack.getTag() != null;
-            String storedName = stack.getTag().getString(TAG_STRUCTURE_NAME);
+        if (ItemNbtUtil.hasTag(stack)) {
+            assert ItemNbtUtil.getTag(stack) != null;
+            String storedName = ItemNbtUtil.getTag(stack).getString(TAG_STRUCTURE_NAME);
             if (!storedName.isBlank()) {
                 return Component.literal(storedName);
             }

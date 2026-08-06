@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.item;
 
+import io.ticticboom.mods.mm.util.ItemNbtUtil;
+
 import io.ticticboom.mods.mm.util.StructureCaptureUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -39,16 +41,16 @@ public class MultiblockSaverItem extends Item {
 
         // if player is sneaking and clicks in air, clear stored corners from the item
         if (player.isShiftKeyDown()) {
-            if (stack.hasTag()) {
-                stack.getOrCreateTag().remove(NBT_POS1);
-                stack.getOrCreateTag().remove(NBT_POS2);
+            if (ItemNbtUtil.hasTag(stack)) {
+                ItemNbtUtil.mutate(stack, __t -> __t.remove(NBT_POS1));
+                ItemNbtUtil.mutate(stack, __t -> __t.remove(NBT_POS2));
             }
             player.displayClientMessage(Component.translatable("item.mm.multiblock_saver.message.cleared"), true);
             return InteractionResultHolder.success(stack);
         }
 
         // check if both corners exist
-        var tag = stack.getTag();
+        var tag = ItemNbtUtil.getTag(stack);
         if (tag == null || !tag.contains(NBT_POS1) || !tag.contains(NBT_POS2)) {
             player.displayClientMessage(Component.translatable("item.mm.multiblock_saver.message.mark_corners"), true);
             return InteractionResultHolder.pass(stack);
@@ -58,8 +60,8 @@ public class MultiblockSaverItem extends Item {
             return InteractionResultHolder.fail(stack);
         }
 
-        long p1l = stack.getOrCreateTag().getLong(NBT_POS1);
-        long p2l = stack.getOrCreateTag().getLong(NBT_POS2);
+        long p1l = ItemNbtUtil.getTagOrEmpty(stack).getLong(NBT_POS1);
+        long p2l = ItemNbtUtil.getTagOrEmpty(stack).getLong(NBT_POS2);
         BlockPos p1 = BlockPos.of(p1l);
         BlockPos p2 = BlockPos.of(p2l);
 
@@ -67,8 +69,8 @@ public class MultiblockSaverItem extends Item {
             var result = StructureCaptureUtil.captureAndSave(level, p1, p2, serverPlayer.getName().getString());
             if (result.success) {
                 // clear positions
-                stack.getOrCreateTag().remove(NBT_POS1);
-                stack.getOrCreateTag().remove(NBT_POS2);
+                ItemNbtUtil.mutate(stack, __t -> __t.remove(NBT_POS1));
+                ItemNbtUtil.mutate(stack, __t -> __t.remove(NBT_POS2));
                 serverPlayer.displayClientMessage(Component.translatable("item.mm.multiblock_saver.message.saved", result.baseName).withStyle(net.minecraft.ChatFormatting.GREEN), false);
                 serverPlayer.displayClientMessage(Component.translatable("item.mm.multiblock_saver.message.files", result.jsonPath, result.jsPath), false);
                 return InteractionResultHolder.success(stack);
@@ -93,10 +95,12 @@ public class MultiblockSaverItem extends Item {
         ItemStack stack = context.getItemInHand();
         BlockPos pos = context.getClickedPos();
 
-        var tag = stack.getOrCreateTag();
+        // CustomData is immutable, so mutate a copy and write it back rather than editing in place.
+        var tag = ItemNbtUtil.getTagOrEmpty(stack);
         // If sneaking while clicking a block, explicitly set this block as Corner 1
         if (context.getPlayer().isShiftKeyDown()) {
             tag.putLong(NBT_POS1, pos.asLong());
+            ItemNbtUtil.setTag(stack, tag);
             context.getPlayer().displayClientMessage(Component.translatable("item.mm.multiblock_saver.message.corner1_set", pos.getX(), pos.getY(), pos.getZ()), true);
             return InteractionResult.SUCCESS;
         }
@@ -109,12 +113,13 @@ public class MultiblockSaverItem extends Item {
             tag.putLong(NBT_POS2, pos.asLong());
             context.getPlayer().displayClientMessage(Component.translatable("item.mm.multiblock_saver.message.corner2_set", pos.getX(), pos.getY(), pos.getZ()), true);
         }
+        ItemNbtUtil.setTag(stack, tag);
         return InteractionResult.SUCCESS;
     }
 
     @Override
     public void appendHoverText(ItemStack pStack, @Nullable Level pLevel, @NotNull List<Component> pTooltipComponents, @NotNull TooltipFlag pIsAdvanced) {
-        var tag = pStack.getTag();
+        var tag = ItemNbtUtil.getTag(pStack);
         if (tag != null) {
             if (tag.contains(NBT_POS1)) {
                 long l = tag.getLong(NBT_POS1);
