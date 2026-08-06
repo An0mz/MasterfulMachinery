@@ -24,7 +24,7 @@ import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.registration.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -109,7 +109,7 @@ public class MMJeiPlugin implements IModPlugin {
     public void registerRecipeCatalysts(@NotNull IRecipeCatalystRegistration registration) {
         for (var entry : recipeCategories) {
             ResourceLocation location = entry.getStructureModel().controllerIds().getIds().get(0);
-            ItemStack stack = Objects.requireNonNull(ForgeRegistries.ITEMS.getValue(location)).getDefaultInstance();
+            ItemStack stack = Objects.requireNonNull(BuiltInRegistries.ITEM.get(location)).getDefaultInstance();
             registration.addRecipeCatalyst(stack,entry.getRecipeType());
         }
     }

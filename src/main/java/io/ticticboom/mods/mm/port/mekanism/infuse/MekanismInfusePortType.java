@@ -18,7 +18,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.neoforge.common.extensions.IForgeMenuType;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
 
 import java.util.function.Consumer;
 
@@ -29,22 +29,22 @@ public class MekanismInfusePortType extends PortType {
     }
 
     @Override
-    public RegistryObject<BlockEntityType<?>> registerBlockEntity(PortModel model, RegistryGroupHolder groupHolder) {
+    public DeferredHolder<BlockEntityType<?>, BlockEntityType<?>> registerBlockEntity(PortModel model, RegistryGroupHolder groupHolder) {
         return MMRegisters.BLOCK_ENTITIES.register(model.id(), () -> BlockEntityType.Builder.of((p, s) -> new MekanismInfusePortBlockEntity(model, groupHolder, model.input(), p, s)).build(null));
     }
 
     @Override
-    public RegistryObject<Block> registerBlock(PortModel model, RegistryGroupHolder groupHolder) {
+    public DeferredHolder<Block, Block> registerBlock(PortModel model, RegistryGroupHolder groupHolder) {
         return MMRegisters.BLOCKS.register(model.id(), () -> new MekanismInfusePortBlock(model, groupHolder, model.input()));
     }
 
     @Override
-    public RegistryObject<Item> registerItem(PortModel model, RegistryGroupHolder groupHolder) {
+    public DeferredHolder<Item, Item> registerItem(PortModel model, RegistryGroupHolder groupHolder) {
         return MMRegisters.ITEMS.register(model.id(), () -> new MekanismInfusePortBlockItem(model, groupHolder));
     }
 
     @Override
-    public RegistryObject<MenuType<?>> registerMenu(PortModel model, RegistryGroupHolder groupHolder) {
+    public DeferredHolder<MenuType<?>, MenuType<?>> registerMenu(PortModel model, RegistryGroupHolder groupHolder) {
         return MMRegisters.MENUS.register(model.id(), () -> IForgeMenuType.create((i, o, u) -> new MekanismInfusePortMenu(model, groupHolder, i, o, u)));
     }
 

@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.client.model.generators.*;
 import net.neoforged.neoforge.client.model.generators.loaders.CompositeModelBuilder;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
 
 import static net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING;
 
@@ -28,7 +28,7 @@ public class MMBlockstateProvider extends BlockStateProvider {
 
     @Override
     protected void registerStatesAndModels() {
-        for (RegistryObject<Block> entry : MMRegisters.BLOCKS.getEntries()) {
+        for (DeferredHolder<Block, Block> entry : MMRegisters.BLOCKS.getEntries()) {
             Block block = entry.get();
             if (block instanceof IControllerBlock controllerPart) {
                 controllerPart.generateModel(this);

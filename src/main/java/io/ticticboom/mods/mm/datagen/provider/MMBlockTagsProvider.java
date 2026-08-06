@@ -10,7 +10,7 @@ import net.minecraft.data.DataGenerator;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.common.data.BlockTagsProvider;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -24,7 +24,7 @@ public class MMBlockTagsProvider extends BlockTagsProvider {
     protected void addTags(HolderLookup.Provider provider) {
         var pickaxeTool = this.tag(BlockTags.MINEABLE_WITH_PICKAXE);
 
-        for (RegistryObject<Block> entry : MMRegisters.BLOCKS.getEntries()) {
+        for (DeferredHolder<Block, Block> entry : MMRegisters.BLOCKS.getEntries()) {
             Block block = entry.get();
             if (block instanceof IControllerBlock || block instanceof IPortBlock || block instanceof IExtraBlock) {
                 pickaxeTool.add(block);

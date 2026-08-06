@@ -10,7 +10,7 @@ import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.client.model.generators.ItemModelProvider;
 import net.neoforged.neoforge.client.model.generators.ModelFile;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
 
 public class MMItemModelProvider extends ItemModelProvider {
     private final DataGenerator generator;
@@ -22,7 +22,7 @@ public class MMItemModelProvider extends ItemModelProvider {
 
     @Override
     protected void registerModels() {
-        for (RegistryObject<Item> entry : MMRegisters.ITEMS.getEntries()) {
+        for (DeferredHolder<Item, Item> entry : MMRegisters.ITEMS.getEntries()) {
             if (entry.get() instanceof IControllerPart controllerPart) {
                 String id = controllerPart.getModel().id();
                 this.getBuilder(Ref.id(id).toString()).parent(new ModelFile.UncheckedModelFile(Ref.id("block/" + id)));

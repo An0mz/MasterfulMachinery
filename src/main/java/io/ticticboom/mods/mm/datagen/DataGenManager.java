@@ -21,7 +21,7 @@ import net.minecraftforge.fml.DistExecutor;
 import net.neoforged.fml.ModLoader;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.fml.loading.FMLPaths;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraftforge.registries.RegistryManager;
 import net.neoforged.neoforge.resource.ResourcePackLoader;
 

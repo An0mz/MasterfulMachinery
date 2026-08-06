@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.core.BlockPos;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.controller.IControllerPart;
 import net.minecraft.resources.ResourceLocation;
@@ -80,7 +80,7 @@ public class StructureCaptureUtil {
                     Block b = state.getBlock();
                     String key = "minecraft:air";
                     if (!b.equals(net.minecraft.world.level.block.Blocks.AIR)) {
-                        ResourceLocation rl = ForgeRegistries.BLOCKS.getKey(b);
+                        ResourceLocation rl = BuiltInRegistries.BLOCK.getKey(b);
                         if (rl != null) key = rl.toString(); else key = b.toString();
                         // Always ignore podzol (treat as air)
                         if ("minecraft:podzol".equals(key)) {

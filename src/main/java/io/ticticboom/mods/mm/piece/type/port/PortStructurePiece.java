@@ -20,7 +20,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -91,7 +91,7 @@ public class PortStructurePiece extends StructurePiece {
     @Override
     public JsonObject debugFound(Level level, BlockPos pos, StructureModel model, JsonObject json) {
         var foundBlock = WorldUtil.getBlockState(pos, (ServerLevel) level).getBlock();
-        var foundBlockId = ForgeRegistries.BLOCKS.getKey(foundBlock);
+        var foundBlockId = BuiltInRegistries.BLOCK.getKey(foundBlock);
         assert foundBlockId != null;
         json.addProperty("block", foundBlockId.toString());
         if (foundBlock instanceof IPortBlock pb) {

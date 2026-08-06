@@ -16,7 +16,7 @@ import io.ticticboom.mods.mm.port.pneumaticcraft.air.PneumaticAirPortStorage;
 import io.ticticboom.mods.mm.port.kinetic.CreateKineticPortStorage;
 import io.ticticboom.mods.mm.port.mekanism.chemical.MekanismChemicalPortStorage;
 import lombok.Setter;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 import io.ticticboom.mods.mm.recipe.MachineRecipeManager;
 import io.ticticboom.mods.mm.recipe.input.consume.ConsumeRecipeIngredientEntry;
 import io.ticticboom.mods.mm.port.item.BaseItemPortIngredient;
@@ -218,7 +218,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                         int actual = handler.getActualCount(i);
                         int idHash = 0;
                         try {
-                            var key = stack.isEmpty() ? null : ForgeRegistries.ITEMS.getKey(stack.getItem());
+                            var key = stack.isEmpty() ? null : BuiltInRegistries.ITEM.getKey(stack.getItem());
                             if (key != null) idHash = key.hashCode();
                         } catch (Throwable ignored) { }
                         sig ^= idHash + actual;
@@ -235,7 +235,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                         int amount = fs.getAmount();
                         int idHash = 0;
                         try {
-                            var key = fs.getFluid() == null ? null : ForgeRegistries.FLUIDS.getKey(fs.getFluid());
+                            var key = fs.getFluid() == null ? null : BuiltInRegistries.FLUID.getKey(fs.getFluid());
                             if (key != null) idHash = key.hashCode();
                         } catch (Throwable ignored) { }
                         sig ^= idHash + amount;
@@ -330,7 +330,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                         var stack = handler.getStackInSlot(i);
                         int actual = handler.getActualCount(i);
                         if (!stack.isEmpty() && actual > 0) {
-                            var key = ForgeRegistries.ITEMS.getKey(stack.getItem());
+                            var key = BuiltInRegistries.ITEM.getKey(stack.getItem());
                             if (key != null) {
                                 cachedAvailableItemIds.add(key);
                                 // compute NBT fingerprint for this exact stack
@@ -357,7 +357,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                     for (int i = 0; i < handler.getTanks(); i++) {
                         var fs = handler.getFluidInTank(i);
                         if (fs.getAmount() > 0) {
-                            var key = ForgeRegistries.FLUIDS.getKey(fs.getFluid());
+                            var key = BuiltInRegistries.FLUID.getKey(fs.getFluid());
                             if (key != null) cachedAvailableFluidIds.add(key);
                         }
                     }
@@ -611,7 +611,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                                         var stack = handler.getStackInSlot(i);
                                         int actual = handler.getActualCount(i);
                                         if (stack.isEmpty() || actual <= 0) continue;
-                                        var key = ForgeRegistries.ITEMS.getKey(stack.getItem());
+                                        var key = BuiltInRegistries.ITEM.getKey(stack.getItem());
                                         if (key == null) continue;
                                         if (!key.equals(baseId)) continue;
                                         // check NBT match according to ingredient

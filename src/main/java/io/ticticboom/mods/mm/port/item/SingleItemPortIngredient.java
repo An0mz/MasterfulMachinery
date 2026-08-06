@@ -17,7 +17,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 import java.util.Comparator;
 import java.util.List;
@@ -34,7 +34,7 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
     public SingleItemPortIngredient(ResourceLocation itemId, int count, CompoundTag requiredNbt, boolean nbtStrong) {
         super(count, createPredicate(itemId), requiredNbt, nbtStrong);
         this.itemId = itemId;
-        item = ForgeRegistries.ITEMS.getValue(itemId);
+        item = BuiltInRegistries.ITEM.get(itemId);
         if (item == null) {
             throw new RuntimeException(String.format("Could not find item [%s] which is required by an MM recipe", itemId));
         }
@@ -47,7 +47,7 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
     }
 
     private static Predicate<ItemStack> createPredicate(ResourceLocation id) {
-        var item = ForgeRegistries.ITEMS.getValue(id);
+        var item = BuiltInRegistries.ITEM.get(id);
         if (item == null) {
             throw new RuntimeException(String.format("Could not find item [%s] which is required by an MM recipe", id));
         }

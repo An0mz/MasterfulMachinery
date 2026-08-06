@@ -21,7 +21,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 public class FluidPortIngredient implements IPortIngredient {
 
@@ -33,7 +33,7 @@ public class FluidPortIngredient implements IPortIngredient {
     public FluidPortIngredient(ResourceLocation fluidId, int amount) {
         this.amount = amount;
         this.fluidId = fluidId;
-        fluid = ForgeRegistries.FLUIDS.getValue(fluidId);
+        fluid = BuiltInRegistries.FLUID.get(fluidId);
         if (fluid == null) {
             throw new RuntimeException(String.format("Could not find fluid [%s] which is required by an MM recipe", fluidId));
         }

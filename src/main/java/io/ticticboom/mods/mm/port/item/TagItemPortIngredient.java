@@ -16,7 +16,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 import java.util.List;
 import java.util.Objects;
@@ -31,14 +31,18 @@ public class TagItemPortIngredient extends BaseItemPortIngredient {
     public TagItemPortIngredient(ResourceLocation tagId, int count, CompoundTag requiredNbt, boolean nbtStrong) {
         super(count, createPredicate(tagId), requiredNbt, nbtStrong);
         this.tag = ItemTags.create(tagId);
-        stacks = ConditionalLazy.create(() -> Objects.requireNonNull(ForgeRegistries.ITEMS.tags()).getTag(tag).stream().map(x -> {
-                // use display stacks with the real required count so external transfer/encode handlers
-                // that read the ItemStack count (rather than the JEI badge) get the correct amount.
-                var s = new ItemStack(x, count);
-            if (requiredNbt != null) s.setTag(requiredNbt.copy());
-            return s;
-        }).toList(),
-                () -> !Objects.requireNonNull(ForgeRegistries.ITEMS.tags()).getTag(tag).isEmpty(), List.of());
+        // Registry.getTag returns an Optional<HolderSet.Named<Item>> of holders rather than
+        // Forge's ITag of values, so an absent tag yields an empty list instead of a null.
+        stacks = ConditionalLazy.create(() -> BuiltInRegistries.ITEM.getTag(tag)
+                .map(holders -> holders.stream().map(holder -> {
+                    // use display stacks with the real required count so external transfer/encode handlers
+                    // that read the ItemStack count (rather than the JEI badge) get the correct amount.
+                    var s = new ItemStack(holder.value(), count);
+                    if (requiredNbt != null) s.setTag(requiredNbt.copy());
+                    return s;
+                }).toList())
+                .orElseGet(List::of),
+                () -> BuiltInRegistries.ITEM.getTag(tag).map(holders -> holders.size() > 0).orElse(false), List.of());
     }
 
     private static Predicate<ItemStack> createPredicate(ResourceLocation id) {

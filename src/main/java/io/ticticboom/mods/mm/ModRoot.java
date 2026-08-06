@@ -13,19 +13,22 @@ import io.ticticboom.mods.mm.setup.MMRegisters;
 import io.ticticboom.mods.mm.structure.attachment.MMStructureAttachmentRegistry;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLEnvironment;
 
 @Mod(Ref.ID)
 public class ModRoot {
 
-    public ModRoot() {
+    // NeoForge removed FMLJavaModLoadingContext and injects the mod event bus into the
+    // constructor instead, so the bus has to be threaded down to whatever registers with it.
+    public ModRoot(IEventBus modEventBus) {
         MMConfigSetup.setup();
         MMNetwork.init();
         MMPortRegistry.init();
         MMControllerRegistry.init();
         MMExtraBlockRegistry.init();
-        MMRegisters.register();
+        MMRegisters.register(modEventBus);
         MMStructurePieceRegistry.init();
         MMStructureAttachmentRegistry.init();
         DataGenManager.registerDataProviders();
