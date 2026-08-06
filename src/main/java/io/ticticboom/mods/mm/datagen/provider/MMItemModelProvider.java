@@ -7,9 +7,9 @@ import io.ticticboom.mods.mm.port.IPortPart;
 import io.ticticboom.mods.mm.setup.MMRegisters;
 import net.minecraft.data.DataGenerator;
 import net.minecraft.world.item.Item;
-import net.minecraftforge.client.model.generators.ItemModelProvider;
-import net.minecraftforge.client.model.generators.ModelFile;
-import net.minecraftforge.common.data.ExistingFileHelper;
+import net.neoforged.neoforge.client.model.generators.ItemModelProvider;
+import net.neoforged.neoforge.client.model.generators.ModelFile;
+import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import net.minecraftforge.registries.RegistryObject;
 
 public class MMItemModelProvider extends ItemModelProvider {

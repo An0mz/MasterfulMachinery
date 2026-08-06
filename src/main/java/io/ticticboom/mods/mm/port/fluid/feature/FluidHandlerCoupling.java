@@ -4,9 +4,9 @@ import io.ticticboom.mods.mm.port.common.IHandlerCoupling;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.energy.IEnergyStorage;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 public class FluidHandlerCoupling implements IHandlerCoupling {
 

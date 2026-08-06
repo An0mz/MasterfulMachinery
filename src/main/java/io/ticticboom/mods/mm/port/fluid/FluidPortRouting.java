@@ -1,8 +1,8 @@
 package io.ticticboom.mods.mm.port.fluid;
 
 import net.minecraft.core.BlockPos;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandler.FluidAction;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
 
 import java.util.*;
 

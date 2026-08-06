@@ -2,11 +2,11 @@ package io.ticticboom.mods.mm.event;
 
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.structure.StructureManager;
-import net.minecraftforge.event.OnDatapackSyncEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.event.OnDatapackSyncEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE)
+@EventBusSubscriber(bus = EventBusSubscriber.Bus.GAME)
 public class DatapackSyncHandler {
 
     @SubscribeEvent

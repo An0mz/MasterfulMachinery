@@ -17,7 +17,7 @@ import io.ticticboom.mods.mm.port.pneumaticcraft.air.PneumaticAirPortType;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
 import io.ticticboom.mods.mm.util.ParserUtils;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.fml.ModList;
+import net.neoforged.fml.ModList;
 
 import java.util.*;
 

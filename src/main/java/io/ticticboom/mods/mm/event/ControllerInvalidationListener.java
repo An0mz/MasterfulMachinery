@@ -5,11 +5,11 @@ import io.ticticboom.mods.mm.util.WorldUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.event.level.BlockEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE, modid = Ref.ID)
+@EventBusSubscriber(bus = EventBusSubscriber.Bus.GAME, modid = Ref.ID)
 public class ControllerInvalidationListener {
 
     @SubscribeEvent

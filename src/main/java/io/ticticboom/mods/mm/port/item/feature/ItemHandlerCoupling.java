@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
 
 public class ItemHandlerCoupling implements IHandlerCoupling {
 

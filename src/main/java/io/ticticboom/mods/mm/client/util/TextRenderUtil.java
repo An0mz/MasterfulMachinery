@@ -5,7 +5,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
-import net.minecraftforge.client.extensions.IForgeFont;
+import net.neoforged.neoforge.client.extensions.IForgeFont;
 
 public class TextRenderUtil {
     private static final Minecraft mc = Minecraft.getInstance();

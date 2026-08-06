@@ -4,7 +4,7 @@ import io.ticticboom.mods.mm.port.common.IHandlerCoupling;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.energy.IEnergyStorage;
 
 public class EnergyHandlerCoupling implements IHandlerCoupling {
     @Getter

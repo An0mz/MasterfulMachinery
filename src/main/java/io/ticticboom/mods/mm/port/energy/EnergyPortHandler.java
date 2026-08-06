@@ -2,7 +2,7 @@ package io.ticticboom.mods.mm.port.energy;
 
 import io.ticticboom.mods.mm.port.common.INotifyChangeFunction;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraftforge.energy.EnergyStorage;
+import net.neoforged.neoforge.energy.EnergyStorage;
 
 public class EnergyPortHandler extends EnergyStorage {
     private final INotifyChangeFunction changed;
