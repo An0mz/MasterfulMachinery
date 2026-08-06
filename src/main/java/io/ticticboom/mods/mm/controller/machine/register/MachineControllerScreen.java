@@ -24,7 +24,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         this.be = (MachineControllerBlockEntity) menu.getBe();
         this.imageHeight = 222;
         this.imageWidth = 174;
-        String name = menu.getModel().name();
+        String name = menu.getModel().displayName().getString();
         int subStrLength = Math.min(55, name.length());
         header = FormattedText.of(name.substring(0, subStrLength) + (subStrLength < 55 ? "" : "..."));
     }
@@ -41,9 +41,9 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
 
         // structure formation details
         var isFormed = be.getStructure() != null;
-        gfx.drawWordWrap(this.font, FormattedText.of(isFormed ? "Formed As:" : "Not Formed"), 10, 40, 150, 0xacacac);
+        gfx.drawWordWrap(this.font, Component.translatable(isFormed ? "gui.mm.controller.formed_as" : "gui.mm.controller.not_formed"), 10, 40, 150, 0xacacac);
         if (isFormed) {
-            gfx.drawWordWrap(this.font, FormattedText.of(be.getStructure().name()), 10, 53, 150, 0xacacac);
+            gfx.drawWordWrap(this.font, be.getStructure().displayName(), 10, 53, 150, 0xacacac);
         }
 
         // show max parallel recipes under the multiblock name when formed
@@ -58,7 +58,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
                     displayInt = controllerModel.maxParallelRecipes();
                 }
             }
-            String line = "Max Parallel Processing: " + displayInt;
+            String line = Component.translatable("gui.mm.controller.max_parallel", displayInt).getString();
             int nameY = 53;
             int lineHeight = this.font.lineHeight;
             int subY = nameY + lineHeight + 10;
@@ -76,13 +76,13 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         var isProcessing = be.getRecipeState() != null;
         if (isProcessing) {
             gfx.drawWordWrap(this.font,
-                    FormattedText
-                            .of("Progress: " + String.format("%.2f", be.getRecipeState().getTickPercentage()) + "%"),
+                    Component.translatable("gui.mm.controller.progress",
+                            String.format("%.2f", be.getRecipeState().getTickPercentage())),
                     10, 110, 150, 0xacacac);
         }
 
         // redstone mode toggle label (clickable)
-        String rs = "Redstone: " + be.getRedstoneModeName();
+        Component rs = Component.translatable("gui.mm.controller.redstone", be.getRedstoneModeName());
         gfx.drawString(this.font, rs, redstoneBtnX, redstoneBtnY, 0xacacac, false);
     }
 

@@ -59,7 +59,7 @@ public class TagStructurePiece extends StructurePiece {
 
     @Override
     public Component createDisplayComponent() {
-        return Component.literal("Block Tag: ").append(Component.literal(tagId.toString()).withStyle(ChatFormatting.DARK_AQUA));
+        return Component.translatable("piece.mm.tag.description", Component.literal(tagId.toString()).withStyle(ChatFormatting.DARK_AQUA));
     }
 
     @Override

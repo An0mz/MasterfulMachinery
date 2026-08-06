@@ -52,7 +52,7 @@ public class BlockStructurePiece extends StructurePiece {
 
     @Override
     public Component createDisplayComponent() {
-        return Component.literal("Block Id: ").append(Component.literal(blockId.toString()).withStyle(ChatFormatting.DARK_AQUA));
+        return Component.translatable("piece.mm.block.description", Component.literal(blockId.toString()).withStyle(ChatFormatting.DARK_AQUA));
     }
 
     @Override

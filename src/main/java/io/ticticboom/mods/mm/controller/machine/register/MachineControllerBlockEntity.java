@@ -956,7 +956,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     public ControllerModel getModel() { return model; }
 
     @Override
-    public @NotNull Component getDisplayName() { return Component.literal(model.name()); }
+    public @NotNull Component getDisplayName() { return model.displayName(); }
 
     @Nullable
     @Override

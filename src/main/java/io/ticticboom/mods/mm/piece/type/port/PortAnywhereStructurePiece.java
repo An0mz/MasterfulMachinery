@@ -70,7 +70,7 @@ public class PortAnywhereStructurePiece extends StructurePiece {
 
     @Override
     public Component createDisplayComponent() {
-        return Component.literal("Port (anywhere): ").append(Component.literal(portId.toString()).withStyle(ChatFormatting.DARK_AQUA));
+        return Component.translatable("piece.mm.port_anywhere.description", Component.literal(portId.toString()).withStyle(ChatFormatting.DARK_AQUA));
     }
 
     @Override

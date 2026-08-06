@@ -29,12 +29,12 @@ public class BlueprintItem extends Item {
 
     @Override
     public @NotNull Component getName(@NotNull ItemStack stack) {
-        String structureName = getStructureDisplayName(stack);
-        if (structureName == null || structureName.isBlank()) {
+        Component structureName = getStructureDisplayName(stack);
+        if (structureName == null || structureName.getString().isBlank()) {
             return super.getName(stack);
         }
 
-        return Component.literal(structureName).append(" - ").append(super.getName(stack));
+        return Component.translatable("item.mm.blueprint.name_format", structureName, super.getName(stack));
     }
 
     @Override
@@ -45,8 +45,8 @@ public class BlueprintItem extends Item {
             return;
         }
 
-        texts.add(Component.literal("Structure: " + structure.name()));
-        texts.add(Component.literal("Creative: Sneak to preview, Sneak-Right-Click to paste"));
+        texts.add(Component.translatable("item.mm.blueprint.tooltip.structure", structure.displayName()));
+        texts.add(Component.translatable("item.mm.blueprint.tooltip.creative"));
     }
 
     @Override
@@ -64,7 +64,7 @@ public class BlueprintItem extends Item {
         StructureModel structure = getStructure(context.getItemInHand());
         if (structure == null) {
             if (!level.isClientSide) {
-                player.displayClientMessage(Component.literal("Blueprint has no valid structure id."), true);
+                player.displayClientMessage(Component.translatable("item.mm.blueprint.message.no_structure"), true);
             }
             return InteractionResult.sidedSuccess(level.isClientSide);
         }
@@ -120,21 +120,23 @@ public class BlueprintItem extends Item {
     }
 
     @Nullable
-    private static String getStructureDisplayName(ItemStack stack) {
+    private static Component getStructureDisplayName(ItemStack stack) {
         StructureModel structure = getStructure(stack);
         if (structure != null && structure.name() != null && !structure.name().isBlank()) {
-            return structure.name();
+            return structure.displayName();
         }
 
+        // Fallbacks only apply once the structure no longer resolves (removed from the pack), so the
+        // stored value is shown literally rather than treated as a translation key.
         if (stack.hasTag()) {
             assert stack.getTag() != null;
             String storedName = stack.getTag().getString(TAG_STRUCTURE_NAME);
             if (!storedName.isBlank()) {
-                return storedName;
+                return Component.literal(storedName);
             }
         }
 
         ResourceLocation id = getStructureId(stack);
-        return id == null ? null : id.toString();
+        return id == null ? null : Component.literal(id.toString());
     }
 }

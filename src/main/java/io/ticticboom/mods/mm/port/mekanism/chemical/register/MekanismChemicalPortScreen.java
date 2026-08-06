@@ -30,7 +30,7 @@ public class MekanismChemicalPortScreen<CHEMICAL extends Chemical<CHEMICAL>, STA
         super(menu, inv, title);
         this.imageHeight = 222;
         this.imageWidth = 174;
-        String name = menu.getModel().name();
+        String name = menu.getModel().displayName().getString();
         int subStrLength = Math.min(55, name.length());
         header = FormattedText.of(name.substring(0, subStrLength) + (subStrLength < 55 ? "" : "..."));
         be = this.menu.getBlockEntity();
@@ -66,7 +66,7 @@ public class MekanismChemicalPortScreen<CHEMICAL extends Chemical<CHEMICAL>, STA
             MekanismRenderer.resetColor(gfx);
 
             if (WidgetUtils.isPointerWithinSized(mouseX, mouseY, this.leftPos + 80, this.topPos + 60, 18, 18)) {
-                var tooltip = List.of(type.getType().getTextComponent(), Component.literal(type.getAmount() + " amB"));
+                var tooltip = List.of(type.getType().getTextComponent(), Component.translatable("gui.mm.port.mekanism_chemical.amount", type.getAmount()));
                 gfx.renderComponentTooltip(this.font, tooltip, mouseX, mouseY);
             }
         }

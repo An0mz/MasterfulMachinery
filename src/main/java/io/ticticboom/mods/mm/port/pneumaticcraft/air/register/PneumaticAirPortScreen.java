@@ -20,7 +20,7 @@ public class PneumaticAirPortScreen  extends AbstractContainerScreen<PneumaticAi
         super(menu, inv, displayName);
         this.imageHeight = 222;
         this.imageWidth = 174;
-        String name = menu.getModel().name();
+        String name = menu.getModel().displayName().getString();
         int subStrLength = Math.min(55, name.length());
         header = FormattedText.of(name.substring(0, subStrLength) + (subStrLength < 55 ? "" : "..."));
     }
@@ -49,8 +49,8 @@ public class PneumaticAirPortScreen  extends AbstractContainerScreen<PneumaticAi
         var filledValue = (double)pressure / (double)storage.getAirhandler().getDangerPressure();
         var filledHeight = (int)(filledValue * 78);
         var start = 129 - filledHeight;
-        gfx.drawWordWrap(this.font, FormattedText.of("Air: " + air + " mB"), this.leftPos + 8, this.topPos + 30, 150,0x404040);
-        gfx.drawWordWrap(this.font, FormattedText.of("pressure: " + pressure + " Bar"), this.leftPos + 8, this.topPos + 40, 150, 0x404040);
-        gfx.drawWordWrap(this.font, FormattedText.of("volume: " + volume + " mB"), this.leftPos + 8, this.topPos + 50, 150,0x404040);
+        gfx.drawWordWrap(this.font, Component.translatable("gui.mm.port.pneumaticcraft_air.air", air), this.leftPos + 8, this.topPos + 30, 150,0x404040);
+        gfx.drawWordWrap(this.font, Component.translatable("gui.mm.port.pneumaticcraft_air.pressure", pressure), this.leftPos + 8, this.topPos + 40, 150, 0x404040);
+        gfx.drawWordWrap(this.font, Component.translatable("gui.mm.port.pneumaticcraft_air.volume", volume), this.leftPos + 8, this.topPos + 50, 150,0x404040);
     }
 }

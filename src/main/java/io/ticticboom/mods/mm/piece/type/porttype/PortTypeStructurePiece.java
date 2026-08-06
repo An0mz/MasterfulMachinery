@@ -122,7 +122,7 @@ public class PortTypeStructurePiece extends StructurePiece {
 
     @Override
     public Component createDisplayComponent() {
-        return Component.literal("Port Type: ").append(Component.literal(portTypeId.toString()).withStyle(ChatFormatting.DARK_AQUA));
+        return Component.translatable("piece.mm.port_type.description", Component.literal(portTypeId.toString()).withStyle(ChatFormatting.DARK_AQUA));
     }
 
     @Override

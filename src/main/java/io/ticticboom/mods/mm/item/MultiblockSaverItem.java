@@ -43,14 +43,14 @@ public class MultiblockSaverItem extends Item {
                 stack.getOrCreateTag().remove(NBT_POS1);
                 stack.getOrCreateTag().remove(NBT_POS2);
             }
-            player.displayClientMessage(Component.literal("Cleared marked corners."), true);
+            player.displayClientMessage(Component.translatable("item.mm.multiblock_saver.message.cleared"), true);
             return InteractionResultHolder.success(stack);
         }
 
         // check if both corners exist
         var tag = stack.getTag();
         if (tag == null || !tag.contains(NBT_POS1) || !tag.contains(NBT_POS2)) {
-            player.displayClientMessage(Component.literal("Mark two corners first by right-clicking on blocks."), true);
+            player.displayClientMessage(Component.translatable("item.mm.multiblock_saver.message.mark_corners"), true);
             return InteractionResultHolder.pass(stack);
         }
 
@@ -69,16 +69,16 @@ public class MultiblockSaverItem extends Item {
                 // clear positions
                 stack.getOrCreateTag().remove(NBT_POS1);
                 stack.getOrCreateTag().remove(NBT_POS2);
-                serverPlayer.displayClientMessage(Component.literal("Saved structure: " + result.baseName).withStyle(net.minecraft.ChatFormatting.GREEN), false);
-                serverPlayer.displayClientMessage(Component.literal("Files: " + result.jsonPath + " , " + result.jsPath), false);
+                serverPlayer.displayClientMessage(Component.translatable("item.mm.multiblock_saver.message.saved", result.baseName).withStyle(net.minecraft.ChatFormatting.GREEN), false);
+                serverPlayer.displayClientMessage(Component.translatable("item.mm.multiblock_saver.message.files", result.jsonPath, result.jsPath), false);
                 return InteractionResultHolder.success(stack);
             } else {
-                serverPlayer.displayClientMessage(Component.literal("Failed to save: " + result.error).withStyle(net.minecraft.ChatFormatting.RED), false);
+                serverPlayer.displayClientMessage(Component.translatable("item.mm.multiblock_saver.message.failed", result.error).withStyle(net.minecraft.ChatFormatting.RED), false);
                 return InteractionResultHolder.fail(stack);
             }
         } catch (Exception e) {
             Ref.LOG.error("Error during multiblock save", e);
-            serverPlayer.displayClientMessage(Component.literal("Error during save: " + e.getMessage()).withStyle(net.minecraft.ChatFormatting.RED), false);
+            serverPlayer.displayClientMessage(Component.translatable("item.mm.multiblock_saver.message.error", e.getMessage()).withStyle(net.minecraft.ChatFormatting.RED), false);
             return InteractionResultHolder.fail(stack);
         }
     }
@@ -97,17 +97,17 @@ public class MultiblockSaverItem extends Item {
         // If sneaking while clicking a block, explicitly set this block as Corner 1
         if (context.getPlayer().isShiftKeyDown()) {
             tag.putLong(NBT_POS1, pos.asLong());
-            context.getPlayer().displayClientMessage(Component.literal("Corner 1 set: " + pos.getX() + "," + pos.getY() + "," + pos.getZ()), true);
+            context.getPlayer().displayClientMessage(Component.translatable("item.mm.multiblock_saver.message.corner1_set", pos.getX(), pos.getY(), pos.getZ()), true);
             return InteractionResult.SUCCESS;
         }
 
         // Normal click behavior: if no Corner1 set, set it; otherwise set Corner2
         if (!tag.contains(NBT_POS1)) {
             tag.putLong(NBT_POS1, pos.asLong());
-            context.getPlayer().displayClientMessage(Component.literal("Corner 1 set: " + pos.getX() + "," + pos.getY() + "," + pos.getZ()), true);
+            context.getPlayer().displayClientMessage(Component.translatable("item.mm.multiblock_saver.message.corner1_set", pos.getX(), pos.getY(), pos.getZ()), true);
         } else {
             tag.putLong(NBT_POS2, pos.asLong());
-            context.getPlayer().displayClientMessage(Component.literal("Corner 2 set: " + pos.getX() + "," + pos.getY() + "," + pos.getZ()), true);
+            context.getPlayer().displayClientMessage(Component.translatable("item.mm.multiblock_saver.message.corner2_set", pos.getX(), pos.getY(), pos.getZ()), true);
         }
         return InteractionResult.SUCCESS;
     }
@@ -119,12 +119,12 @@ public class MultiblockSaverItem extends Item {
             if (tag.contains(NBT_POS1)) {
                 long l = tag.getLong(NBT_POS1);
                 BlockPos pos = BlockPos.of(l);
-                pTooltipComponents.add(Component.literal("Corner 1: " + pos.getX() + "," + pos.getY() + "," + pos.getZ()));
+                pTooltipComponents.add(Component.translatable("item.mm.multiblock_saver.tooltip.corner1", pos.getX(), pos.getY(), pos.getZ()));
             }
             if (tag.contains(NBT_POS2)) {
                 long l = tag.getLong(NBT_POS2);
                 BlockPos pos = BlockPos.of(l);
-                pTooltipComponents.add(Component.literal("Corner 2: " + pos.getX() + "," + pos.getY() + "," + pos.getZ()));
+                pTooltipComponents.add(Component.translatable("item.mm.multiblock_saver.tooltip.corner2", pos.getX(), pos.getY(), pos.getZ()));
             }
         }
         super.appendHoverText(pStack, pLevel, pTooltipComponents, pIsAdvanced);

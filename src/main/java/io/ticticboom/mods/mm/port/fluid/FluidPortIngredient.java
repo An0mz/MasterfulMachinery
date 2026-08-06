@@ -108,7 +108,7 @@ public class FluidPortIngredient implements IPortIngredient {
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, RecipeModel model, IFocusGroup focus, IJeiHelpers helpers, SlotGrid grid, IRecipeSlotBuilder recipeSlot) {
         recipeSlot.addIngredient(MMJeiIngredients.FLUID, new FluidStack(fluid, amount));
-        recipeSlot.addRichTooltipCallback((a, b) -> b.add(Component.literal(amount + " mB")));
+        recipeSlot.addRichTooltipCallback((a, b) -> b.add(Component.translatable("jei.mm.ingredient.fluid.amount", amount)));
     }
 
     @Override

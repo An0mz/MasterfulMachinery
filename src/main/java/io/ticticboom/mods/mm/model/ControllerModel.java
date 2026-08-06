@@ -2,6 +2,7 @@ package io.ticticboom.mods.mm.model;
 
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.util.ParserUtils;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 
@@ -9,6 +10,7 @@ public record ControllerModel(
         String id,
         ResourceLocation type,
         String name,
+        Component displayName,
         boolean parallelProcessingDefault,
         int maxParallelRecipes,
         RecipeSelectionMode recipeSelectionMode,
@@ -16,7 +18,9 @@ public record ControllerModel(
 ) {
     public static ControllerModel parse(JsonObject json) {
         var id = json.get("id").getAsString();
-        var name = json.get("name").getAsString();
+        // "name" accepts a plain string or a { "translation": "key" } object.
+        var name = ParserUtils.parseComponentKey(json.get("name"));
+        var displayName = ParserUtils.parseComponent(json.get("name"));
         var type = ParserUtils.parseId(json, "type");
         var parallelProcessingDefault = json.has("parallelProcessingDefault") && json.get("parallelProcessingDefault").getAsBoolean();
         var maxParallelRecipes = json.has("maxParallelRecipes") ? json.get("maxParallelRecipes").getAsInt() : -1; // -1 => use global default
@@ -24,17 +28,17 @@ public record ControllerModel(
         var recipeSelectionMode = json.has("recipeSelectionMode")
                 ? RecipeSelectionMode.parse(json.get("recipeSelectionMode").getAsString())
                 : RecipeSelectionMode.DEFAULT;
-        return new ControllerModel(id, type, name, parallelProcessingDefault, maxParallelRecipes, recipeSelectionMode, json);
+        return new ControllerModel(id, type, name, displayName, parallelProcessingDefault, maxParallelRecipes, recipeSelectionMode, json);
     }
 
     public static ControllerModel create(String id, ResourceLocation type, String name) {
         JsonObject json = paramsToJson(id, type, name);
-        return new ControllerModel(id, type, name, false, -1, RecipeSelectionMode.DEFAULT, json);
+        return new ControllerModel(id, type, name, Component.literal(name), false, -1, RecipeSelectionMode.DEFAULT, json);
     }
 
     public static ControllerModel create(String id, ResourceLocation type, String name, boolean parallelProcessingDefault) {
         JsonObject json = paramsToJson(id, type, name, parallelProcessingDefault, -1);
-        return new ControllerModel(id, type, name, parallelProcessingDefault, -1, RecipeSelectionMode.DEFAULT, json);
+        return new ControllerModel(id, type, name, Component.literal(name), parallelProcessingDefault, -1, RecipeSelectionMode.DEFAULT, json);
     }
 
     public static ControllerModel create(String id, ResourceLocation type, String name, boolean parallelProcessingDefault, int maxParallelRecipes) {
@@ -45,7 +49,7 @@ public record ControllerModel(
         maxParallelRecipes = clampMaxParallelRecipesMarker(maxParallelRecipes);
         if (recipeSelectionMode == null) recipeSelectionMode = RecipeSelectionMode.DEFAULT;
         JsonObject json = paramsToJson(id, type, name, parallelProcessingDefault, maxParallelRecipes, recipeSelectionMode);
-        return new ControllerModel(id, type, name, parallelProcessingDefault, maxParallelRecipes, recipeSelectionMode, json);
+        return new ControllerModel(id, type, name, Component.literal(name), parallelProcessingDefault, maxParallelRecipes, recipeSelectionMode, json);
     }
 
     public static JsonObject paramsToJson(String id, ResourceLocation type, String name) {

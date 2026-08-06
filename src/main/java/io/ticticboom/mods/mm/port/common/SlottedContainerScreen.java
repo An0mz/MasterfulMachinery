@@ -24,7 +24,7 @@ public class SlottedContainerScreen<T extends AbstractContainerMenu & IPortMenu>
         this.menu = menu;
         this.imageHeight = 222;
         this.imageWidth = 174;
-        String name = menu.getModel().name();
+        String name = menu.getModel().displayName().getString();
         int subStrLength = Math.min(55, name.length());
         header = FormattedText.of(name.substring(0, subStrLength) + (subStrLength < 55 ? "" : "..."));
         setupSlots();

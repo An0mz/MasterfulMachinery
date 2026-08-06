@@ -25,6 +25,6 @@ public class FluidPortBlockItem extends BlockItem implements IPortItem {
 
     @Override
     public Component getTypeName() {
-        return Component.literal("Fluid").withStyle(ChatFormatting.BOLD, ChatFormatting.DARK_AQUA);
+        return Component.translatable("port.mm.fluid.name").withStyle(ChatFormatting.BOLD, ChatFormatting.DARK_AQUA);
     }
 }

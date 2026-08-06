@@ -84,13 +84,13 @@ public class ConsumeRecipeIngredientEntry implements IRecipeIngredientEntry {
             rSlot.addTooltipCallback((v, list) -> list.add(Component.translatable("jei.mm.not_used").withStyle(ChatFormatting.DARK_AQUA)));
         }
         ingredient.setRecipe(builder, model, focus, helpers, grid, rSlot);
-        var fmtChance = String.format("%.2f", chance * 100) + "% Chance of Consumption";
+        var fmtChance = String.format("%.2f", chance * 100);
         rSlot.addTooltipCallback((v, list) -> {
             if (chance < 1) {
-                list.add(Component.literal(fmtChance).withStyle(ChatFormatting.DARK_AQUA));
+                list.add(Component.translatable("jei.mm.recipe.chance_of_consumption", fmtChance).withStyle(ChatFormatting.DARK_AQUA));
             }
             if (perTick) {
-                list.add(Component.literal("Consumed Per Tick").withStyle(ChatFormatting.DARK_AQUA));
+                list.add(Component.translatable("jei.mm.recipe.consumed_per_tick").withStyle(ChatFormatting.DARK_AQUA));
             }
         });
     }

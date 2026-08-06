@@ -46,7 +46,7 @@ public class CreateKineticPortBlockEntity extends KineticBlockEntity implements 
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("Kinetic Port");
+        return Component.translatable("port.mm.create_kinetic.title");
     }
 
     @Nullable

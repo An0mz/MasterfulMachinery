@@ -62,9 +62,9 @@ public class MMRecipeCategory implements IRecipeCategory<RecipeModel> {
     @Override
     public @NotNull Component getTitle() {
         if (structureModel != null) {
-            return Component.literal(this.structureModel.name()).append(Component.literal(" (Recipes)"));
+            return Component.translatable("jei.mm.category.structure_recipes", this.structureModel.displayName());
         } else {
-            return Component.literal("MM Recipes");
+            return Component.translatable("jei.mm.category.recipes");
         }
     }
 
@@ -101,16 +101,16 @@ public class MMRecipeCategory implements IRecipeCategory<RecipeModel> {
         bgProgressBar.draw(gfx, 70, 12);
         fgProgressBar.draw(gfx, 70, 12);
         var seconds = (double) recipe.ticks() / 20;
-        var fmt = String.format("%.2f", seconds) + "s";
+        var fmt = String.format("%.2f", seconds);
 
         if (WidgetUtils.isPointerWithinSized((int) mouseX, (int) mouseY, 70, 12, 24, 17)) {
-            gfx.renderTooltip(Minecraft.getInstance().font, Component.literal(fmt), (int) mouseX, (int) mouseY);
+            gfx.renderTooltip(Minecraft.getInstance().font, Component.translatable("jei.mm.recipe.duration", fmt), (int) mouseX, (int) mouseY);
         }
 
         if (structureModel == null) {
             gfx.blit(Ref.UiTextures.SLOT_PARTS, 75, 28, 19, 26, 7, 9);
             if (WidgetUtils.isPointerWithinSized((int) mouseX, (int) mouseY, 75, 28, 7, 9)) {
-                gfx.renderTooltip(Minecraft.getInstance().font, Component.literal("Structure: " + recipe.structureId().toString()), (int) mouseX, (int) mouseY);
+                gfx.renderTooltip(Minecraft.getInstance().font, Component.translatable("jei.mm.recipe.structure", recipe.structureId().toString()), (int) mouseX, (int) mouseY);
             }
         }
 

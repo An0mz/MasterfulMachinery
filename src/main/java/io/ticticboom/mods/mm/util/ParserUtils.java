@@ -22,11 +22,33 @@ public class ParserUtils {
         return parseId(json.get(key));
     }
 
+    /**
+     * Parses a display name that may be given either as a plain string or as a translation object:
+     * <pre>
+     *   "name": "Assembler"
+     *   "name": { "translation": "mypack.machine.assembler" }
+     * </pre>
+     * Plain strings stay literal, so existing datapacks keep working unchanged.
+     */
     public static Component parseComponent(JsonElement json) {
         if (json.isJsonPrimitive() && json.getAsJsonPrimitive().isString()) {
             return Component.literal(json.getAsString());
         } else if (json.isJsonObject() && json.getAsJsonObject().has("translation")) {
             return Component.translatable(json.getAsJsonObject().get("translation").getAsString());
+        }
+        throw new RuntimeException("Failed to parse text component as literal or translatable, Refer to MM documentation for assistance");
+    }
+
+    /**
+     * Raw string form of a name element, for serialization, data generation and NBT, where a
+     * resolved {@link Component} is not usable. Returns the literal text for plain strings, or the
+     * translation key for translation objects.
+     */
+    public static String parseComponentKey(JsonElement json) {
+        if (json.isJsonPrimitive() && json.getAsJsonPrimitive().isString()) {
+            return json.getAsString();
+        } else if (json.isJsonObject() && json.getAsJsonObject().has("translation")) {
+            return json.getAsJsonObject().get("translation").getAsString();
         }
         throw new RuntimeException("Failed to parse text component as literal or translatable, Refer to MM documentation for assistance");
     }

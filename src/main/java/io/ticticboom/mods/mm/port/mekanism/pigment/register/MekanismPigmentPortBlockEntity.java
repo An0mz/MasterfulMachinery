@@ -29,7 +29,7 @@ public class MekanismPigmentPortBlockEntity extends MekanismChemicalPortBlockEnt
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("Pigment Port");
+        return Component.translatable("port.mm.mekanism_pigment.title");
     }
 
     @Nullable

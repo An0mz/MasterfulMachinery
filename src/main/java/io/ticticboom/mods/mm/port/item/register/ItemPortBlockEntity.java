@@ -63,7 +63,7 @@ public class ItemPortBlockEntity extends AbstractPortBlockEntity {
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("Item Port");
+        return Component.translatable("port.mm.item.title");
     }
 
     @Nullable

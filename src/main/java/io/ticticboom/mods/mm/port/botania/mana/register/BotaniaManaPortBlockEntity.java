@@ -106,7 +106,7 @@ public class BotaniaManaPortBlockEntity extends BlockEntity implements ManaPool,
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("Botania Mana Port");
+        return Component.translatable("port.mm.botania_mana.title");
     }
 
     @Nullable

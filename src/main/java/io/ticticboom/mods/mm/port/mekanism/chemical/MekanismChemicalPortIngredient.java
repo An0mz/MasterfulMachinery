@@ -148,6 +148,6 @@ public abstract class MekanismChemicalPortIngredient<CHEMICAL extends Chemical<C
     @SuppressWarnings("removal")
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, RecipeModel model, IFocusGroup focus, IJeiHelpers helpers, SlotGrid grid, IRecipeSlotBuilder recipeSlot) {
-        recipeSlot.addTooltipCallback((a, c) -> c.add(1, Component.literal(amount + " mB")));
+        recipeSlot.addTooltipCallback((a, c) -> c.add(1, Component.translatable("jei.mm.ingredient.mekanism_chemical.amount", amount)));
     }
 }

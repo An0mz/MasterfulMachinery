@@ -13,6 +13,7 @@ import io.ticticboom.mods.mm.recipe.RecipeStorages;
 import io.ticticboom.mods.mm.structure.attachment.StructureAttachments;
 import io.ticticboom.mods.mm.structure.layout.PositionedLayoutPiece;
 import io.ticticboom.mods.mm.structure.layout.StructureLayout;
+import io.ticticboom.mods.mm.util.ParserUtils;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.ChatFormatting;
@@ -34,6 +35,7 @@ public class StructureModel {
 
     private final ResourceLocation id;
     private final String name;
+    private final Component displayName;
     private final IdList controllerIds;
     private final StructureLayout layout;
 
@@ -62,8 +64,21 @@ public class StructureModel {
             StructureAttachments attachments,
             JsonObject config
     ) {
+        this(id, name, Component.literal(name), controllerIds, layout, attachments, config);
+    }
+
+    public StructureModel(
+            ResourceLocation id,
+            String name,
+            Component displayName,
+            IdList controllerIds,
+            StructureLayout layout,
+            StructureAttachments attachments,
+            JsonObject config
+    ) {
         this.id = id;
         this.name = name;
+        this.displayName = displayName;
         this.controllerIds = controllerIds;
         this.layout = layout;
         this.attachments = attachments;
@@ -89,11 +104,13 @@ public class StructureModel {
     }
 
     public static StructureModel parse(JsonObject json, ResourceLocation structureId) {
-        var name = json.get("name").getAsString();
+        // "name" accepts a plain string or a { "translation": "key" } object.
+        var name = ParserUtils.parseComponentKey(json.get("name"));
+        var displayName = ParserUtils.parseComponent(json.get("name"));
         var layout = StructureLayout.parse(json, structureId);
         var ids = IdList.parse(json.get("controllerIds"));
         var attachments = StructureAttachments.parse(json);
-        return new StructureModel(structureId, name, ids, layout, attachments, json);
+        return new StructureModel(structureId, name, displayName, ids, layout, attachments, json);
     }
 
     public static JsonObject paramsToJson(ResourceLocation id, String name, IdList controllerIds, StructureLayout layout) {
@@ -182,6 +199,11 @@ public class StructureModel {
         return name;
     }
 
+    /** Display form of the name, resolving a datapack-supplied translation key where one was given. */
+    public Component displayName() {
+        return displayName;
+    }
+
     public IdList controllerIds() {
         return controllerIds;
     }
@@ -213,7 +235,7 @@ public class StructureModel {
             assert controllerBlock != null;
             controllerList.add(controllerBlock.asItem().getDefaultInstance());
         }
-        countedPartItems.add(new GuiCountedItemStack(1, controllerList, Component.literal("Controller").withStyle(ChatFormatting.BOLD, ChatFormatting.GOLD), "C"));
+        countedPartItems.add(new GuiCountedItemStack(1, controllerList, Component.translatable("gui.mm.structure.controller").withStyle(ChatFormatting.BOLD, ChatFormatting.GOLD), "C"));
         return countedPartItems;
     }
 

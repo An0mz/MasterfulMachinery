@@ -21,7 +21,7 @@ public class EnergyIngredientRenderer implements IIngredientRenderer<EnergyStack
     @Override
     public @NotNull List<Component> getTooltip(EnergyStack ingredient, @NotNull TooltipFlag tooltipFlag) {
         var result = new ArrayList<Component>();
-        result.add(Component.literal(ingredient.amount() + " FE"));
+        result.add(Component.translatable("jei.mm.ingredient.energy.amount", ingredient.amount()));
         return result;
     }
 }

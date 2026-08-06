@@ -28,7 +28,7 @@ public class MekanismSlurryPortBlockEntity extends MekanismChemicalPortBlockEnti
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("Slurry Port");
+        return Component.translatable("port.mm.mekanism_slurry.title");
     }
 
     @Nullable

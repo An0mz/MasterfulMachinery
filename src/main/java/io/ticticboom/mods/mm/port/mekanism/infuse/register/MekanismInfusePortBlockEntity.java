@@ -29,7 +29,7 @@ public class MekanismInfusePortBlockEntity extends MekanismChemicalPortBlockEnti
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("Mekanism Infusion Port");
+        return Component.translatable("port.mm.mekanism_infuse.title");
 
     }
 

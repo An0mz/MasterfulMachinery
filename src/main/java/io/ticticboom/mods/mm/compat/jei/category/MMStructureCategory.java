@@ -44,7 +44,7 @@ public class MMStructureCategory implements IRecipeCategory<StructureModel> {
     // dynamic fields that can change per-recipe when setRecipe is called
     private IDrawableStatic background;
     private int dynamicHeight = PANEL_SIZE.y;
-    private final MutableComponent title = Component.literal("MM Structure");
+    private final MutableComponent title = Component.translatable("jei.mm.category.structure");
 
     public MMStructureCategory(final IGuiHelper helper) {
         this.helper = helper;
@@ -164,10 +164,10 @@ public class MMStructureCategory implements IRecipeCategory<StructureModel> {
                 }
             }
         }
-        String line = "Max Parallel Processing: " + displayInt;
+        String line = Component.translatable("gui.mm.controller.max_parallel", displayInt).getString();
             // draw structure name first, then the Max Parallel line smaller beneath it
             int nameY = 5;
-            TextRenderUtil.renderWordWrapLimit(guiGraphics, recipe.name(), 5, nameY, RENDER_SIZE.x - 5, 2, 0xFFFFFFFF);
+            TextRenderUtil.renderWordWrapLimit(guiGraphics, recipe.displayName(), 5, nameY, RENDER_SIZE.x - 5, 2, 0xFFFFFFFF);
             int lineHeight = Minecraft.getInstance().font.lineHeight;
             int subY = nameY + lineHeight;
             float scale = 0.65f; // smaller text for the max-parallel line
@@ -179,7 +179,7 @@ public class MMStructureCategory implements IRecipeCategory<StructureModel> {
             TextRenderUtil.renderWordWrapLimit(guiGraphics, line, 0, 0, wrapWidth, 1, 0xFFFFFFFF);
             guiGraphics.pose().popPose();
         } else {
-            TextRenderUtil.renderWordWrapLimit(guiGraphics, recipe.name(), 5, 5, RENDER_SIZE.x - 5, 2, 0xFFFFFFFF);
+            TextRenderUtil.renderWordWrapLimit(guiGraphics, recipe.displayName(), 5, 5, RENDER_SIZE.x - 5, 2, 0xFFFFFFFF);
         }
     }
 

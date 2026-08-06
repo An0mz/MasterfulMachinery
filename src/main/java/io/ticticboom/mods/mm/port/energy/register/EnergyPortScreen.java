@@ -21,7 +21,7 @@ public class EnergyPortScreen extends AbstractContainerScreen<EnergyPortMenu> {
         super(menu, inv, displayName);
         this.imageHeight = 222;
         this.imageWidth = 174;
-        String name = menu.getModel().name();
+        String name = menu.getModel().displayName().getString();
         int subStrLength = Math.min(55, name.length());
         header = FormattedText.of(name.substring(0, subStrLength) + (subStrLength < 55 ? "" : "..."));
     }
@@ -51,7 +51,7 @@ public class EnergyPortScreen extends AbstractContainerScreen<EnergyPortMenu> {
         gfx.blit(Ref.UiTextures.SLOT_PARTS, this.leftPos + 8, this.topPos + start, 90, 0, 160, filledHeight);
         if (WidgetUtils.isPointerWithinSized(mouseX, mouseY, this.leftPos + 7, this.topPos + 50, 162, 80)) {
             var tooltip = new ArrayList<Component>();
-            tooltip.add(Component.literal(String.format("Storage Energy: %sFE / %sFE", storage.getStoredEnergy(), storageModel.capacity())));
+            tooltip.add(Component.translatable("gui.mm.port.energy.storage", storage.getStoredEnergy(), storageModel.capacity()));
             gfx.renderComponentTooltip(this.font, tooltip, mouseX, mouseY);
         }
     }

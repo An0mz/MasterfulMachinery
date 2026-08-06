@@ -46,17 +46,17 @@ public class ControllerDataProvider implements IServerDataProvider<BlockAccessor
         CompoundTag data = blockAccessor.getServerData();
         if (data.contains(TICK_KEY)) {
             var progress = data.getString(TICK_KEY);
-            tooltip.add(Component.literal("Progress: " + progress));
+            tooltip.add(Component.translatable("jade.mm.controller.progress", progress));
         }
         if (data.contains(REDSTONE_KEY)) {
             String m = data.getString(REDSTONE_KEY);
             if (!"IGNORED".equals(m)) {
-                String friendly = switch (m) {
-                    case "WITH_REDSTONE" -> "Redstone: Requires redstone";
-                    case "WITHOUT_REDSTONE" -> "Redstone: Remove redstone";
-                    default -> "Redstone: " + m;
+                Component friendly = switch (m) {
+                    case "WITH_REDSTONE" -> Component.translatable("jade.mm.controller.redstone.with");
+                    case "WITHOUT_REDSTONE" -> Component.translatable("jade.mm.controller.redstone.without");
+                    default -> Component.translatable("jade.mm.controller.redstone.other", m);
                 };
-                tooltip.add(Component.literal(friendly));
+                tooltip.add(friendly);
             }
         }
     }
