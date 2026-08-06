@@ -116,6 +116,9 @@ public class MMJeiPlugin implements IModPlugin {
 
     @Override
     public void registerItemSubtypes(ISubtypeRegistration registration) {
-        registration.useNbtForSubtypes(MMRegisters.BLUEPRINT.get());
+        // JEI 19 replaced useNbtForSubtypes with component-based subtypes; the blueprint
+        // distinguishes itself by its custom_data component.
+        registration.registerSubtypeInterpreter(MMRegisters.BLUEPRINT.get(),
+                (stack, ctx) -> String.valueOf(io.ticticboom.mods.mm.util.ItemNbtUtil.getTag(stack)));
     }
 }

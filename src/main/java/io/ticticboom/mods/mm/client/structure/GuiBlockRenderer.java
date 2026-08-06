@@ -60,7 +60,7 @@ public class GuiBlockRenderer {
     public void render(GuiGraphics gfx, int mouseX, int mouseY, AutoTransform mouseTransform) {
         PoseStack pose = gfx.pose();
         pose.pushPose();
-        pose.mulPoseMatrix(mouseTransform.getModelTransform());
+        pose.mulPose(mouseTransform.getModelTransform());
         pose.translate(pos.getX(), pos.getY(), pos.getZ());
         BlockRenderDispatcher brd = mc.getBlockRenderer();
         MultiBufferSource.BufferSource bufferSource = gfx.bufferSource();

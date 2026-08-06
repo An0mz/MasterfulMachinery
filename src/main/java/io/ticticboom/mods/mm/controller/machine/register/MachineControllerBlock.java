@@ -30,6 +30,16 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
 public class MachineControllerBlock extends HorizontalDirectionalBlock implements IControllerPart, IControllerBlock {
+
+    /**
+     * HorizontalDirectionalBlock declares codec() abstract in 1.20.5+. MM controller blocks are
+     * built from data and registered programmatically rather than decoded from a codec, so this
+     * exists only to satisfy the contract and is never used to construct one.
+     */
+    @Override
+    protected com.mojang.serialization.MapCodec<? extends HorizontalDirectionalBlock> codec() {
+        return com.mojang.serialization.MapCodec.unit(this);
+    }
     private final ControllerModel model;
     private final RegistryGroupHolder groupHolder;
 

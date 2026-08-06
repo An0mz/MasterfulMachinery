@@ -37,7 +37,8 @@ public class DataGenManager {
     public static void generate() {
         if (!hasGenerated) {
             try {
-                if (!ModLoader.isLoadingStateValid()) {
+                // ModLoader.isLoadingStateValid is gone in NeoForge; ModLoader.hasErrors covers it.
+                if (ModLoader.hasErrors()) {
                     return;
                 }
                 generator.run();

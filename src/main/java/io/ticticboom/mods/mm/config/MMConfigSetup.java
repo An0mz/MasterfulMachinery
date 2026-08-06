@@ -3,7 +3,7 @@ package io.ticticboom.mods.mm.config;
 import io.ticticboom.mods.mm.Ref;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.ModLoadingContext;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.config.ModConfigEvent;
@@ -20,10 +20,10 @@ public class MMConfigSetup {
         commonSpec = specPair.getRight();
     }
 
-    public static void setup() {
-        @SuppressWarnings("removal")
-        var ctx = ModLoadingContext.get();
-        ctx.registerConfig(ModConfig.Type.COMMON, commonSpec);
+    // NeoForge removed ModLoadingContext.registerConfig; the mod container handed to the @Mod
+    // constructor owns config registration now.
+    public static void setup(ModContainer container) {
+        container.registerConfig(ModConfig.Type.COMMON, commonSpec);
     }
 
     @SubscribeEvent

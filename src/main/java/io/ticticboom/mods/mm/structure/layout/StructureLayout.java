@@ -225,7 +225,7 @@ public class StructureLayout {
 
     private boolean candidateMatches(StructureLayoutPiece layoutReq, Object requiredPiece, Level level, BlockPos absPos, Rotation rot, StructureModel model) {
         // get block entity safely
-        var be = level.getExistingBlockEntity(absPos);
+        var be = (level.isLoaded(absPos) ? level.getBlockEntity(absPos) : null);
         if (be == null) {
             try {
                 be = WorldUtil.getBlockEntity(absPos, (ServerLevel) level);
@@ -300,7 +300,7 @@ public class StructureLayout {
         for (PositionedLayoutPiece positionedPiece : positionedPieces) {
             BlockPos absolutePos = positionedPiece.findAbsolutePos(worldControllerPos);
             //this works faster
-            var be = level.getExistingBlockEntity(absolutePos);
+            var be = (level.isLoaded(absolutePos) ? level.getBlockEntity(absolutePos) : null);
             if(be == null) {
                 //just in case of chunk unload
                 be = WorldUtil.getBlockEntity(absolutePos, (ServerLevel) level);

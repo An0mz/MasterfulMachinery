@@ -21,7 +21,7 @@ public class RecipeBuilderJS {
     @SuppressWarnings("removal")
     public RecipeBuilderJS(String id) {
         //noinspection removal
-        this.id = new ResourceLocation(id);
+        this.id = ResourceLocation.parse(id);
     }
 
     public RecipeBuilderJS input(JsonObject entry) {

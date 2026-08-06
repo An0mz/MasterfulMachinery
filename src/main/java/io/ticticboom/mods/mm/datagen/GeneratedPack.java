@@ -72,6 +72,19 @@ public class GeneratedPack implements PackResources {
         return packId;
     }
 
+    /**
+     * PackResources.packId was replaced by location() in 1.20.5. The pack is created
+     * programmatically rather than discovered on disk, so it reports itself as built in.
+     */
+    @Override
+    public net.minecraft.server.packs.PackLocationInfo location() {
+        return new net.minecraft.server.packs.PackLocationInfo(
+                packId,
+                net.minecraft.network.chat.Component.literal(packId),
+                net.minecraft.server.packs.repository.PackSource.BUILT_IN,
+                java.util.Optional.empty());
+    }
+
     @Nullable
     public IoSupplier<InputStream> getRootResource(String... p_249041_) {
         FileUtil.validatePath(p_249041_);
@@ -90,7 +103,7 @@ public class GeneratedPack implements PackResources {
     }
 
     public static IoSupplier<InputStream> getResource(ResourceLocation p_250145_, Path p_251046_) {
-        return FileUtil.decomposePath(p_250145_.getPath()).get().map((p_251647_) -> {
+        return FileUtil.decomposePath(p_250145_.getPath()).mapOrElse((p_251647_) -> {
             Path path = FileUtil.resolvePath(p_251046_, p_251647_);
             return returnFileIfExists(path);
         }, (p_248714_) -> {
@@ -105,10 +118,10 @@ public class GeneratedPack implements PackResources {
     }
 
     public void listResources(PackType p_251452_, String p_249854_, String p_248650_, PackResources.ResourceOutput p_248572_) {
-        FileUtil.decomposePath(p_248650_).get().ifLeft((p_250225_) -> {
+        FileUtil.decomposePath(p_248650_).ifSuccess((p_250225_) -> {
             Path path = this.root.resolve(p_251452_.getDirectory()).resolve(p_249854_);
             listPath(p_249854_, path, p_250225_, p_248572_);
-        }).ifRight((p_252338_) -> {
+        }).ifError((p_252338_) -> {
             LOGGER.error("Invalid path {}: {}", p_248650_, p_252338_.message());
         });
     }

@@ -36,6 +36,7 @@ import io.ticticboom.mods.mm.structure.StructureManager;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
@@ -277,7 +278,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                         int amount = (int) Math.min(Integer.MAX_VALUE, stack.getAmount());
                         int idHash = 0;
                         try {
-                            var typeId = stack.getType();
+                            var typeId = stack.getChemical();
                             idHash = typeId.hashCode();
                         } catch (Throwable ignored) { }
                         sig ^= idHash + amount;
@@ -393,7 +394,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                         if (!stack.isEmpty() && stack.getAmount() > 0) {
                             // chemical type -> registry name is a ResourceLocation string
                             try {
-                                var rl = stack.getType().getRegistryName();
+                                var rl = mekanism.api.MekanismAPI.CHEMICAL_REGISTRY.getKey(stack.getChemical());
                                 cachedAvailableMekanismIds.add(rl);
                             } catch (Throwable ignored) { }
                             cachedHasMekanismChemical = true;
@@ -967,10 +968,10 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     @Override
-    protected void saveAdditional(@NotNull CompoundTag tag) {
+    protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.Provider registries) {
         CompoundTag recipesTag = new CompoundTag();
         for (Map.Entry<ResourceLocation, RecipeStateModel> entry : activeRecipes.entrySet()) {
-            recipesTag.put(entry.getKey().toString(), entry.getValue().save(new CompoundTag()));
+            recipesTag.put(entry.getKey().toString(), entry.getValue().save(new CompoundTag(), registries));
         }
         tag.put("activeRecipes", recipesTag);
         if (structure != null) tag.putString("structureId", structure.id().toString());
@@ -990,12 +991,12 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         try {
             tag.putInt("redstoneMode", redstoneMode.ordinal());
         } catch (Throwable ignored) { }
-        super.saveAdditional(tag);
+        super.saveAdditional(tag, registries);
     }
 
     @Override
-    public void load(@NotNull CompoundTag tag) {
-        super.load(tag);
+    protected void loadAdditional(@NotNull CompoundTag tag, HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
         activeRecipes.clear();
         if (tag.contains("activeRecipes")) {
             CompoundTag recipesTag = tag.getCompound("activeRecipes");
@@ -1050,9 +1051,9 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     @Override
-    public @NotNull CompoundTag getUpdateTag() {
+    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         var tag = new CompoundTag();
-        saveAdditional(tag);
+        saveAdditional(tag, registries);
         return tag;
     }
 
