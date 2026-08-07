@@ -126,7 +126,7 @@ public class FluidPortIngredient implements IPortIngredient {
             var drained = storage.getHandler().drain(new FluidStack(fluid, remaining), IFluidHandler.FluidAction.SIMULATE);
             remaining -= drained.getAmount();
 
-            var drainedRes = JsonOps.INSTANCE.withEncoder(FluidStack.CODEC).apply(drained);
+            var drainedRes = JsonOps.INSTANCE.withEncoder(FluidStack.OPTIONAL_CODEC).apply(drained);
 
             if (drainedRes.result().isPresent()) {
                 iterJson.add("drainedFluidStack", drainedRes.result().get());

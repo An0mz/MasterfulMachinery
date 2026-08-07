@@ -19,7 +19,10 @@ import org.jetbrains.annotations.NotNull;
 
 public class ItemPortHandler extends ItemStackHandler {
 
-    public static Codec<List<ItemStack>> STACKS_CODEC = Codec.list(ItemStack.CODEC);
+    // OPTIONAL_CODEC, not CODEC: 1.20.5 split these, and the strict one rejects empty stacks
+    // ("Value must be within range [1;99]", "Item must not be minecraft:air"). Port slots are
+    // empty most of the time, and every slot is serialised on each block update.
+    public static Codec<List<ItemStack>> STACKS_CODEC = Codec.list(ItemStack.OPTIONAL_CODEC);
     private final INotifyChangeFunction changed;
     private final int slotCapacity; // 0 = use item default
     private static final int HARD_MAX = 16384;

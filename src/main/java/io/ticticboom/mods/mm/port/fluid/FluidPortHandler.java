@@ -22,7 +22,9 @@ public class FluidPortHandler implements IFluidHandler {
 
     private final ArrayList<FluidStack> stacks;
 
-    public static final Codec<List<FluidStack>> STACKS_CODEC = Codec.list(FluidStack.CODEC);
+    // OPTIONAL_CODEC, not CODEC: the strict codec rejects empty stacks, and empty tanks are
+    // serialised on every block update. Same split as ItemStack in 1.20.5.
+    public static final Codec<List<FluidStack>> STACKS_CODEC = Codec.list(FluidStack.OPTIONAL_CODEC);
 
     public FluidPortHandler(int tanks, int capacity, INotifyChangeFunction changed) {
         this.tanks = tanks;

@@ -94,7 +94,7 @@ public class ItemPortStorage implements IPortStorage {
         json.addProperty("slotCapacity", model.slotCapacity());
         var stacksJson = new JsonArray();
         for (ItemStack stack : handler.getStacks()) {
-            var res = JsonOps.INSTANCE.withEncoder(ItemStack.CODEC).apply(stack);
+            var res = JsonOps.INSTANCE.withEncoder(ItemStack.OPTIONAL_CODEC).apply(stack);
             if (res.result().isPresent()) {
                 stacksJson.add(res.result().get());
             } else {

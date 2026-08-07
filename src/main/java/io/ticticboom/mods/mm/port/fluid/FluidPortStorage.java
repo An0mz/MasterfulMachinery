@@ -88,7 +88,7 @@ public class FluidPortStorage implements IPortStorage {
         var tanks = new JsonArray();
         for (int i = 0; i < handler.getTanks(); i++) {
             var stack = handler.getFluidInTank(i);
-            var res = JsonOps.INSTANCE.withEncoder(FluidStack.CODEC).apply(stack);
+            var res = JsonOps.INSTANCE.withEncoder(FluidStack.OPTIONAL_CODEC).apply(stack);
             if (res.result().isPresent()) {
                 tanks.add(res.result().get());
             } else {
