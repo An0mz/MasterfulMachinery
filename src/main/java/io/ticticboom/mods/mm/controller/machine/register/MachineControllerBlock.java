@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.controller.machine.register;
 
+import io.ticticboom.mods.mm.util.DisplayNameUtil;
+import net.minecraft.network.chat.MutableComponent;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.controller.IControllerBlock;
 import io.ticticboom.mods.mm.controller.IControllerPart;
@@ -106,5 +108,14 @@ public class MachineControllerBlock extends HorizontalDirectionalBlock implement
             super.onRemove(oldState, level, pos, newState, isMoving);
         }
     }
-}
 
+    /**
+     * Matches the block item: plain string names keep using the generated block.mm.<id> entry so
+     * resource packs can override them; only a pack-supplied translation key bypasses it.
+     */
+    @Override
+    public MutableComponent getName() {
+        var name = DisplayNameUtil.packSuppliedName(model.displayName());
+        return name != null ? name.copy() : super.getName();
+    }
+}

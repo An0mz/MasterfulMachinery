@@ -2,6 +2,7 @@ package io.ticticboom.mods.mm.port.mekanism.chemical.register;
 
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.datagen.provider.MMBlockstateProvider;
+import net.minecraft.network.chat.MutableComponent;
 import io.ticticboom.mods.mm.model.PortModel;
 import io.ticticboom.mods.mm.port.IPortBlock;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
@@ -46,5 +47,15 @@ public abstract class MekanismChemicalPortBlock extends Block implements EntityB
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
         return BlockUtils.commonUse(state, level, pos, player, hitResult, MekanismChemicalPortBlockEntity.class, null);
+    }
+
+    /**
+     * Matches the block item: the generated block.mm.<id> entry loses a pack-supplied translation
+     * key and hardcodes the English Input/Output suffix, so the model name is used directly.
+     */
+    @Override
+    public MutableComponent getName() {
+        var name = model.displayName();
+        return name != null ? name.copy() : super.getName();
     }
 }

@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.extra.circuit;
 
+import io.ticticboom.mods.mm.util.DisplayNameUtil;
+import net.minecraft.network.chat.MutableComponent;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.extra.ExtraBlockModel;
 import io.ticticboom.mods.mm.extra.IExtraBlock;
@@ -27,5 +29,15 @@ public class CircuitBlock extends Block implements IExtraBlock {
     public void generateModel(MMBlockstateProvider provider) {
         var mdl = provider.dynamicBlock(groupHolder.getBlock().getId(), Ref.Textures.BASE_BLOCK, Ref.Textures.CIRCUIT_OVERLAY);
         provider.simpleBlock(groupHolder.getBlock().get(), mdl);
+    }
+
+    /**
+     * Matches the block item: plain string names keep using the generated block.mm.<id> entry so
+     * resource packs can override them; only a pack-supplied translation key bypasses it.
+     */
+    @Override
+    public MutableComponent getName() {
+        var name = DisplayNameUtil.packSuppliedName(model.displayName());
+        return name != null ? name.copy() : super.getName();
     }
 }

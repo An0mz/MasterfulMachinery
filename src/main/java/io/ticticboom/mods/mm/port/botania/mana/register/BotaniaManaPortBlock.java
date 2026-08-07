@@ -2,6 +2,7 @@ package io.ticticboom.mods.mm.port.botania.mana.register;
 
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.datagen.provider.MMBlockstateProvider;
+import net.minecraft.network.chat.MutableComponent;
 import io.ticticboom.mods.mm.model.PortModel;
 import io.ticticboom.mods.mm.port.IPortBlock;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
@@ -53,5 +54,15 @@ public class BotaniaManaPortBlock extends Block implements IPortBlock, EntityBlo
                 // BotaniaManaPortBlockEntity for what to restore.
             }
         };
+    }
+
+    /**
+     * Matches the block item: the generated block.mm.<id> entry loses a pack-supplied translation
+     * key and hardcodes the English Input/Output suffix, so the model name is used directly.
+     */
+    @Override
+    public MutableComponent getName() {
+        var name = model.displayName();
+        return name != null ? name.copy() : super.getName();
     }
 }

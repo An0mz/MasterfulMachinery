@@ -1,6 +1,7 @@
 package io.ticticboom.mods.mm.compat.kjs.builder;
 
 import io.ticticboom.mods.mm.extra.ExtraBlockModel;
+import net.minecraft.network.chat.Component;
 import io.ticticboom.mods.mm.recipe.RecipeStorages;
 import lombok.Getter;
 import net.minecraft.resources.ResourceLocation;
@@ -26,6 +27,6 @@ public class ExtraBlockBuilderJS {
     }
 
     public ExtraBlockModel build() {
-        return new ExtraBlockModel(id, name, type);
+        return new ExtraBlockModel(id, name, Component.literal(name), type);
     }
 }

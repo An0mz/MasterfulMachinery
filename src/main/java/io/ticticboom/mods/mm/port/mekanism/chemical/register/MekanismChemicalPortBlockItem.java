@@ -5,6 +5,7 @@ import io.ticticboom.mods.mm.port.IPortItem;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
 
 public abstract class MekanismChemicalPortBlockItem extends BlockItem implements IPortItem {
 
@@ -20,5 +21,17 @@ public abstract class MekanismChemicalPortBlockItem extends BlockItem implements
     @Override
     public PortModel getModel() {
         return model;
+    }
+
+    /**
+     * Ports always display their model name rather than the generated block.mm.<id> entry. That
+     * entry is built from the raw string name, which both loses the translation key when a pack
+     * supplies one and carries a hardcoded English Input/Output suffix; displayName() resolves the
+     * pack name and runs the suffix through port.mm.name_format.*.
+     */
+    @Override
+    public Component getName(ItemStack stack) {
+        var name = getModel().displayName();
+        return name != null ? name : super.getName(stack);
     }
 }
