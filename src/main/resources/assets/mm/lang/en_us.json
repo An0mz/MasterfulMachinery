@@ -19,6 +19,7 @@
   "item.mm.multiblock_saver.tooltip.corner1": "Corner 1: %s,%s,%s",
   "item.mm.multiblock_saver.tooltip.corner2": "Corner 2: %s,%s,%s",
 
+  "item.mm.blueprint": "Blueprint",
   "item.mm.blueprint.name_format": "%s - %s",
   "item.mm.blueprint.tooltip.structure": "Structure: %s",
   "item.mm.blueprint.tooltip.creative": "Creative: Sneak to preview, Sneak-Right-Click to paste",

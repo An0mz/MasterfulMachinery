@@ -29,6 +29,9 @@ public class MMLangProvider extends LanguageProvider {
             }
         }
 
-        this.add(MMRegisters.BLUEPRINT.get(), "Blueprint");
+        // The blueprint's name is not generated here. It is a fixed item rather than data-driven
+        // content, so it lives in assets/mm/lang/en_us.json as item.mm.blueprint like the mod's
+        // other items. Generating it hardcoded English at runtime made it the one item name no
+        // translation or resource pack could override.
     }
 }

@@ -59,6 +59,23 @@ public class MMPortRegistry {
         PORT_TYPES.put(id, type);
     }
 
+    /**
+     * Looks up a port type, failing with something a pack author can act on.
+     * <p>
+     * Several port types only register when their integration mod is present, so a pack referring
+     * to one of those without the mod installed used to surface as a bare NullPointerException
+     * deep inside recipe parsing, with nothing naming the port or the mod.
+     */
+    public static PortType requirePortType(ResourceLocation id) {
+        var type = PORT_TYPES.get(id);
+        if (type == null) {
+            var known = new ArrayList<>(PORT_TYPES.keySet().stream().map(ResourceLocation::toString).sorted().toList());
+            throw new RuntimeException("Unknown port type '" + id + "'. Either it is misspelled, or the mod "
+                    + "providing it is not installed. Registered port types: " + String.join(", ", known));
+        }
+        return type;
+    }
+
     public static void rebuildPortCache() {
         PORT_MODELS_BY_CONTROLLER.clear();
         PORT_TYPES_BY_CONTROLLER.clear();
@@ -86,7 +103,7 @@ public class MMPortRegistry {
             // If it already has a 'type' field, use normal dispatch
             if (obj.has("type")) {
                 var type = ParserUtils.parseId(obj, "type");
-                return PORT_TYPES.get(type).getParser().parseRecipeIngredient(obj);
+                return requirePortType(type).getParser().parseRecipeIngredient(obj);
             }
             // If it's a KubeJS Item object or similar, try to normalize to item-ingredient form
             JsonObject normalized = new JsonObject();

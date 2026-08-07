@@ -85,11 +85,25 @@ public class MachineRecipeManager extends SimpleJsonResourceReloadListener {
         RECIPES.clear();
         Ref.LCTX.reset("MM Machine Recipe Processes");
         try {
+            // Each recipe is parsed independently. A single bad one used to abort the whole load
+            // and rethrow, which crashed world creation -- and the most likely cause of a bad
+            // recipe is a pack shipping content for an integration mod that is not installed,
+            // which should degrade rather than make the world unloadable.
+            int skipped = 0;
             for (Map.Entry<ResourceLocation, JsonElement> entry : jsons.entrySet()) {
-                Ref.LCTX.push("Loading Recipe: " + entry.getKey());
                 ResourceLocation id = entry.getKey();
-                RECIPES.put(id, RecipeModel.parse(entry.getValue().getAsJsonObject(), id));
+                Ref.LCTX.push("Loading Recipe: " + id);
+                try {
+                    RECIPES.put(id, RecipeModel.parse(entry.getValue().getAsJsonObject(), id));
+                } catch (Exception e) {
+                    skipped++;
+                    Ref.LOG.error("Skipping recipe {}: {}", id, e.getMessage());
+                }
                 Ref.LCTX.pop();
+            }
+            if (skipped > 0) {
+                Ref.LOG.error("{} MM recipe(s) failed to load and were skipped. The machines they "
+                        + "belong to will not have those processes available.", skipped);
             }
             if (MMInteropManager.KUBEJS.isPresent()) {
                 Ref.LCTX.push("Loading KubeJS Recipes ");
