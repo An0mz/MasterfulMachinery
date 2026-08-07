@@ -309,11 +309,14 @@ unifiedPublishing {
             }
         }
 
+        // publish_modrinth_id is optional, so the property has to be checked as well as the
+        // token. Referencing an undefined property fails the build outright, which is what
+        // happened before: the token check alone let it through and then blew up here.
         var mrToken = System.getenv("MODRINTH_TOKEN")
-        if (mrToken != null) {
+        if (mrToken != null && project.hasProperty("publish_modrinth_id")) {
             modrinth {
                 token = mrToken
-                id = publish_modrinth_id
+                id = project.property("publish_modrinth_id")
             }
         }
     }

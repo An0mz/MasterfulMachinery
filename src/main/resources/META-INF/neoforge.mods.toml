@@ -18,7 +18,7 @@ logoFile="logo.png" #optional
 # A URL for the "homepage" for this mod, displayed in the mod UI
 displayURL="https://frozengalaxy.github.io/masterful-machinery-wiki/" #optional
 # A URL to refer people to when problems occur with this mod
-issueTrackerURL="https://github.com/BOLTMAGIC/MasterfulMachinery/issues" #optional
+issueTrackerURL="https://github.com/An0mz/MasterfulMachinery/issues" #optional
 # A text field displayed in the mod UI
 authors="${mod_authors}" #optional
 # The description text for the mod (multi line!) (#mandatory)
