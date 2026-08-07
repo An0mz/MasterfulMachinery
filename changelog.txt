@@ -1,11 +1,54 @@
 ## Change Log [VERSION_NAME]
 
-Merged PRs:
-- ticticboooomer/MasterfulMachinery/pull/106
+Port of Masterful Machinery to Minecraft 1.21.1 on NeoForge. This is a community
+port published separately from the upstream project; report issues against this
+fork rather than upstream.
 
-Resolved Issues:
--
+### Read this before updating a pack
 
-Summary:
-- Add preview_features to common config
-- Add blueprint screen WIP (preview_feature behind config default: false)
+Mekanism 1.21.1 merged gas, slurry, pigment and infusion into a single chemical
+type, and removed everything that told them apart. All four port ids still work
+and no pack file needs editing, but the distinction is now cosmetic: a port
+declared as mm:mekanism/gas will accept a pigment, because Mekanism itself no
+longer separates them. If a recipe relied on a gas port rejecting slurry, that
+no longer holds.
+
+Item nbt matching is narrower. Minecraft 1.20.5 replaced the single item tag
+with typed data components, and MM now matches against minecraft:custom_data.
+Existing items keep their data, but nbt that matched things like Damage or
+enchantments will no longer match, because those are separate components now.
+
+Botania support is disabled. Botania has no 1.21.1 release, so the mm:botania/mana
+port is not registered and recipes using it are skipped with a message naming the
+recipe. It will return when Botania does.
+
+### Fixed
+
+- A pack referencing a port from a mod that is not installed no longer takes the
+  world down. Previously this surfaced as a NullPointerException during recipe
+  parsing that made the world unloadable. Recipes and structures now load
+  independently: a bad one is logged with its id and skipped, and unknown port
+  types report what is registered so the cause is obvious.
+- Datapacks can supply translation keys for port and controller names. The
+  { "translation": "..." } form already worked for structures but produced raw
+  key text for blocks a pack registers.
+- Port names no longer hardcode the English "Input" and "Output" suffix, so it
+  translates along with the rest of the name.
+- The blueprint item's name is translatable. It was generated as hardcoded
+  English and was the only item name no resource pack could override.
+
+### Notes
+
+- Requires NeoForge 21.1.0 or newer and Java 21.
+- Existing pack configs, datapacks, KubeJS scripts and worlds work unchanged.
+  Machine, port, structure and recipe JSON is untouched, and KubeJS builders keep
+  the same signatures.
+- The sample data shipped for reference now uses the c: common tag namespace
+  instead of forge:, which NeoForge no longer provides.
+
+### Not yet verified
+
+Item and energy ports, structure forming, recipe processing, saving and loading,
+GUIs and the dedicated server have all been exercised. Fluid, Mekanism,
+PneumaticCraft and Create ports, blueprint pasting, JEI integration and the debug
+tool, multiblock saver and priority setter have not. Please report anything odd.
