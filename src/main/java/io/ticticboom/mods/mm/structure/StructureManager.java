@@ -9,7 +9,6 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.fml.common.EventBusSubscriber;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -17,7 +16,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@EventBusSubscriber(bus = EventBusSubscriber.Bus.GAME)
+// No @EventBusSubscriber here: this class has no @SubscribeEvent methods and never did. Forge
+// ignored the empty annotation, NeoForge rejects it outright. It is registered as a reload
+// listener from ForgeEventsListener.registerReloadListeners instead.
 public class StructureManager extends SimpleJsonResourceReloadListener {
 
     public StructureManager() {
@@ -53,11 +54,22 @@ public class StructureManager extends SimpleJsonResourceReloadListener {
         STRUCTURES_BY_CONTROLLER.clear();
         try {
             Ref.LCTX.reset("Structure Loading");
+            // Parsed independently for the same reason as recipes: one structure referencing a
+            // port from an uninstalled integration mod should not make the world unloadable.
+            int skipped = 0;
             for (Map.Entry<ResourceLocation, JsonElement> entry : jsons.entrySet()) {
                 Ref.LCTX.push(String.format("Loading Structure: %s", entry.getKey().toString()));
-                var model = StructureModel.parse(entry.getValue().getAsJsonObject(), entry.getKey());
-                storeStructure(entry.getKey(), model);
+                try {
+                    var model = StructureModel.parse(entry.getValue().getAsJsonObject(), entry.getKey());
+                    storeStructure(entry.getKey(), model);
+                } catch (Exception e) {
+                    skipped++;
+                    Ref.LOG.error("Skipping structure {}: {}", entry.getKey(), e.getMessage());
+                }
                 Ref.LCTX.pop();
+            }
+            if (skipped > 0) {
+                Ref.LOG.error("{} MM structure(s) failed to load and were skipped.", skipped);
             }
             if (MMInteropManager.KUBEJS.isPresent()) {
                 Ref.LCTX.push("Loading KubeJS Structures");

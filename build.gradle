@@ -29,8 +29,14 @@ runs {
         // Recommended logging level for the console.
         systemProperty 'forge.logging.console.level', 'debug'
 
-        modSource project.sourceSets.main
-        modSource project.sourceSets.test
+        // Both source sets have to be named. The bare modSource(SourceSet) form attaches every
+        // source set to the project's own mod id, which put the test source set under "mm" and
+        // left TestRoot's @Mod("mmtest") entrypoint dangling. This mirrors the two-mod layout the
+        // 1.20.1 build declared through its mods { mm { ... } mmtest { ... } } block.
+        modSources {
+            add 'mm', project.sourceSets.main
+            add 'mmtest', project.sourceSets.test
+        }
     }
 
     client {
@@ -99,6 +105,13 @@ repositories {
         url = 'https://modmaven.dev'
     }
     maven {
+        url = "https://maven.ithundxr.dev/snapshots"
+    } // Primary mirror for Registrate artifacts
+
+    // Alternatively, you can use the Create Maven:
+    // maven { url = "https://maven.createmod.net" }
+    //}
+    maven {
         url 'https://maven.architectury.dev/'
         content {
             includeGroup 'dev.architectury'
@@ -157,9 +170,9 @@ dependencies {
     compileOnly "dev.architectury:architectury-neoforge:${architectury_version}"
 
     // CREATE MOD
-    // Registrate is intentionally absent: MM imports no Registrate classes, and the version Create
-    // asks for (MC1.21-1.3.0+67) is not published to any public maven. transitive = false keeps
-    // Create's own dependency graph off the classpath.
+    // MM imports no Registrate classes, so it is not needed to compile, and transitive = false
+    // keeps the rest of Create's dependency graph off the compile classpath. It is still required
+    // at runtime -- see the runtime block below.
     compileOnly("com.simibubi.create:create-${mc_version}:${create_version}:slim") { transitive = false }
     // Ponder is required at compile time even though MM imports nothing from it: MM extends
     // Create's GeneratingKineticBlockEntity, whose supertype chain reaches
@@ -185,6 +198,10 @@ dependencies {
 
     // CREATE MOD
     runtimeOnly("com.simibubi.create:create-${mc_version}:${create_version}:slim") { transitive = false }
+    // Create needs Registrate at runtime even though MM never touches it: Create's
+    // LavaSwimmingMixin references com.tterrag.registrate.util.entry.ItemEntry, and mixin
+    // application fails hard during client startup without it.
+    runtimeOnly "com.tterrag.registrate:Registrate:${registrate_version}"
     // Ponder and Flywheel renamed their artifacts for NeoForge:
     //   Ponder-Forge-1.20.1        -> ponder-neoforge (version carries the +mc1.21.1 suffix)
     //   flywheel-forge-1.20.1      -> flywheel-neoforge-1.21.1
