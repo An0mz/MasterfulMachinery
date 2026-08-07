@@ -82,7 +82,7 @@ public class  EnergyPortBlockEntity extends AbstractPortBlockEntity {
     }
 
     @Override
-    public void load(CompoundTag tag, HolderLookup.Provider registries) {
+    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         storage.load(tag.getCompound(Ref.NBT_STORAGE_KEY), registries);
         super.loadAdditional(tag, registries);
     }

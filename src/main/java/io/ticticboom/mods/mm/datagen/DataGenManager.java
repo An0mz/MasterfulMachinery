@@ -53,7 +53,7 @@ public class DataGenManager {
         generator = createDataGenerator();
         ExistingFileHelper efh = new ExistingFileHelper(ImmutableList.of(), ImmutableSet.of(), false, null, null);
         CompletableFuture<HolderLookup.Provider> lookupProvider = CompletableFuture.supplyAsync(() -> RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY));
-        generator.addProvider(true, new MMLootTableProvider(generator));
+        generator.addProvider(true, new MMLootTableProvider(generator, lookupProvider));
         generator.addProvider(true, new MMLangProvider(generator, "en_us"));
         generator.addProvider(true, new MMBlockTagsProvider(generator, lookupProvider));
         if (FMLEnvironment.dist != Dist.DEDICATED_SERVER) {

@@ -54,17 +54,17 @@ public class MekanismChemicalPortScreen<T extends MekanismChemicalPortMenu> exte
         renderTooltip(gfx, mouseX, mouseY);
         var type = storage.chemicalTank.getStack();
         if (!type.isEmpty()) {
-            int color = type.getType().getTint();
+            int color = type.getChemical().getTint();
 
             float red = (color >> 16 & 0xFF) / 255.0F;
             float green = (color >> 8 & 0xFF) / 255.0F;
             float blue = (color & 0xFF) / 255.0F;
             gfx.setColor(red, green, blue, 1.0f);
-            GuiUtils.drawTiledSprite(gfx, this.leftPos + 81, this.topPos + 61, 16, 16, 16, MekanismRenderer.getSprite(type.getType().getIcon()), 16, 16, 100, GuiUtils.TilingDirection.UP_RIGHT);
+            GuiUtils.drawTiledSprite(gfx, this.leftPos + 81, this.topPos + 61, 16, 16, 16, MekanismRenderer.getSprite(type.getChemical().getIcon()), 16, 16, 100, GuiUtils.TilingDirection.UP_RIGHT);
             MekanismRenderer.resetColor(gfx);
 
             if (WidgetUtils.isPointerWithinSized(mouseX, mouseY, this.leftPos + 80, this.topPos + 60, 18, 18)) {
-                var tooltip = List.of(type.getType().getTextComponent(), Component.translatable("gui.mm.port.mekanism_chemical.amount", type.getAmount()));
+                var tooltip = List.of(type.getChemical().getTextComponent(), Component.translatable("gui.mm.port.mekanism_chemical.amount", type.getAmount()));
                 gfx.renderComponentTooltip(this.font, tooltip, mouseX, mouseY);
             }
         }

@@ -100,7 +100,6 @@ public class PneumaticAirPortBlockEntity extends AbstractTickingBlockEntity impl
     public boolean hasMenu() {
         return true;
     }
-    @Override
     public IItemHandler getPrimaryInventory() {
         return null;
     }
@@ -129,7 +128,7 @@ public class PneumaticAirPortBlockEntity extends AbstractTickingBlockEntity impl
     }
 
     @Override
-    public void load(CompoundTag tag, HolderLookup.Provider registries) {
+    public void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         storage.load(tag.getCompound(Ref.NBT_STORAGE_KEY), registries);
         super.loadAdditional(tag, registries);
     }

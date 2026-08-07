@@ -48,7 +48,7 @@ public class PneumaticAirPortStorage implements IPortStorage {
 
     @Override
     public <T> boolean hasCapability(BlockCapability<T, ?> capability) {
-        return capability == PNCCapabilities.AIR_HANDLER_MACHINE_CAPABILITY;
+        return capability == PNCCapabilities.AIR_HANDLER_MACHINE;
     }
 
     @Override
@@ -113,9 +113,9 @@ public class PneumaticAirPortStorage implements IPortStorage {
     public void onNeighborBlockUpdate() {
         airHandlerMap.clear();
         for (Direction side : DirectionUtil.VALUES) {
-            airhandlerLO.cast().ifPresent(handler -> airHandlerMap.computeIfAbsent((IAirHandlerMachine) handler, k -> new ArrayList<>()).add(side));
+            airHandlerMap.computeIfAbsent(airhandler, k -> new ArrayList<>()).add(side);
         }
-        airHandlerMap.forEach(IAirHandlerMachine::setConnectedFaces);
+        airHandlerMap.forEach(IAirHandlerMachine::setConnectableFaces);
     }
 
 

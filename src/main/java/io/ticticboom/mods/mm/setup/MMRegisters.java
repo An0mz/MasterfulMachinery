@@ -32,14 +32,14 @@ public class MMRegisters {
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> MM_TAB = TABS.register("mm", () -> CreativeModeTab.builder().title(Component.translatable("tab.mm.main"))
             .icon(() -> BLUEPRINT.get().getDefaultInstance())
-            .withBackgroundLocation(Ref.UiTextures.CREATIVE_TAB_BG)
+            .backgroundTexture(Ref.UiTextures.CREATIVE_TAB_BG)
             .withSearchBar(55)
             .displayItems((p, o) -> o.acceptAll(ITEMS.getEntries().stream().map(x -> x.get().getDefaultInstance()).toList()))
             .build());
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> MM_STRUCTURE_TAB = TABS.register("mm_structures", () -> CreativeModeTab.builder().title(Component.translatable("tab.mm.structures"))
             .icon(() -> BLUEPRINT.get().getDefaultInstance())
-            .withBackgroundLocation(Ref.UiTextures.CREATIVE_TAB_BG)
+            .backgroundTexture(Ref.UiTextures.CREATIVE_TAB_BG)
             .withSearchBar(55)
             .displayItems((p, o) -> o.acceptAll(StructureManager.STRUCTURE_BLUEPRINTS.values()))
             .build());

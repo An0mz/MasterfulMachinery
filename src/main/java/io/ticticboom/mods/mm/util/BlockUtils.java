@@ -58,7 +58,7 @@ public class BlockUtils {
     }
 
     public static BlockBehaviour.Properties createBlockProperties() {
-        return BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK).requiresCorrectToolForDrops().strength(5f, 5f)
+        return BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).requiresCorrectToolForDrops().strength(5f, 5f)
                 .sound(SoundType.METAL);
     }
 }

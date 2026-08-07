@@ -102,14 +102,14 @@ public class CreateKineticGenPortBlockEntity extends GeneratingKineticBlockEntit
     }
 
     @Override
-    protected void write(CompoundTag compound, boolean clientPacket) {
-        super.write(compound, clientPacket);
+    protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+        super.write(compound, registries, clientPacket);
         compound.put(Ref.NBT_STORAGE_KEY, storage.save(new CompoundTag(), registries));
     }
 
     @Override
-    protected void read(CompoundTag compound, boolean clientPacket) {
-        super.read(compound, clientPacket);
+    protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+        super.read(compound, registries, clientPacket);
         storage.load(compound.getCompound(Ref.NBT_STORAGE_KEY), registries);
     }
     // TODO make the port rotate after break by player and replace by player

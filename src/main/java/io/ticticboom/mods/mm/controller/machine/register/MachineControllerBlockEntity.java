@@ -1058,7 +1058,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     @Override
-    public void handleUpdateTag(CompoundTag tag) { load(tag); }
+    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) { loadAdditional(tag, registries); }
 
     @Nullable
     @Override

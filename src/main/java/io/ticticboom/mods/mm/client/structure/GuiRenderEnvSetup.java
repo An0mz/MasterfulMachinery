@@ -24,14 +24,15 @@ public class GuiRenderEnvSetup {
 
 
     public void preRender(float xRot, float yRot, int extent, Matrix4f viewMatrix) {
-        PoseStack modelViewStack = RenderSystem.getModelViewStack();
-        modelViewStack.pushPose();
+        // getModelViewStack returns a joml Matrix4fStack in 1.21, not a PoseStack.
+        var modelViewStack = RenderSystem.getModelViewStack();
+        modelViewStack.pushMatrix();
         var s = 95.5f;
         modelViewStack.scale(s, s, s);
         modelViewStack.translate(0,0, 100 - extent);
-        modelViewStack.mulPoseMatrix(viewMatrix);
+        modelViewStack.mul(viewMatrix);
         var quat = new Quaternionf().rotateXYZ((float) Math.toRadians(xRot), (float) Math.toRadians(yRot), 0);
-        modelViewStack.mulPose(quat);
+        modelViewStack.rotate(quat);
         RenderSystem.applyModelViewMatrix();
 
         // projection
@@ -58,8 +59,8 @@ public class GuiRenderEnvSetup {
 
     public void postRender() {
         RenderSystem.restoreProjectionMatrix();
-        PoseStack modelViewStack = RenderSystem.getModelViewStack();
-        modelViewStack.popPose();
+        var modelViewStack = RenderSystem.getModelViewStack();
+        modelViewStack.popMatrix();
         Lighting.setupForFlatItems();
         RenderSystem.disableBlend();
         RenderSystem.applyModelViewMatrix();

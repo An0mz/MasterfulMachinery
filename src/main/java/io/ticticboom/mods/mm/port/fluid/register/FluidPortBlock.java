@@ -68,7 +68,7 @@ public class FluidPortBlock extends Block implements IPortBlock, EntityBlock {
             if (handler == null){
                 return true;
             }
-            return !FluidUtil.interactWithFluidHandler(player, hand, handler);
+            return !FluidUtil.interactWithFluidHandler(player, InteractionHand.MAIN_HAND, handler);
         });
     }
 
