@@ -179,6 +179,12 @@ dependencies {
     // net.createmod.ponder.api.VirtualBlockEntity, and javac must resolve it.
     compileOnly "net.createmod.ponder:ponder-neoforge:${ponder_version}"
 
+    //MYSTICAL AGRICULTURE
+    compileOnly "curse.maven:mystical-agriculture-246640:8344249"
+
+    //INDUSTRIAL FOREGOING
+    compileOnly "curse.maven:industrial-foregoing-266515:7600395"
+
     //BOTANIA
     // No 1.21.1 release upstream yet, only a work-in-progress branch. Re-enable alongside
     // io/ticticboom/mods/mm/cap/BotaniaCapabilities.java and
@@ -214,6 +220,13 @@ dependencies {
     //JADE (WAILA)
     runtimeOnly "curse.maven:jade-324717:${jade_id}"
 
+    // MYSTICAL AGRICULTURE and INDUSTRIAL FOREGOING
+    // Runtime only, and dev only: MM has no code referencing either mod. They are here so pack
+    // content built on them -- the Essenceforge, which uses mysticalagriculture farmland and
+    // seeds and industrialforegoing:ether_gas -- can actually be tested in the dev client.
+    runtimeOnly "curse.maven:mystical-agriculture-246640:8344249"
+    runtimeOnly "curse.maven:industrial-foregoing-266515:7600395"
+
     // MEKANISM
     runtimeOnly "curse.maven:mekanism-268560:${mekanism_id}"
 
@@ -231,10 +244,20 @@ dependencies {
     // Dev-only conveniences carried over from 1.20.1. These are pinned to CurseForge file ids
     // that only exist for 1.20.1, so they are disabled until someone picks 1.21.1 ids for them.
     // None of them are compiled against, so nothing in the mod depends on them.
-    //runtimeOnly "curse.maven:probejs-585406:5227399"                    // ProbeJS (KubeJS)
-    //runtimeOnly "curse.maven:emi-580555:6420945"                        // EMI
-    //runtimeOnly "curse.maven:immersive-engineering-231951:6206989"      // Immersive Engineering
-    //runtimeOnly "curse.maven:spark-361579:4738952"                      // Spark profiler
+    runtimeOnly "curse.maven:probejs-585406:8304356"                    // ProbeJS (KubeJS)
+    //runtimeOnly "curse.maven:emi-580555:8081408"                        // EMI
+    runtimeOnly "curse.maven:immersive-engineering-231951:6733669"      // Immersive Engineering
+    runtimeOnly "curse.maven:spark-361579:6225208"                     // Spark profiler
+    runtimeOnly "curse.maven:titanium-287342:7951516"                 // titanium
+    runtimeOnly "curse.maven:cucumber-272335:8035802"
+    runtimeOnly "curse.maven:factory-blocks-640001:6266334"
+    runtimeOnly "curse.maven:chisel-chipped-integration-971089:6693853"
+    runtimeOnly "curse.maven:cryonicconfig-1208896:7344729"
+    runtimeOnly "curse.maven:configured-457570:7276577"
+    runtimeOnly "curse.maven:modern-industrialization-405388:8597392"
+    runtimeOnly "curse.maven:elemental-craft-395158:7789218"
+    runtimeOnly "curse.maven:datapack-anvil-432817:7380481"
+    runtimeOnly "curse.maven:guideme-1173950:8420861"
 }
 
 // Expands the declared properties in neoforge.mods.toml so versions live in one place.
