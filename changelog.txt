@@ -1,54 +1,27 @@
 ## Change Log [VERSION_NAME]
 
-Port of Masterful Machinery to Minecraft 1.21.1 on NeoForge. This is a community
-port published separately from the upstream project; report issues against this
-fork rather than upstream.
-
-### Read this before updating a pack
-
-Mekanism 1.21.1 merged gas, slurry, pigment and infusion into a single chemical
-type, and removed everything that told them apart. All four port ids still work
-and no pack file needs editing, but the distinction is now cosmetic: a port
-declared as mm:mekanism/gas will accept a pigment, because Mekanism itself no
-longer separates them. If a recipe relied on a gas port rejecting slurry, that
-no longer holds.
-
-Item nbt matching is narrower. Minecraft 1.20.5 replaced the single item tag
-with typed data components, and MM now matches against minecraft:custom_data.
-Existing items keep their data, but nbt that matched things like Damage or
-enchantments will no longer match, because those are separate components now.
-
-Botania support is disabled. Botania has no 1.21.1 release, so the mm:botania/mana
-port is not registered and recipes using it are skipped with a message naming the
-recipe. It will return when Botania does.
+A small fix release for the port screens. Nothing else changed, and no pack file
+needs editing. If you are coming from the 1.20.1 line, read the 0.1.1 notes first:
+they cover the Mekanism chemical merge, the nbt matching change, and Botania.
 
 ### Fixed
 
-- A pack referencing a port from a mod that is not installed no longer takes the
-  world down. Previously this surfaced as a NullPointerException during recipe
-  parsing that made the world unloadable. Recipes and structures now load
-  independently: a bad one is logged with its id and skipped, and unknown port
-  types report what is registered so the cause is obvious.
-- Datapacks can supply translation keys for port and controller names. The
-  { "translation": "..." } form already worked for structures but produced raw
-  key text for blocks a pack registers.
-- Port names no longer hardcode the English "Input" and "Output" suffix, so it
-  translates along with the rest of the name.
-- The blueprint item's name is translatable. It was generated as hardcoded
-  English and was the only item name no resource pack could override.
+- Port screens no longer draw the port's name on top of the slots. Slot grids were
+  centred in a fixed height budget, which worked up to four rows but placed a
+  five-row grid one pixel under the title and a six-row grid exactly on it. Grids
+  of four rows and smaller are positioned exactly as before, so existing ports look
+  unchanged.
 
-### Notes
+- A port name long enough to wrap no longer spills onto the first row of slots. The
+  name is drawn on a single line and clipped if it does not fit.
 
-- Requires NeoForge 21.1.0 or newer and Java 21.
-- Existing pack configs, datapacks, KubeJS scripts and worlds work unchanged.
-  Machine, port, structure and recipe JSON is untouched, and KubeJS builders keep
-  the same signatures.
-- The sample data shipped for reference now uses the c: common tag namespace
-  instead of forge:, which NeoForge no longer provides.
+- Grids too large for the window are kept inside it rather than drawn off the top or
+  the side.
 
-### Not yet verified
+### Known limitation
 
-Item and energy ports, structure forming, recipe processing, saving and loading,
-GUIs and the dedicated server have all been exercised. Fluid, Mekanism,
-PneumaticCraft and Create ports, blueprint pasting, JEI integration and the debug
-tool, multiblock saver and priority setter have not. Please report anything odd.
+The port window is a fixed-size background image, so the usable area holds at most
+six rows of nine columns. Larger grids are now clamped into view instead of
+rendering outside the window, but a grid taller than six rows will still overlap the
+player inventory. Sizing the window to the grid needs a new background texture and
+is not in this release.

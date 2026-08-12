@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.1.2] - 2026-08-12
+
+### Fixed
+- Port screens no longer draw the port's name on top of the slots. Slot grids were
+  centred in a fixed height budget, which worked up to four rows but placed a
+  five-row grid one pixel under the title and a six-row grid exactly on it. Grids
+  of four rows and smaller are positioned exactly as before.
+- A port name long enough to wrap no longer spills onto the first row of slots.
+  The name is drawn on a single line and clipped if it does not fit.
+- Grids too large for the window are now kept inside it rather than drawn off the
+  top or side. Note that the port window is a fixed-size background, so six rows
+  by nine columns is the largest grid that genuinely fits; taller grids are
+  clamped but will still overlap the player inventory.
+
 ## [1.21.1-0.1.1] - 2026-08-07 — Minecraft 1.21.1 / NeoForge port
 Port of the 1.20.1 Forge codebase to Minecraft 1.21.1 on NeoForge, starting a
 fresh version line for this fork. Continues from 0.1.34.5-fix2 below; the version
