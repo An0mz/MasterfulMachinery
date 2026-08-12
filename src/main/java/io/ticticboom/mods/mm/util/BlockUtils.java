@@ -43,6 +43,18 @@ public class BlockUtils {
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
+    public static final int PLAYER_INVENTORY_TOP = 141;
+
+    public static final int SLOT_AREA_TOP = 19;
+
+    public static int slotGridOriginX(int columns) {
+        return Math.max(((162 - (columns * 18)) / 2) + 8, 8);
+    }
+
+    public static int slotGridOriginY(int rows) {
+        return Math.max(((108 - (rows * 18)) / 2) + 8, SLOT_AREA_TOP);
+    }
+
     public static void setupPlayerInventory(AbstractContainerMenu container, Inventory inv, int xOffset, int yOffset) {
         int playerOffsetX = 8 + xOffset;
         int playerOffsetY = 141 + yOffset;

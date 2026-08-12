@@ -3,6 +3,7 @@ package io.ticticboom.mods.mm.port.common;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.port.IPortBlockEntity;
 import io.ticticboom.mods.mm.port.IPortMenu;
+import io.ticticboom.mods.mm.util.BlockUtils;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -38,8 +39,10 @@ public class SlottedContainerScreen<T extends AbstractContainerMenu & IPortMenu>
         var columns = model.columns();
         var rows = model.rows();
 
-        int offsetX = ((162 - (columns * 18)) / 2) + 7;
-        int offsetY = ((108 - (rows * 18)) / 2) + 7;
+        // The 18x18 slot background has a 1px border around the 16x16 content area, so it is drawn
+        // one pixel up and left of where the menu places the Slot itself.
+        int offsetX = BlockUtils.slotGridOriginX(columns) - 1;
+        int offsetY = BlockUtils.slotGridOriginY(rows) - 1;
         slots.ensureCapacity(columns * rows);
 
         for (int y = 0; y < rows; y++) {
@@ -59,7 +62,12 @@ public class SlottedContainerScreen<T extends AbstractContainerMenu & IPortMenu>
 
     @Override
     protected void renderLabels(GuiGraphics gfx, int mouseX, int mouseY) {
-        gfx.drawWordWrap(this.font, header, 8, 8, 150, 0x404040);
+        // One line on purpose. The slot grid starts at a fixed y that the menu also uses to place
+        // its Slot objects, so a title allowed to wrap would draw on top of the first row.
+        var lines = this.font.split(header, 150);
+        if (!lines.isEmpty()) {
+            gfx.drawString(this.font, lines.get(0), 8, 8, 0x404040, false);
+        }
     }
 
     @Override
