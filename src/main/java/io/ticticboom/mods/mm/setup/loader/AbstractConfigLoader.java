@@ -15,7 +15,7 @@ import java.util.List;
 public abstract class AbstractConfigLoader<TModel> {
 
     protected abstract String getConfigPath();
-    
+
     protected abstract List<TModel> parseModels(JsonObject json);
 
     protected abstract void registerModels(List<TModel> models);

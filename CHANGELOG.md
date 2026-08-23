@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
-## [1.21.1-0.1.2] - 2026-08-12
+## [1.21.1-0.2.0] - 2026-08-23
 
 ### Fixed
 - **Mekanism and PneumaticCraft ports can be piped into and out of again.** NeoForge
@@ -20,6 +20,11 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 - Any error while loading a controller, port or extra block config now names the
   file it came from. Malformed JSON and a top-level value that is not an object are
   both reported the same way.
+
+
+## [1.21.1-0.1.2] - 2026-08-12
+
+### Fixed
 - Port screens no longer draw the port's name on top of the slots. Slot grids were
   centred in a fixed height budget, which worked up to four rows but placed a
   five-row grid one pixel under the title and a six-row grid exactly on it. Grids
