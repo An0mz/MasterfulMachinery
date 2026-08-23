@@ -19,8 +19,8 @@ public class ExtraBlockLoader extends AbstractConfigLoader<ExtraBlockModel> {
     }
 
     @Override
-    protected List<ExtraBlockModel> parseModels(List<JsonObject> jsons) {
-        return jsons.stream().map(ExtraBlockModel::parse).toList();
+    protected List<ExtraBlockModel> parseModels(JsonObject json) {
+        return List.of(ExtraBlockModel.parse(json));
     }
 
     @Override

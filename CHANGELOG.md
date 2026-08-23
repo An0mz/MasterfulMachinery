@@ -7,6 +7,19 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 ## [1.21.1-0.1.2] - 2026-08-12
 
 ### Fixed
+- **Mekanism and PneumaticCraft ports can be piped into and out of again.** NeoForge
+  requires a capability to be registered against a block entity type before anything
+  can query it, and only the item, fluid and energy capabilities were being
+  registered. The chemical and compressed-air ports answered their capability
+  correctly but were never asked, so they worked inside a machine while being
+  invisible to every pipe, tube and machine outside it.
+- A pack naming a port type that is misspelled, or whose mod is not installed, now
+  fails with a message naming the type and listing the ones that are registered.
+  It used to be a bare `NullPointerException` during mod construction, which took
+  every port down with it.
+- Any error while loading a controller, port or extra block config now names the
+  file it came from. Malformed JSON and a top-level value that is not an object are
+  both reported the same way.
 - Port screens no longer draw the port's name on top of the slots. Slot grids were
   centred in a fixed height budget, which worked up to four rows but placed a
   five-row grid one pixel under the title and a six-row grid exactly on it. Grids

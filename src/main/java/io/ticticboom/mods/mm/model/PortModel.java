@@ -25,7 +25,7 @@ public record PortModel(
         var displayName = PortUtils.name(ParserUtils.parseComponent(json.get("name")), input);
         var controllerIds = IdList.parse(json.get("controllerIds"));
         var type = ParserUtils.parseId(json, "type");
-        var portType = MMPortRegistry.get(type);
+        var portType = MMPortRegistry.requirePortType(type);
         var storageFactory = portType.getParser().parseStorage(json.get("config").getAsJsonObject());
         return new PortModel(id, name, displayName, controllerIds, type, storageFactory, json, input);
     }

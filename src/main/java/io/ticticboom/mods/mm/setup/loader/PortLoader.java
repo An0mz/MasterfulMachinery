@@ -6,7 +6,6 @@ import io.ticticboom.mods.mm.model.PortModel;
 import io.ticticboom.mods.mm.port.MMPortRegistry;
 import io.ticticboom.mods.mm.port.PortType;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class PortLoader extends AbstractConfigLoader<PortModel> {
@@ -21,27 +20,21 @@ public class PortLoader extends AbstractConfigLoader<PortModel> {
     }
 
     @Override
-    protected List<PortModel> parseModels(List<JsonObject> jsons) {
-        var result = new ArrayList<PortModel>();
-        result.ensureCapacity(jsons.size() * 2);
-        for (JsonObject json : jsons) {
-            var inputModel = PortModel.parse(json, true);
-            var outputModel = PortModel.parse(json, false);
-            result.add(inputModel);
-            result.add(outputModel);
-        }
-        return result;
+    protected List<PortModel> parseModels(JsonObject json) {
+        // One file declares a port; MM registers it twice, once as the input side and once as the
+        // output side.
+        return List.of(PortModel.parse(json, true), PortModel.parse(json, false));
     }
 
     @Override
     protected void registerModels(List<PortModel> portModels) {
         for (PortModel portModel : portModels) {
-            PortType portType = MMPortRegistry.get(portModel.type());
+            PortType portType = MMPortRegistry.requirePortType(portModel.type());
             portType.register(portModel);
         }
         if (MMInteropManager.KUBEJS.isPresent()) {
             for (PortModel portModel : MMInteropManager.KUBEJS.get().postRegisterPorts()) {
-                PortType portType = MMPortRegistry.get(portModel.type());
+                PortType portType = MMPortRegistry.requirePortType(portModel.type());
                 portType.register(portModel);
             }
         }

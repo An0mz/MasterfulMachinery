@@ -6,44 +6,65 @@ import io.ticticboom.mods.mm.Ref;
 import lombok.SneakyThrows;
 import net.neoforged.fml.loading.FMLPaths;
 
-import java.io.File;
-import java.io.FilenameFilter;
-import java.io.IOException;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class AbstractConfigLoader<TModel> {
 
     protected abstract String getConfigPath();
-
-    protected abstract List<TModel> parseModels(List<JsonObject> jsons);
+    
+    protected abstract List<TModel> parseModels(JsonObject json);
 
     protected abstract void registerModels(List<TModel> models);
 
+    /**
+     * Everything here happens per file so that a failure can name the file that caused it. A pack
+     * with a typo used to surface as a bare exception from somewhere inside parsing, with nothing
+     * saying which of the author's files was at fault.
+     */
     public void load() {
-        var jsons = getJsons();
-        var models = parseModels(jsons);
+        var models = new ArrayList<TModel>();
+        for (Path path : findConfigFiles()) {
+            JsonObject json = parseJson(path);
+            try {
+                models.addAll(parseModels(json));
+            } catch (Exception e) {
+                throw describe(path, e);
+            }
+        }
         registerModels(models);
     }
 
     @SneakyThrows
-    private List<JsonObject> getJsons() {
+    private List<Path> findConfigFiles() {
         Path root = FMLPaths.CONFIGDIR.get().resolve("mm").resolve(getConfigPath());
         if (!Files.exists(root)) {
             Files.createDirectories(root);
         }
-        return Files.walk(root, FileVisitOption.FOLLOW_LINKS).filter(x -> x.toString().endsWith(".json")).map(AbstractConfigLoader::parseJson).toList();
+        try (var files = Files.walk(root, FileVisitOption.FOLLOW_LINKS)) {
+            return files.filter(x -> x.toString().endsWith(".json")).sorted().toList();
+        }
     }
 
     private static JsonObject parseJson(Path path) {
         try {
             var file = Files.readString(path);
-            return JsonParser.parseString(file).getAsJsonObject();
-        } catch (IOException e) {
-            Ref.LOG.fatal("Failed to read file {}", path);
-            throw new RuntimeException(e);
+            var parsed = JsonParser.parseString(file);
+            if (!parsed.isJsonObject()) {
+                throw new RuntimeException("expected a JSON object at the top level, found " + parsed);
+            }
+            return parsed.getAsJsonObject();
+        } catch (Exception e) {
+            throw describe(path, e);
         }
+    }
+
+    private static RuntimeException describe(Path path, Exception cause) {
+        var message = "Failed to load Masterful Machinery config file " + path + ": " + cause.getMessage();
+        Ref.LOG.fatal(message);
+        return new RuntimeException(message, cause);
     }
 }

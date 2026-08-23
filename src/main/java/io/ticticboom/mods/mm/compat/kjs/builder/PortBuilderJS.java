@@ -48,7 +48,7 @@ public class PortBuilderJS {
 
     @HideFromJS
     public List<PortModel> build() {
-        var portType = MMPortRegistry.get(type);
+        var portType = MMPortRegistry.requirePortType(type);
         var storageFactory = portType.createStorageFactory(builder);
         IdList controllerIds = new IdList(controllers);
         var inputPort = PortModel.create(id, name, controllerIds, type, storageFactory, true);

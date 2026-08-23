@@ -9,6 +9,9 @@ import net.neoforged.neoforge.capabilities.BlockCapability;
  * Mekanism 1.21.1 merged the gas, slurry, pigment and infusion capabilities into a single chemical
  * capability, so the four separate constants collapse to one. CHEMICAL is kept as the name; the
  * old per-kind fields are gone because there is nothing left to distinguish.
+ * <p>
+ * Kept in its own class so the Mekanism types it names are only resolved when the mod is actually
+ * installed; MMCapabilities touches it from behind a ModList check.
  */
 public class MekCapabilities {
     public static final BlockCapability<IChemicalHandler, Direction> CHEMICAL = Capabilities.CHEMICAL.block();

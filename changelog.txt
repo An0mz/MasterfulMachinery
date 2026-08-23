@@ -1,10 +1,26 @@
 ## Change Log [VERSION_NAME]
 
-A small fix release for the port screens. Nothing else changed, and no pack file
-needs editing. If you are coming from the 1.20.1 line, read the 0.1.1 notes first:
-they cover the Mekanism chemical merge, the nbt matching change, and Botania.
+A fix release for the compat ports and the port screens. No pack file needs editing.
+If you are coming from the 1.20.1 line, read the 0.1.1 notes first: they cover the
+Mekanism chemical merge, the nbt matching change, and Botania.
 
 ### Fixed
+
+- Mekanism and PneumaticCraft ports can be piped into and out of again. NeoForge
+  requires a capability to be registered against a block entity type before anything
+  can query it, and only the item, fluid and energy capabilities were being
+  registered. The chemical and compressed-air ports answered their capability
+  correctly but were never asked, so they worked inside a machine while being
+  invisible to every pipe, tube and machine outside it.
+
+- A pack naming a port type that is misspelled, or whose mod is not installed, now
+  fails with a message naming the type and listing the ones that are registered. It
+  used to be a bare NullPointerException during mod construction, which took every
+  port down with it.
+
+- Any error while loading a controller, port or extra block config now names the file
+  it came from, instead of failing somewhere inside parsing with nothing saying which
+  file was at fault.
 
 - Port screens no longer draw the port's name on top of the slots. Slot grids were
   centred in a fixed height budget, which worked up to four rows but placed a

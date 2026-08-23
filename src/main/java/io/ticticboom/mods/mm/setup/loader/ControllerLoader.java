@@ -36,8 +36,8 @@ public class ControllerLoader extends AbstractConfigLoader<ControllerModel> {
     }
 
     @Override
-    protected List<ControllerModel> parseModels(List<JsonObject> jsons) {
-        return jsons.stream().map(ControllerModel::parse).toList();
+    protected List<ControllerModel> parseModels(JsonObject json) {
+        return List.of(ControllerModel.parse(json));
     }
 
     @Override

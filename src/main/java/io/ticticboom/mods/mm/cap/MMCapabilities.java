@@ -6,6 +6,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -13,6 +14,9 @@ import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * On Forge a block entity answered capability queries itself by overriding getCapability, and MM's
@@ -34,6 +38,9 @@ public class MMCapabilities {
 
     @SubscribeEvent
     public static void registerCapabilities(RegisterCapabilitiesEvent event) {
+        var capabilities = new ArrayList<BlockCapability<?, Direction>>(List.of(ITEM, FLUID, ENERGY));
+        capabilities.addAll(compatCapabilities());
+
         // Port block entity types are built from data at load time rather than declared
         // statically, so this walks whatever MMPortRegistry ended up with.
         for (var holder : MMPortRegistry.PORTS) {
@@ -41,10 +48,29 @@ public class MMCapabilities {
             if (beType == null) {
                 continue;
             }
-            registerPortCapability(event, beType, ITEM);
-            registerPortCapability(event, beType, FLUID);
-            registerPortCapability(event, beType, ENERGY);
+            for (var capability : capabilities) {
+                registerPortCapability(event, beType, capability);
+            }
         }
+    }
+
+    /**
+     * The compat ports answer capabilities their own mod owns rather than one of NeoForge's, and a
+     * capability nothing registers is a capability nothing can ever query: the Mekanism and
+     * PneumaticCraft ports would work inside a machine but be invisible to every pipe.
+     * <p>
+     * The constants live in separate classes, reached only from inside these branches, so the
+     * foreign types are never resolved when the mod is absent.
+     */
+    private static List<BlockCapability<?, Direction>> compatCapabilities() {
+        var result = new ArrayList<BlockCapability<?, Direction>>();
+        if (ModList.get().isLoaded("mekanism")) {
+            result.add(MekCapabilities.CHEMICAL);
+        }
+        if (ModList.get().isLoaded("pneumaticcraft")) {
+            result.add(PncCapabilities.AIR_HANDLER_MACHINE);
+        }
+        return result;
     }
 
     private static <T> void registerPortCapability(RegisterCapabilitiesEvent event,
