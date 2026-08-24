@@ -8,6 +8,7 @@ import io.ticticboom.mods.mm.recipe.RecipeModel;
 import io.ticticboom.mods.mm.recipe.RecipeStateModel;
 import io.ticticboom.mods.mm.recipe.RecipeStorages;
 import io.ticticboom.mods.mm.recipe.output.IRecipeOutputEntry;
+import io.ticticboom.mods.mm.util.AmountRange;
 import io.ticticboom.mods.mm.util.ChanceUtils;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.helpers.IJeiHelpers;
@@ -22,20 +23,29 @@ public class SimpleRecipeOutputEntry implements IRecipeOutputEntry {
     private final IPortIngredient ingredient;
     private final double chance;
     private final boolean perTick;
-
-    private boolean shouldRun = true;
+    private final String chanceRollKey;
 
     public SimpleRecipeOutputEntry(IPortIngredient ingredient, double chance, boolean perTick) {
 
         this.ingredient = ingredient;
         this.chance = chance;
         this.perTick = perTick;
+        this.chanceRollKey = "c" + AmountRange.nextRollKey();
+    }
+
+    private boolean shouldRun(RecipeStateModel state) {
+        if (chance >= 1) {
+            return true;
+        }
+        if (perTick || state == null) {
+            return ChanceUtils.shouldProceed(chance);
+        }
+        return chance >= state.getRollToken(chanceRollKey);
     }
 
     @Override
     public boolean canOutput(Level level, RecipeStorages storages, RecipeStateModel state) {
-        shouldRun = ChanceUtils.shouldProceed(chance);
-        if (!shouldRun) {
+        if (!shouldRun(state)) {
             return true;
         }
         return ingredient.canOutput(level, storages, state);
@@ -43,14 +53,14 @@ public class SimpleRecipeOutputEntry implements IRecipeOutputEntry {
 
     @Override
     public void output(Level level, RecipeStorages storages, RecipeStateModel state) {
-        if (!perTick && shouldRun) {
+        if (!perTick && shouldRun(state)) {
             ingredient.output(level, storages, state);
         }
     }
 
     @Override
     public void processTick(Level level, RecipeStorages storages, RecipeStateModel state) {
-        if (perTick && shouldRun) {
+        if (perTick && shouldRun(state)) {
             ingredient.output(level, storages, state);
         }
         ingredient.outputTick(level, storages, state);
@@ -73,6 +83,17 @@ public class SimpleRecipeOutputEntry implements IRecipeOutputEntry {
             }
         } catch (Throwable ignored) {
         }
+        var range = ingredient.getAmountRange();
+        if (range != null && range.isRanged()) {
+            rSlot.addRichTooltipCallback((v, list) -> {
+                list.add(Component.translatable("jei.mm.recipe.outputs_range", range.min(), range.max())
+                        .withStyle(ChatFormatting.DARK_AQUA));
+                if (range.isGrouped()) {
+                    list.add(Component.translatable("jei.mm.recipe.roll_group", range.groupName())
+                            .withStyle(ChatFormatting.DARK_GRAY));
+                }
+            });
+        }
         ingredient.setRecipe(builder, model, focus, helpers, grid, rSlot);
         double percent = chance * 100.0;
         String percentStr = new java.math.BigDecimal(Double.toString(percent)).setScale(4, java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
@@ -90,6 +111,7 @@ public class SimpleRecipeOutputEntry implements IRecipeOutputEntry {
     public JsonObject debugExpected(Level level, RecipeStorages storages, RecipeStateModel model, JsonObject json) {
         json.addProperty("chance", chance);
         json.addProperty("perTick", perTick);
+        json.addProperty("chanceRoll", shouldRun(model));
         json.add("ingredient", ingredient.debugOutput(level, storages, new JsonObject()));
         return json;
     }

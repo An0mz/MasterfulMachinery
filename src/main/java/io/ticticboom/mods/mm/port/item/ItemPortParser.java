@@ -6,6 +6,7 @@ import io.ticticboom.mods.mm.config.MMConfig;
 import io.ticticboom.mods.mm.port.IPortIngredient;
 import io.ticticboom.mods.mm.port.IPortParser;
 import io.ticticboom.mods.mm.port.IPortStorageFactory;
+import io.ticticboom.mods.mm.util.AmountRange;
 import io.ticticboom.mods.mm.util.NbtMatchUtils;
 import io.ticticboom.mods.mm.util.ParserUtils;
 import net.minecraft.nbt.CompoundTag;
@@ -39,7 +40,7 @@ public class ItemPortParser implements IPortParser {
 
     @Override
     public IPortIngredient parseRecipeIngredient(JsonObject json) {
-        var count = json.get("count").getAsInt();
+        var count = AmountRange.parse(json, "count");
         CompoundTag requiredNbt = null;
         boolean nbtStrong = false;
         if (json.has("nbt")) {

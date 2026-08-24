@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Ranged ingredient amounts.** Item `count`, fluid `amount` and energy `amount` now
+  accept either a plain number as before, or `{ "min": 1, "max": 5 }`, and the machine
+  rolls a value in that range once per craft. This works on inputs and outputs alike,
+  so a recipe can consume 1-5 diamonds and produce 4-8 of something. Plain numbers are
+  unchanged, so existing packs need no edits.
+- Ranges that share a `rollGroup` within one recipe resolve from the same roll, so a low
+  input lines up with a low output and the recipe's efficiency per craft stays stable.
+  Without a group, each range rolls independently, which lets a single craft land anywhere
+  between the cheapest input with the richest output and the reverse.
+- JEI shows the span in the slot tooltip and names the roll group when there is one. The
+  slot badge and the display stack stay at the maximum, so a pattern encoded from a ranged
+  recipe requests enough to cover the worst roll.
+- The debug tool's dump now names the configured `min` and `max` next to the amount for any
+  ranged ingredient, and reports that amount at its maximum. The dump builds a fresh craft
+  state, so it describes what a recipe can demand rather than what a running machine rolled.
+
+### Fixed
+- **A recipe's `chance` roll no longer leaks between machines.** The result was cached on
+  the recipe object, which is parsed once and shared by every controller in the world, so
+  one machine's roll could decide another machine's craft and could be overwritten between
+  the availability check and the consume. Rolls now live on the per-machine craft state and
+  are saved with it. Per-tick entries still re-roll every tick, which is the point of
+  declaring them per-tick.
+
+
 ## [1.21.1-0.2.0] - 2026-08-23
 
 ### Fixed

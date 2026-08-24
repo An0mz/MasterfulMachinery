@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.compat.jei.SlotGridEntry;
 import io.ticticboom.mods.mm.config.MMConfig;
+import io.ticticboom.mods.mm.util.AmountRange;
 import io.ticticboom.mods.mm.util.ParserUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
@@ -24,6 +25,7 @@ public record RecipeModel(
         JsonObject config
 ) {
     public static RecipeModel parse(JsonObject json, ResourceLocation id) {
+        AmountRange.resetKeyAllocation();
         var structrueId = ParserUtils.parseId(json, "structureId");
         var ticks = json.get("ticks").getAsInt();
         var inputs = RecipeInputs.parse(json.getAsJsonArray("inputs"));

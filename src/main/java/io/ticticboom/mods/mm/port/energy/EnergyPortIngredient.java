@@ -10,6 +10,7 @@ import io.ticticboom.mods.mm.port.IPortIngredient;
 import io.ticticboom.mods.mm.recipe.RecipeModel;
 import io.ticticboom.mods.mm.recipe.RecipeStateModel;
 import io.ticticboom.mods.mm.recipe.RecipeStorages;
+import io.ticticboom.mods.mm.util.AmountRange;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
 import mezz.jei.api.helpers.IJeiHelpers;
@@ -18,20 +19,25 @@ import net.minecraft.world.level.Level;
 
 public class EnergyPortIngredient implements IPortIngredient {
 
-    private final int amount;
+    private final AmountRange amount;
 
-    public EnergyPortIngredient(int amount) {
+    public EnergyPortIngredient(AmountRange amount) {
 
         this.amount = amount;
     }
 
-    public int getAmount() { return this.amount; }
+    public int getAmount() { return this.amount.max(); }
+
+    @Override
+    public AmountRange getAmountRange() { return this.amount; }
+
+    public int resolveAmount(RecipeStateModel state) { return this.amount.resolve(state); }
 
     @Override
     public boolean canProcess(Level level, RecipeStorages storages, RecipeStateModel state) {
         if(storages == null) return false;
         var inputStorages = storages.getInputStorages(EnergyPortStorage.class);
-        int remaining = amount;
+        int remaining = resolveAmount(state);
         for (EnergyPortStorage storage : inputStorages) {
             var extracted = storage.internalExtract(remaining, true);
             remaining -= extracted;
@@ -42,7 +48,7 @@ public class EnergyPortIngredient implements IPortIngredient {
     @Override
     public void process(Level level, RecipeStorages storages, RecipeStateModel state) {
         var inputStorages = storages.getInputStorages(EnergyPortStorage.class);
-        int remaining = amount;
+        int remaining = resolveAmount(state);
         for (EnergyPortStorage storage : inputStorages) {
             var extracted = storage.internalExtract(remaining, false);
             remaining -= extracted;
@@ -53,7 +59,7 @@ public class EnergyPortIngredient implements IPortIngredient {
     public void processTick(Level level, RecipeStorages storages, RecipeStateModel state) {
         // For per-tick energy consumption, extract the configured amount each tick.
         var inputStorages = storages.getInputStorages(EnergyPortStorage.class);
-        int remaining = amount;
+        int remaining = resolveAmount(state);
         for (EnergyPortStorage storage : inputStorages) {
             var extracted = storage.internalExtract(remaining, false);
             remaining -= extracted;
@@ -64,7 +70,7 @@ public class EnergyPortIngredient implements IPortIngredient {
     @Override
     public boolean canOutput(Level level, RecipeStorages storages, RecipeStateModel state) {
         var outputStorages = storages.getOutputStorages(EnergyPortStorage.class);
-        int remaining = amount;
+        int remaining = resolveAmount(state);
         for (EnergyPortStorage storage : outputStorages) {
             var inserted = storage.internalInsert(remaining, true);
             remaining -= inserted;
@@ -75,7 +81,7 @@ public class EnergyPortIngredient implements IPortIngredient {
     @Override
     public void output(Level level, RecipeStorages storages, RecipeStateModel state) {
         var outputStorages = storages.getOutputStorages(EnergyPortStorage.class);
-        int remaining = amount;
+        int remaining = resolveAmount(state);
         for (EnergyPortStorage storage : outputStorages) {
             var inserted = storage.internalInsert(remaining, false);
             remaining -= inserted;
@@ -84,7 +90,7 @@ public class EnergyPortIngredient implements IPortIngredient {
 
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, RecipeModel model, IFocusGroup focus, IJeiHelpers helpers, SlotGrid grid, IRecipeSlotBuilder recipeSlot) {
-        recipeSlot.addIngredient(MMJeiIngredients.ENERGY, new EnergyStack(amount));
+        recipeSlot.addIngredient(MMJeiIngredients.ENERGY, new EnergyStack(amount.max()));
     }
 
     @Override
@@ -93,9 +99,9 @@ public class EnergyPortIngredient implements IPortIngredient {
         var searchedStoragesJson = new JsonArray();
         var searchIterationsJson = new JsonArray();
         json.addProperty("ingredientType", Ref.Ports.ENERGY.toString());
-        json.addProperty("amountToExtract", amount);
+        amount.addToDebug(json, "amountToExtract", null);
 
-        int remaining = amount;
+        int remaining = amount.max();
         for (EnergyPortStorage storage : inputStorages) {
             var iterJson = new JsonObject();
 
@@ -121,9 +127,9 @@ public class EnergyPortIngredient implements IPortIngredient {
         var searchedStoragesJson = new JsonArray();
         var searchIterationsJson = new JsonArray();
         json.addProperty("ingredientType", Ref.Ports.ENERGY.toString());
-        json.addProperty("amountToInsert", amount);
+        amount.addToDebug(json, "amountToInsert", null);
 
-        int remaining = amount;
+        int remaining = amount.max();
         for (EnergyPortStorage storage : outputStorages) {
             var iterJson = new JsonObject();
 

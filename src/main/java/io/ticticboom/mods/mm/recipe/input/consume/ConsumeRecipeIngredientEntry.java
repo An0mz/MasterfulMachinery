@@ -8,6 +8,7 @@ import io.ticticboom.mods.mm.recipe.RecipeModel;
 import io.ticticboom.mods.mm.recipe.RecipeStateModel;
 import io.ticticboom.mods.mm.recipe.RecipeStorages;
 import io.ticticboom.mods.mm.recipe.input.IRecipeIngredientEntry;
+import io.ticticboom.mods.mm.util.AmountRange;
 import io.ticticboom.mods.mm.util.ChanceUtils;
 import lombok.Getter;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
@@ -26,24 +27,33 @@ public class ConsumeRecipeIngredientEntry implements IRecipeIngredientEntry {
     private final double chance;
     @Getter
     private final boolean perTick;
-
-    private boolean shouldRun = true;
+    private final String chanceRollKey;
 
     public ConsumeRecipeIngredientEntry(IPortIngredient ingredient, double chance, boolean perTick) {
         this.ingredient = ingredient;
         this.chance = chance;
         this.perTick = perTick;
+        this.chanceRollKey = "c" + AmountRange.nextRollKey();
+    }
+
+    private boolean shouldRun(RecipeStateModel state) {
+        if (chance >= 1) {
+            return true;
+        }
+        if (perTick || state == null) {
+            return ChanceUtils.shouldProceed(chance);
+        }
+        return chance >= state.getRollToken(chanceRollKey);
     }
 
     @Override
     public boolean canProcess(Level level, RecipeStorages storages, RecipeStateModel state) {
-        shouldRun = ChanceUtils.shouldProceed(chance);
         return ingredient.canProcess(level, storages, state);
     }
 
     @Override
     public void process(Level level, RecipeStorages storages, RecipeStateModel state) {
-        if (!perTick && shouldRun) {
+        if (!perTick && shouldRun(state)) {
             ingredient.process(level, storages, state);
         }
     }
@@ -84,6 +94,17 @@ public class ConsumeRecipeIngredientEntry implements IRecipeIngredientEntry {
             rSlot.addTooltipCallback((v, list) -> list.add(Component.translatable("jei.mm.not_used").withStyle(ChatFormatting.DARK_AQUA)));
         }
         ingredient.setRecipe(builder, model, focus, helpers, grid, rSlot);
+        var range = ingredient.getAmountRange();
+        if (range != null && range.isRanged()) {
+            rSlot.addTooltipCallback((v, list) -> {
+                list.add(Component.translatable("jei.mm.recipe.consumes_range", range.min(), range.max())
+                        .withStyle(ChatFormatting.DARK_AQUA));
+                if (range.isGrouped()) {
+                    list.add(Component.translatable("jei.mm.recipe.roll_group", range.groupName())
+                            .withStyle(ChatFormatting.DARK_GRAY));
+                }
+            });
+        }
         var fmtChance = String.format("%.2f", chance * 100);
         rSlot.addTooltipCallback((v, list) -> {
             if (chance < 1) {
@@ -99,6 +120,7 @@ public class ConsumeRecipeIngredientEntry implements IRecipeIngredientEntry {
     public JsonObject debugExpected(Level level, RecipeStorages storages, RecipeStateModel state, JsonObject json) {
         json.addProperty("chance", chance);
         json.addProperty("perTick", perTick);
+        json.addProperty("chanceRoll", shouldRun(state));
         json.add("ingredient", ingredient.debugInput(level, storages, new JsonObject()));
         return json;
     }

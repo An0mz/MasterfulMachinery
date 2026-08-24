@@ -10,6 +10,7 @@ import io.ticticboom.mods.mm.compat.jei.ingredient.MMJeiIngredients;
 import io.ticticboom.mods.mm.recipe.RecipeModel;
 import io.ticticboom.mods.mm.recipe.RecipeStateModel;
 import io.ticticboom.mods.mm.recipe.RecipeStorages;
+import io.ticticboom.mods.mm.util.AmountRange;
 import lombok.Getter;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
@@ -33,7 +34,7 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
     @Getter
     private final ResourceLocation itemId;
 
-    public SingleItemPortIngredient(ResourceLocation itemId, int count, CompoundTag requiredNbt, boolean nbtStrong) {
+    public SingleItemPortIngredient(ResourceLocation itemId, AmountRange count, CompoundTag requiredNbt, boolean nbtStrong) {
         super(count, createPredicate(itemId), requiredNbt, nbtStrong);
         this.itemId = itemId;
         item = BuiltInRegistries.ITEM.get(itemId);
@@ -42,7 +43,7 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
         }
         // use a display stack with the real required count so external transfer/encode handlers
         // that read the ItemStack count (rather than the JEI badge) get the correct amount.
-        stack = new ItemStack(item, count);
+        stack = new ItemStack(item, count.max());
         if (requiredNbt != null) {
             ItemNbtUtil.setTag(stack, requiredNbt.copy());
         }
@@ -59,7 +60,7 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
     @Override
     public boolean canOutput(Level level, RecipeStorages storages, RecipeStateModel state) {
         List<ItemPortStorage> itemStorages = storages.getOutputStorages(ItemPortStorage.class);
-        int remainingToInsert = count;
+        int remainingToInsert = resolveCount(state);
 
         for (ItemPortStorage itemStorage : itemStorages) {
             remainingToInsert = itemStorage.canInsert(item, remainingToInsert);
@@ -71,7 +72,7 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
     @Override
     public void output(Level level, RecipeStorages storages, RecipeStateModel state) {
         List<ItemPortStorage> itemStorages = storages.getOutputStorages(ItemPortStorage.class);
-        int remainingToInsert = count;
+        int remainingToInsert = resolveCount(state);
 
         for (ItemPortStorage s : itemStorages) {
             if (remainingToInsert <= 0) break;
@@ -100,14 +101,14 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
         var searchedStorages = new JsonArray();
         var searchIterations = new JsonArray();
         json.addProperty("ingredientType", Ref.Ports.ITEM.toString());
-        json.addProperty("amountToInsert", count);
+        count.addToDebug(json, "amountToInsert", null);
 
         if (requiredNbt != null) {
             json.addProperty("nbt_match", nbtStrong ? "strong" : "weak");
             json.add("nbt", io.ticticboom.mods.mm.util.NbtMatchUtils.toJson(requiredNbt));
         }
 
-        int remainingToInsert = count;
+        int remainingToInsert = count.max();
         for (ItemPortStorage storage : itemStorages) {
             var iterJson = new JsonObject();
 

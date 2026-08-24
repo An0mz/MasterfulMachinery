@@ -8,6 +8,7 @@ import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.port.IPortIngredient;
 import io.ticticboom.mods.mm.recipe.RecipeStateModel;
 import io.ticticboom.mods.mm.recipe.RecipeStorages;
+import io.ticticboom.mods.mm.util.AmountRange;
 import io.ticticboom.mods.mm.util.NbtMatchUtils;
 import lombok.Getter;
 import net.minecraft.nbt.CompoundTag;
@@ -19,8 +20,7 @@ import java.util.function.Predicate;
 
 public abstract class BaseItemPortIngredient implements IPortIngredient {
 
-    @Getter
-    protected final int count;
+    protected final AmountRange count;
     protected final Predicate<ItemStack> filter;
     protected final CompoundTag requiredNbt;
     /**
@@ -31,11 +31,11 @@ public abstract class BaseItemPortIngredient implements IPortIngredient {
     protected final boolean nbtStrong;
 
     @SuppressWarnings("unused")
-    public BaseItemPortIngredient(int count, Predicate<ItemStack> filter) {
+    public BaseItemPortIngredient(AmountRange count, Predicate<ItemStack> filter) {
         this(count, filter, null, false);
     }
 
-    public BaseItemPortIngredient(int count, Predicate<ItemStack> filter, CompoundTag requiredNbt, boolean nbtStrong) {
+    public BaseItemPortIngredient(AmountRange count, Predicate<ItemStack> filter, CompoundTag requiredNbt, boolean nbtStrong) {
         this.count = count;
         // wrap the provided filter to include NBT-check if requiredNbt present
         if (requiredNbt != null) {
@@ -56,10 +56,23 @@ public abstract class BaseItemPortIngredient implements IPortIngredient {
     }
 
     @Override
+    public AmountRange getAmountRange() {
+        return count;
+    }
+
+    public int getCount() {
+        return count.max();
+    }
+
+    public int resolveCount(RecipeStateModel state) {
+        return count.resolve(state);
+    }
+
+    @Override
     public boolean canProcess(Level level, RecipeStorages storages, RecipeStateModel state) {
         if(storages == null) return false;
         List<ItemPortStorage> itemStorages = storages.getInputStorages(ItemPortStorage.class);
-        int remaining = count;
+        int remaining = resolveCount(state);
         for (ItemPortStorage storage : itemStorages) {
             remaining = storage.canExtract(filter, remaining);
         }
@@ -69,7 +82,7 @@ public abstract class BaseItemPortIngredient implements IPortIngredient {
     @Override
     public void process(Level level, RecipeStorages storages, RecipeStateModel state) {
         List<ItemPortStorage> itemStorages = storages.getInputStorages(ItemPortStorage.class);
-        int remaining = count;
+        int remaining = resolveCount(state);
         for (ItemPortStorage storage : itemStorages) {
             remaining = storage.extract(filter, remaining);
         }
@@ -81,14 +94,14 @@ public abstract class BaseItemPortIngredient implements IPortIngredient {
         var searchedStorages = new JsonArray();
         var searchIterations = new JsonArray();
         json.addProperty("ingredientType", Ref.Ports.ITEM.toString());
-        json.addProperty("amountToExtract", count);
+        count.addToDebug(json, "amountToExtract", null);
 
         if (requiredNbt != null) {
             json.addProperty("nbt_match", nbtStrong ? "strong" : "weak");
             json.add("nbt", NbtMatchUtils.toJson(requiredNbt));
         }
 
-        int remaining = count;
+        int remaining = count.max();
         for (ItemPortStorage storage : itemStorages) {
             var iterJson = new JsonObject();
 

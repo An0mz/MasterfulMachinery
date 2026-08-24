@@ -7,6 +7,7 @@ import io.ticticboom.mods.mm.compat.jei.SlotGrid;
 import io.ticticboom.mods.mm.recipe.RecipeModel;
 import io.ticticboom.mods.mm.recipe.RecipeStateModel;
 import io.ticticboom.mods.mm.recipe.RecipeStorages;
+import io.ticticboom.mods.mm.util.AmountRange;
 import io.ticticboom.mods.mm.util.ConditionalLazy;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
@@ -30,7 +31,7 @@ public class TagItemPortIngredient extends BaseItemPortIngredient {
     private final TagKey<Item> tag;
     private final ConditionalLazy<List<ItemStack>> stacks;
 
-    public TagItemPortIngredient(ResourceLocation tagId, int count, CompoundTag requiredNbt, boolean nbtStrong) {
+    public TagItemPortIngredient(ResourceLocation tagId, AmountRange count, CompoundTag requiredNbt, boolean nbtStrong) {
         super(count, createPredicate(tagId), requiredNbt, nbtStrong);
         this.tag = ItemTags.create(tagId);
         // Registry.getTag returns an Optional<HolderSet.Named<Item>> of holders rather than
@@ -39,7 +40,7 @@ public class TagItemPortIngredient extends BaseItemPortIngredient {
                 .map(holders -> holders.stream().map(holder -> {
                     // use display stacks with the real required count so external transfer/encode handlers
                     // that read the ItemStack count (rather than the JEI badge) get the correct amount.
-                    var s = new ItemStack(holder.value(), count);
+                    var s = new ItemStack(holder.value(), count.max());
                     if (requiredNbt != null) ItemNbtUtil.setTag(s, requiredNbt.copy());
                     return s;
                 }).toList())

@@ -443,8 +443,10 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         int performed = 0;
         RecipeModel deferredRecipe = null;
         ResourceLocation deferredPrimaryInputItemId = null;
+        RecipeStateModel deferredState = null;
         RecipeModel selectedRoundRobinRecipe = null;
         ResourceLocation selectedRoundRobinInputItemId = null;
+        RecipeStateModel selectedRoundRobinState = null;
         long selectedRoundRobinLastUse = Long.MAX_VALUE;
         boolean startedRecipeThisPass = false;
         while (performed < checks) {
@@ -552,7 +554,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                 }
             }
 
-            if (!recipe.inputs().canProcess(level, portStorages, new RecipeStateModel())) {
+            RecipeStateModel candidateState = new RecipeStateModel();
+            if (!recipe.inputs().canProcess(level, portStorages, candidateState)) {
                 continue;
             }
 
@@ -587,6 +590,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                                 selectedRoundRobinRecipe = recipe;
                                 selectedRoundRobinInputItemId = bestKey;
                                 selectedRoundRobinLastUse = bestLastUse;
+                                selectedRoundRobinState = candidateState;
                             }
                         }
                     }
@@ -674,6 +678,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                                             selectedRoundRobinRecipe = recipe;
                                             selectedRoundRobinInputItemId = bestKey2;
                                             selectedRoundRobinLastUse = bestLastUse2;
+                                            selectedRoundRobinState = candidateState;
                                         }
                                     }
                                 }
@@ -686,26 +691,27 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                     if (deferredRecipe == null) {
                         deferredRecipe = recipe;
                         deferredPrimaryInputItemId = primaryInputItemId;
+                        deferredState = candidateState;
                     }
                     continue;
                 }
-                startRecipe(recipe, gameTime, primaryInputItemId);
+                startRecipe(recipe, gameTime, primaryInputItemId, candidateState);
                 startedRecipeThisPass = true;
             }
         }
         if (!startedRecipeThisPass && selectedRoundRobinRecipe != null
                 && !activeRecipes.containsKey(selectedRoundRobinRecipe.id())
                 && canStartRecipeGivenParallelRules(selectedRoundRobinRecipe)
-                && selectedRoundRobinRecipe.inputs().canProcess(level, portStorages, new RecipeStateModel())
-                && selectedRoundRobinRecipe.outputs().canProcess(level, portStorages, new RecipeStateModel())) {
-            startRecipe(selectedRoundRobinRecipe, gameTime, selectedRoundRobinInputItemId);
+                && selectedRoundRobinRecipe.inputs().canProcess(level, portStorages, selectedRoundRobinState)
+                && selectedRoundRobinRecipe.outputs().canProcess(level, portStorages, selectedRoundRobinState)) {
+            startRecipe(selectedRoundRobinRecipe, gameTime, selectedRoundRobinInputItemId, selectedRoundRobinState);
             startedRecipeThisPass = true;
         }
         if (!startedRecipeThisPass && deferredRecipe != null && !activeRecipes.containsKey(deferredRecipe.id())
                 && canStartRecipeGivenParallelRules(deferredRecipe)
-                && deferredRecipe.inputs().canProcess(level, portStorages, new RecipeStateModel())
-                && deferredRecipe.outputs().canProcess(level, portStorages, new RecipeStateModel())) {
-            startRecipe(deferredRecipe, gameTime, deferredPrimaryInputItemId);
+                && deferredRecipe.inputs().canProcess(level, portStorages, deferredState)
+                && deferredRecipe.outputs().canProcess(level, portStorages, deferredState)) {
+            startRecipe(deferredRecipe, gameTime, deferredPrimaryInputItemId, deferredState);
         }
         nextRecipeCheckIndex = idx;
     }
@@ -740,8 +746,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         return canStartBasedOnParallelFlag && canStartBasedOnLimit;
     }
 
-    private void startRecipe(RecipeModel recipe, long gameTime, @Nullable ResourceLocation primaryInputItemId) {
-        RecipeStateModel newState = new RecipeStateModel();
+    private void startRecipe(RecipeModel recipe, long gameTime, @Nullable ResourceLocation primaryInputItemId, RecipeStateModel newState) {
         recipe.inputs().process(level, portStorages, newState);
         storageContentCacheValid = false;
         newState.setCanProcess(true);
@@ -854,7 +859,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                             if (inputEntry instanceof ConsumeRecipeIngredientEntry cre) {
                                 var ingr = cre.getIngredient();
                                 if (cre.isPerTick() && ingr instanceof EnergyPortIngredient epi) {
-                                    int total = epi.getAmount();
+                                    int total = epi.resolveAmount(state);
                                     int ticks = Math.max(1, recipe.ticks());
                                     int base = total / ticks;
                                     int rem = total % ticks;

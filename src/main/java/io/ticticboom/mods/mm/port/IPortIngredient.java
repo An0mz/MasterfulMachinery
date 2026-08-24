@@ -5,6 +5,7 @@ import io.ticticboom.mods.mm.compat.jei.SlotGrid;
 import io.ticticboom.mods.mm.recipe.RecipeModel;
 import io.ticticboom.mods.mm.recipe.RecipeStateModel;
 import io.ticticboom.mods.mm.recipe.RecipeStorages;
+import io.ticticboom.mods.mm.util.AmountRange;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
 import mezz.jei.api.helpers.IJeiHelpers;
@@ -20,6 +21,10 @@ public interface IPortIngredient {
     default void outputTick(Level level, RecipeStorages storages, RecipeStateModel state) {}
     void setRecipe(IRecipeLayoutBuilder builder, RecipeModel model, IFocusGroup focus, IJeiHelpers helpers, SlotGrid grid, IRecipeSlotBuilder recipeSlot);
     default void ditchRecipe(Level level, RecipeStorages storages, RecipeStateModel state) {
+    }
+
+    default AmountRange getAmountRange() {
+        return null;
     }
 
     JsonObject debugInput(Level level, RecipeStorages storages, JsonObject json);
