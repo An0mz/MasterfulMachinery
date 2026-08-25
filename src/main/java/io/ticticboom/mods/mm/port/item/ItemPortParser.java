@@ -14,7 +14,6 @@ import net.minecraft.nbt.CompoundTag;
 import java.util.function.Supplier;
 
 public class ItemPortParser implements IPortParser {
-    private static final int HARD_MAX = 1024;
 
     @Override
     public IPortStorageFactory parseStorage(JsonObject json) {
@@ -24,7 +23,7 @@ public class ItemPortParser implements IPortParser {
         int slotCapacity = 0;
         if (json.has("slotCapacity")) {
             try {
-                slotCapacity = Math.max(0, Math.min(HARD_MAX, json.get("slotCapacity").getAsInt()));
+                slotCapacity = Math.max(0, Math.min(ItemPortHandler.MAX_SLOT_CAPACITY, json.get("slotCapacity").getAsInt()));
             } catch (Exception ignored) {
             }
         }

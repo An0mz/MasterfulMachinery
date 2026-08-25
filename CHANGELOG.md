@@ -24,6 +24,27 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   state, so it describes what a recipe can demand rather than what a running machine rolled.
 
 ### Fixed
+- **Item port `slotCapacity` now works in the port screen.** The screen built its slots as
+  plain vanilla slots, and vanilla caps a slot at `min(container limit, item stack size)`
+  without ever asking the handler for its configured capacity, so a slot stayed at 64 no
+  matter what a pack set. Automation was already honouring the setting, which is why it
+  looked like the option did nothing only when placing items by hand.
+- **An item port holding more than 99 of something in one slot can be saved again.**
+  `ItemStack.CODEC` rejects a count outside `[1;99]`, so writing the display stack straight
+  out threw as soon as a slot went past 99 - reachable through pipes on any port with a
+  `slotCapacity` above that. The encoded display stack now carries a clamped count and the
+  separately stored per-slot counts remain the source of truth, rebuilding the display on
+  load. Ports at the default capacity are unaffected.
+- Shift-clicking into an item port fills partial stacks instead of scattering one stack per
+  slot. Quick-move only ever targeted empty slots, so it spread items across the grid and
+  then gave up entirely once every slot held something, falling through to a move within the
+  player's own inventory. It now tops up matching slots to their capacity first and uses
+  empty slots for the remainder, which is how every other container in the game behaves.
+- The maximum `slotCapacity` is one number again. It was clamped to 1024 when read from a
+  config, 16384 inside the handler, and not clamped at all through the KubeJS builder; all
+  three now share the handler's limit.
+- Clearing an item port's contents also clears its per-slot counts, instead of leaving the
+  counts behind on emptied slots.
 - **A recipe's `chance` roll no longer leaks between machines.** The result was cached on
   the recipe object, which is parsed once and shared by every controller in the world, so
   one machine's roll could decide another machine's craft and could be overwritten between

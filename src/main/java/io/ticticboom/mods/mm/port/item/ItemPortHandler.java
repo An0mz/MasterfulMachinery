@@ -2,6 +2,7 @@ package io.ticticboom.mods.mm.port.item;
 
 import io.ticticboom.mods.mm.util.ItemNbtUtil;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.mojang.serialization.Codec;
@@ -25,7 +26,9 @@ public class ItemPortHandler extends ItemStackHandler {
     public static Codec<List<ItemStack>> STACKS_CODEC = Codec.list(ItemStack.OPTIONAL_CODEC);
     private final INotifyChangeFunction changed;
     private final int slotCapacity; // 0 = use item default
-    private static final int HARD_MAX = 16384;
+    public static final int MAX_SLOT_CAPACITY = 16384;
+    private static final int HARD_MAX = MAX_SLOT_CAPACITY;
+    private static final int CODEC_MAX_COUNT = 99;
 
     private final int[] actualCounts;
 
@@ -46,10 +49,24 @@ public class ItemPortHandler extends ItemStackHandler {
         return stacks;
     }
 
+    public int getConfiguredSlotCapacity() {
+        return slotCapacity;
+    }
+
     public Tag serializeStacks() {
         // store both display stacks and actualCounts into a compound
         var compound = new CompoundTag();
-        var tag = NbtOps.INSTANCE.withEncoder(STACKS_CODEC).apply(stacks);
+        var encodable = new ArrayList<ItemStack>(stacks.size());
+        for (ItemStack stack : stacks) {
+            if (!stack.isEmpty() && stack.getCount() > CODEC_MAX_COUNT) {
+                ItemStack clamped = stack.copy();
+                clamped.setCount(CODEC_MAX_COUNT);
+                encodable.add(clamped);
+            } else {
+                encodable.add(stack);
+            }
+        }
+        var tag = NbtOps.INSTANCE.withEncoder(STACKS_CODEC).apply(encodable);
         compound.put("stacks", tag.getOrThrow(__msg -> { Ref.LOG.error(__msg); return new IllegalStateException(__msg); }));
         compound.putIntArray("counts", actualCounts);
         return compound;
@@ -73,6 +90,28 @@ public class ItemPortHandler extends ItemStackHandler {
             int[] arr = ct.getIntArray("counts");
             int len = Math.min(arr.length, actualCounts.length);
             System.arraycopy(arr, 0, actualCounts, 0, len);
+        } else {
+            for (int i = 0; i < stacks.size() && i < actualCounts.length; i++) {
+                actualCounts[i] = stacks.get(i).getCount();
+            }
+        }
+        restoreDisplayCounts();
+    }
+
+    private void restoreDisplayCounts() {
+        for (int i = 0; i < stacks.size() && i < actualCounts.length; i++) {
+            ItemStack stack = stacks.get(i);
+            if (stack.isEmpty()) {
+                actualCounts[i] = 0;
+                continue;
+            }
+            if (actualCounts[i] <= 0) {
+                actualCounts[i] = stack.getCount();
+            }
+            int display = Math.min(HARD_MAX, actualCounts[i]);
+            if (stack.getCount() != display) {
+                stack.setCount(display);
+            }
         }
     }
 
@@ -393,7 +432,6 @@ public class ItemPortHandler extends ItemStackHandler {
     /**
      * Clears all stacks and actual counts.
      */
-    @SuppressWarnings("unused")
     public void clearAll() {
         for (int i = 0; i < stacks.size(); i++) {
             stacks.set(i, ItemStack.EMPTY);

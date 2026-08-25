@@ -15,7 +15,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.capabilities.BlockCapability;
@@ -117,7 +116,7 @@ public class ItemPortStorage implements IPortStorage {
 
         for (int y = 0; y < rows; y++) {
             for (int x = 0; x < columns; x++) {
-                container.addSlot(new Slot(portInv, (y * columns) + x, x * 18 + offsetX, y * 18 + offsetY));
+                container.addSlot(new ItemPortSlot(portInv, (y * columns) + x, x * 18 + offsetX, y * 18 + offsetY));
             }
         }
 

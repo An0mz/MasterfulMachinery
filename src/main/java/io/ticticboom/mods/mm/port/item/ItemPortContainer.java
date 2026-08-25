@@ -23,6 +23,12 @@ public class ItemPortContainer implements Container {
     }
 
     @Override
+    public int getMaxStackSize() {
+        int configured = handler.getConfiguredSlotCapacity();
+        return configured > 0 ? configured : Container.super.getMaxStackSize();
+    }
+
+    @Override
     public boolean isEmpty() {
         for (int i = 0; i < handler.getSlots(); i++) {
             if (handler.getActualCount(i) > 0) {
@@ -81,6 +87,6 @@ public class ItemPortContainer implements Container {
 
     @Override
     public void clearContent() {
-        handler.getStacks().clear();
+        handler.clearAll();
     }
 }

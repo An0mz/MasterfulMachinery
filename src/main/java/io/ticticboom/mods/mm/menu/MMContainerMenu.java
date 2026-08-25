@@ -45,8 +45,12 @@ public abstract class MMContainerMenu extends AbstractContainerMenu {
                 // when quick-moving into storage, prefer empty slots to avoid stacking onto existing
                 io.ticticboom.mods.mm.port.item.ItemPortHandler.setThreadPreferEmpty(true);
                 if (i >= capSize && i < totalSize) {
-                    // moving from player inv to storage: prefer empty slots in storage range [0, capSize)
-                    if (!tryMoveToEmptySlots(rawStack, 0, capSize)) {
+                    // moving from player inv to storage: fill partial stacks first, then empty slots
+                    boolean movedToStorage = tryTopUpStorageSlots(rawStack, 0, capSize);
+                    if (!rawStack.isEmpty() && tryMoveToEmptySlots(rawStack, 0, capSize)) {
+                        movedToStorage = true;
+                    }
+                    if (!movedToStorage) {
                         if (i < hbStart) {
                             if (!this.moveItemStackTo(rawStack, hbStart, totalSize, false)) {
                                 return ItemStack.EMPTY;
@@ -129,6 +133,26 @@ public abstract class MMContainerMenu extends AbstractContainerMenu {
         return stillValid(this.access, player, block);
     }
 
+    private boolean tryTopUpStorageSlots(ItemStack source, int start, int end) {
+        boolean movedAny = false;
+        for (int idx = start; idx < end && !source.isEmpty(); idx++) {
+            Slot dest = this.slots.get(idx);
+            if (dest == null) continue;
+            ItemStack destStack = dest.getItem();
+            if (destStack.isEmpty()) continue;
+            if (!ItemStack.isSameItemSameComponents(destStack, source)) continue;
+            int space = dest.getMaxStackSize(source) - destStack.getCount();
+            if (space <= 0) continue;
+            int toMove = Math.min(source.getCount(), space);
+            ItemStack merged = destStack.copy();
+            merged.setCount(destStack.getCount() + toMove);
+            dest.set(merged);
+            source.shrink(toMove);
+            movedAny = true;
+        }
+        return movedAny;
+    }
+
     private boolean tryMoveToEmptySlots(ItemStack source, int start, int end) {
         boolean movedAny = false;
         for (int idx = start; idx < end && !source.isEmpty(); idx++) {
@@ -137,23 +161,7 @@ public abstract class MMContainerMenu extends AbstractContainerMenu {
             ItemStack destStack = dest.getItem();
             if (!destStack.isEmpty()) continue; // skip non-empty slots
             // determine how many we can place
-            int limit = dest.getMaxStackSize();
-            // If the destination slot's container is our ItemPortContainer, use its handler's slot limit.
-            try {
-                java.lang.reflect.Field contField = dest.getClass().getDeclaredField("container");
-                contField.setAccessible(true);
-                Object contObj = contField.get(dest);
-                if (contObj instanceof io.ticticboom.mods.mm.port.item.ItemPortContainer ipc) {
-                    limit = ipc.getHandler().getSlotLimit(idx - start);
-                }
-            } catch (NoSuchFieldException ignored) {
-                // Some Slot implementations expose `container` as a public field; fallback to checking known container types
-                if (dest.container instanceof io.ticticboom.mods.mm.port.item.ItemPortContainer ipc) {
-                    limit = ipc.getHandler().getSlotLimit(idx - start);
-                }
-            } catch (Exception ignored) {
-                // general fallback -> keep default
-            }
+            int limit = dest.getMaxStackSize(source);
             int toMove = Math.min(source.getCount(), limit);
             ItemStack moveStack = source.copy();
             moveStack.setCount(toMove);
