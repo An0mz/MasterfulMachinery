@@ -23,6 +23,22 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   ranged ingredient, and reports that amount at its maximum. The dump builds a fresh craft
   state, so it describes what a recipe can demand rather than what a running machine rolled.
 
+- **Controllers and ports can use their own overlay texture.** `overlay` on a controller or
+  port config replaces the built-in cutout the block is drawn with, so machines defined in a
+  pack no longer all look alike. Ports also accept `inputOverlay` and `outputOverlay` to give
+  the two halves different faces; the more specific one wins. Omitting them keeps the current
+  texture, so nothing changes for existing packs.
+- **Controllers and ports can also replace the base block texture** with `texture`, which
+  swaps the casing the overlay is drawn on top of. Ports take `inputTexture` and
+  `outputTexture` as well, with the same precedence. This is what a tier ladder needs: one
+  casing per tier, with the port type still readable from the shared overlay. Packs used to
+  do this by shipping a hand-copied model file per port; a single config key now replaces
+  the whole folder. Note that the base layer renders as `solid`, so a texture with
+  transparency will not show through — the overlay is the translucent layer.
+- The same options are available from KubeJS as `.overlay(...)` and `.texture(...)` on a
+  controller or port builder, plus `.inputOverlay(...)`, `.outputOverlay(...)`,
+  `.inputTexture(...)` and `.outputTexture(...)` on ports.
+
 ### Fixed
 - **Item port `slotCapacity` now works in the port screen.** The screen built its slots as
   plain vanilla slots, and vanilla caps a slot at `min(container limit, item stack size)`

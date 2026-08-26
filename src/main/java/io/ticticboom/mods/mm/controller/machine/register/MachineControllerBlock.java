@@ -30,6 +30,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
+import java.util.Objects;
 
 public class MachineControllerBlock extends HorizontalDirectionalBlock implements IControllerPart, IControllerBlock {
 
@@ -60,7 +61,9 @@ public class MachineControllerBlock extends HorizontalDirectionalBlock implement
 
     @Override
     public void generateModel(MMBlockstateProvider provider) {
-        var mdl = provider.dynamicBlockNorthOverlay(groupHolder.getBlock().getId(), Ref.Textures.BASE_BLOCK, Ref.Textures.CONTROLLER_OVERLAY);
+        var base = Objects.requireNonNullElse(model.baseTexture(), Ref.Textures.BASE_BLOCK);
+        var overlay = Objects.requireNonNullElse(model.overlayTexture(), Ref.Textures.CONTROLLER_OVERLAY);
+        var mdl = provider.dynamicBlockNorthOverlay(groupHolder.getBlock().getId(), base, overlay);
         provider.directionalState(groupHolder.getBlock().get(), mdl);
     }
 

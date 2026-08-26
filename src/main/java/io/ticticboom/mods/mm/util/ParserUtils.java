@@ -22,6 +22,13 @@ public class ParserUtils {
         return parseId(json.get(key));
     }
 
+    public static ResourceLocation parseOptionalId(JsonObject json, String key) {
+        if (json == null || !json.has(key) || json.get(key).isJsonNull()) {
+            return null;
+        }
+        return parseId(json, key);
+    }
+
     /**
      * Parses a display name that may be given either as a plain string or as a translation object:
      * <pre>

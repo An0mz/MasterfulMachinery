@@ -16,6 +16,14 @@ public record ControllerModel(
         RecipeSelectionMode recipeSelectionMode,
         JsonObject config
 ) {
+    public ResourceLocation overlayTexture() {
+        return ParserUtils.parseOptionalId(config, "overlay");
+    }
+
+    public ResourceLocation baseTexture() {
+        return ParserUtils.parseOptionalId(config, "texture");
+    }
+
     public static ControllerModel parse(JsonObject json) {
         var id = json.get("id").getAsString();
         // "name" accepts a plain string or a { "translation": "key" } object.

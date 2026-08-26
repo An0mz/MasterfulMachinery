@@ -18,6 +18,16 @@ public record PortModel(
         JsonObject jsonConfig,
         boolean input) {
 
+    public ResourceLocation overlayTexture() {
+        var specific = ParserUtils.parseOptionalId(jsonConfig, input ? "inputOverlay" : "outputOverlay");
+        return specific != null ? specific : ParserUtils.parseOptionalId(jsonConfig, "overlay");
+    }
+
+    public ResourceLocation baseTexture() {
+        var specific = ParserUtils.parseOptionalId(jsonConfig, input ? "inputTexture" : "outputTexture");
+        return specific != null ? specific : ParserUtils.parseOptionalId(jsonConfig, "texture");
+    }
+
     public static PortModel parse(JsonObject json, boolean input) {
         var id = PortUtils.id(json.get("id").getAsString(), input);
         // "name" accepts a plain string or a { "translation": "key" } object.
