@@ -6,68 +6,60 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 
 ## [Unreleased]
 
-### Added
-- **Ranged ingredient amounts.** Item `count`, fluid `amount` and energy `amount` now
-  accept either a plain number as before, or `{ "min": 1, "max": 5 }`, and the machine
-  rolls a value in that range once per craft. This works on inputs and outputs alike,
-  so a recipe can consume 1-5 diamonds and produce 4-8 of something. Plain numbers are
-  unchanged, so existing packs need no edits.
-- Ranges that share a `rollGroup` within one recipe resolve from the same roll, so a low
-  input lines up with a low output and the recipe's efficiency per craft stays stable.
-  Without a group, each range rolls independently, which lets a single craft land anywhere
-  between the cheapest input with the richest output and the reverse.
-- JEI shows the span in the slot tooltip and names the roll group when there is one. The
-  slot badge and the display stack stay at the maximum, so a pattern encoded from a ranged
-  recipe requests enough to cover the worst roll.
-- The debug tool's dump now names the configured `min` and `max` next to the amount for any
-  ranged ingredient, and reports that amount at its maximum. The dump builds a fresh craft
-  state, so it describes what a recipe can demand rather than what a running machine rolled.
 
-- **Controllers and ports can use their own overlay texture.** `overlay` on a controller or
-  port config replaces the built-in cutout the block is drawn with, so machines defined in a
-  pack no longer all look alike. Ports also accept `inputOverlay` and `outputOverlay` to give
-  the two halves different faces; the more specific one wins. Omitting them keeps the current
-  texture, so nothing changes for existing packs.
-- **Controllers and ports can also replace the base block texture** with `texture`, which
-  swaps the casing the overlay is drawn on top of. Ports take `inputTexture` and
-  `outputTexture` as well, with the same precedence. This is what a tier ladder needs: one
-  casing per tier, with the port type still readable from the shared overlay. Packs used to
-  do this by shipping a hand-copied model file per port; a single config key now replaces
-  the whole folder. Note that the base layer renders as `solid`, so a texture with
-  transparency will not show through — the overlay is the translucent layer.
-- The same options are available from KubeJS as `.overlay(...)` and `.texture(...)` on a
-  controller or port builder, plus `.inputOverlay(...)`, `.outputOverlay(...)`,
-  `.inputTexture(...)` and `.outputTexture(...)` on ports.
+## [1.21.1-0.3.0] - 2026-08-27
+
+### Added
+- **Custom textures for controllers and ports.** Add `texture` to a controller or port
+  config to change the block's casing, and `overlay` to change the symbol drawn on it.
+  Ports also take `inputTexture` / `outputTexture` and `inputOverlay` / `outputOverlay`
+  if you want the two halves to look different.
+
+  This is what a tier ladder needs: one casing per tier, with the port type still
+  readable from the shared overlay. Previously the only way to do this was to hand-write
+  a model file for every single port; now it is one line in the config.
+
+  Leave them out and everything looks exactly as it did before.
+
+  Note: the casing layer is drawn as solid, so a texture with transparent pixels will not
+  show through. Use `overlay` for anything that needs transparency.
+
+- **The same options work from KubeJS**, as `.texture(...)` and `.overlay(...)` on a
+  controller or port builder, plus `.inputTexture(...)`, `.outputTexture(...)`,
+  `.inputOverlay(...)` and `.outputOverlay(...)` on ports.
+
+- **Recipes can use a range instead of a fixed amount.** Item `count`, fluid `amount` and
+  energy `amount` now accept `{ "min": 1, "max": 5 }` as well as a plain number, and the
+  machine rolls a value each craft. Works on inputs and outputs, so a recipe can eat 1-5
+  diamonds and give back 4-8 of something.
+
+  Plain numbers behave exactly as before, so existing packs need no edits.
+
+- **Ranges can be linked with `rollGroup`.** Ranges sharing a group in the same recipe roll
+  together, so a cheap craft gives a small output and an expensive one gives a big output.
+  Without a group each range rolls on its own, which means a craft can land on the cheapest
+  input with the richest output, or the other way round.
+
+- JEI shows the range in the slot tooltip, and names the roll group when there is one.
+  The slot itself shows the maximum, so AE2 patterns request enough to cover the worst roll.
 
 ### Fixed
-- **Item port `slotCapacity` now works in the port screen.** The screen built its slots as
-  plain vanilla slots, and vanilla caps a slot at `min(container limit, item stack size)`
-  without ever asking the handler for its configured capacity, so a slot stayed at 64 no
-  matter what a pack set. Automation was already honouring the setting, which is why it
-  looked like the option did nothing only when placing items by hand.
-- **An item port holding more than 99 of something in one slot can be saved again.**
-  `ItemStack.CODEC` rejects a count outside `[1;99]`, so writing the display stack straight
-  out threw as soon as a slot went past 99 - reachable through pipes on any port with a
-  `slotCapacity` above that. The encoded display stack now carries a clamped count and the
-  separately stored per-slot counts remain the source of truth, rebuilding the display on
-  load. Ports at the default capacity are unaffected.
-- Shift-clicking into an item port fills partial stacks instead of scattering one stack per
-  slot. Quick-move only ever targeted empty slots, so it spread items across the grid and
-  then gave up entirely once every slot held something, falling through to a move within the
-  player's own inventory. It now tops up matching slots to their capacity first and uses
-  empty slots for the remainder, which is how every other container in the game behaves.
-- The maximum `slotCapacity` is one number again. It was clamped to 1024 when read from a
-  config, 16384 inside the handler, and not clamped at all through the KubeJS builder; all
-  three now share the handler's limit.
-- Clearing an item port's contents also clears its per-slot counts, instead of leaving the
-  counts behind on emptied slots.
-- **A recipe's `chance` roll no longer leaks between machines.** The result was cached on
-  the recipe object, which is parsed once and shared by every controller in the world, so
-  one machine's roll could decide another machine's craft and could be overwritten between
-  the availability check and the consume. Rolls now live on the per-machine craft state and
-  are saved with it. Per-tick entries still re-roll every tick, which is the point of
-  declaring them per-tick.
-
+- **`slotCapacity` on item ports now works when you place items by hand.** Slots stayed
+  capped at 64 in the GUI no matter what the config said. Pipes and automation were already
+  honouring it, which is why the setting looked broken only some of the time.
+- **Item ports holding more than 99 of something in one slot no longer break on save.**
+  This could hit any port with a `slotCapacity` above 99 once a pipe filled it past that.
+  Ports left at the default capacity were never affected.
+- **Shift-clicking into an item port tops up stacks that are already there** instead of
+  spreading one stack per slot and then refusing to accept anything once every slot was
+  occupied. It now behaves like every other container in the game.
+- `slotCapacity` has one maximum again. It was being limited to a different number
+  depending on whether it came from a config file, from KubeJS, or from the port itself.
+- Clearing an item port now also clears its per-slot counts.
+- **A recipe's `chance` roll no longer leaks between machines.** The roll was stored on the
+  recipe, which every controller in the world shares, so one machine's luck could decide
+  another machine's craft. Each machine now rolls for itself and saves that roll. Per-tick
+  entries still re-roll every tick, which is the point of them.
 
 ## [1.21.1-0.2.0] - 2026-08-23
 
