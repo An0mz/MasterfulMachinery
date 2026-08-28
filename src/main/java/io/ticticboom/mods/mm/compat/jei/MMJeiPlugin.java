@@ -29,7 +29,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
@@ -108,9 +107,23 @@ public class MMJeiPlugin implements IModPlugin {
     @Override
     public void registerRecipeCatalysts(@NotNull IRecipeCatalystRegistration registration) {
         for (var entry : recipeCategories) {
-            ResourceLocation location = entry.getStructureModel().controllerIds().getIds().get(0);
-            ItemStack stack = Objects.requireNonNull(BuiltInRegistries.ITEM.get(location)).getDefaultInstance();
-            registration.addRecipeCatalyst(stack,entry.getRecipeType());
+            StructureModel structure = entry.getStructureModel();
+            if (structure == null) {
+                continue;
+            }
+            List<ResourceLocation> controllerIds = structure.controllerIds().getIds();
+            if (controllerIds.isEmpty()) {
+                Ref.LOG.error("Skipping JEI catalyst for structure {}: it lists no controllerIds.", structure.id());
+                continue;
+            }
+            ResourceLocation location = controllerIds.get(0);
+            ItemStack stack = BuiltInRegistries.ITEM.get(location).getDefaultInstance();
+            if (stack.isEmpty()) {
+                Ref.LOG.error("Skipping JEI catalyst for structure {}: no controller block '{}' exists. "
+                        + "Either it is misspelled, or the controller it names was not loaded.", structure.id(), location);
+                continue;
+            }
+            registration.addRecipeCatalyst(stack, entry.getRecipeType());
         }
     }
 

@@ -82,6 +82,11 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   recipe, which every controller in the world shares, so one machine's luck could decide
   another machine's craft. Each machine now rolls for itself and saves that roll. Per-tick
   entries still re-roll every tick, which is the point of them.
+- **One broken structure no longer wipes every machine out of JEI.** If a structure named a
+  controller that did not exist, MM stopped setting up JEI right there, so that machine and
+  every machine after it lost the block you click to look up its recipes. Machines that are
+  fine are now left alone, and the log names each broken structure and what is wrong with it
+  instead of failing quietly.
 
 ## [1.21.1-0.2.0] - 2026-08-23
 
