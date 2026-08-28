@@ -28,6 +28,11 @@ public record PortModel(
         return specific != null ? specific : ParserUtils.parseOptionalId(jsonConfig, "texture");
     }
 
+    public ResourceLocation customModel() {
+        var specific = ParserUtils.parseOptionalId(jsonConfig, input ? "inputModel" : "outputModel");
+        return specific != null ? specific : ParserUtils.parseOptionalId(jsonConfig, "model");
+    }
+
     public static PortModel parse(JsonObject json, boolean input) {
         var id = PortUtils.id(json.get("id").getAsString(), input);
         // "name" accepts a plain string or a { "translation": "key" } object.

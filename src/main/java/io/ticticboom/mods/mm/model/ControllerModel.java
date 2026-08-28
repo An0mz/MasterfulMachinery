@@ -24,6 +24,10 @@ public record ControllerModel(
         return ParserUtils.parseOptionalId(config, "texture");
     }
 
+    public ResourceLocation customModel() {
+        return ParserUtils.parseOptionalId(config, "model");
+    }
+
     public static ControllerModel parse(JsonObject json) {
         var id = json.get("id").getAsString();
         // "name" accepts a plain string or a { "translation": "key" } object.

@@ -109,6 +109,10 @@ public class MMBlockstateProvider extends BlockStateProvider {
                 .end();
     }
 
+    public BlockModelBuilder customBlock(ResourceLocation loc, ResourceLocation model) {
+        return models().getBuilder(loc.toString()).parent(new ModelFile.UncheckedModelFile(model));
+    }
+
     public void directionalState(Block block, ModelFile modelFile) {
         this.getVariantBuilder(block) // Get variant builder
                 .forAllStates(state -> // For all possible states

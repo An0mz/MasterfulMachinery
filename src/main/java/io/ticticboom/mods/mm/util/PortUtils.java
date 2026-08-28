@@ -34,10 +34,17 @@ public class PortUtils {
         var block = groupHolder.getBlock().get();
         var base = Ref.Textures.BASE_BLOCK;
         var overlay = isInput ? inputOverlay : outputOverlay;
+        ResourceLocation custom = null;
         if (block instanceof IPortBlock portBlock) {
             var model = portBlock.getModel();
             base = Objects.requireNonNullElse(model.baseTexture(), base);
             overlay = Objects.requireNonNullElse(model.overlayTexture(), overlay);
+            custom = model.customModel();
+        }
+        if (custom != null) {
+            var mdl = provider.customBlock(groupHolder.getBlock().getId(), custom);
+            provider.simpleBlock(block, mdl);
+            return;
         }
         provider.dynamicBlock(groupHolder.getBlock().getId(), base, overlay);
         provider.simpleBlock(block);

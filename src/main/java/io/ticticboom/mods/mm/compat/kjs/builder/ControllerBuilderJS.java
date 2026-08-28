@@ -39,6 +39,10 @@ public class ControllerBuilderJS {
         return putTexture("texture", texture);
     }
 
+    public ControllerBuilderJS model(String model) {
+        return putTexture("model", model);
+    }
+
     @HideFromJS
     private ControllerBuilderJS putTexture(String key, String texture) {
         var rl = ResourceLocation.tryParse(texture);

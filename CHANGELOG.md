@@ -7,7 +7,7 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 ## [Unreleased]
 
 
-## [1.21.1-0.3.0] - 2026-08-27
+## [1.21.1-0.3.0] - 2026-08-28
 
 ### Added
 - **Custom textures for controllers and ports.** Add `texture` to a controller or port
@@ -27,6 +27,28 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 - **The same options work from KubeJS**, as `.texture(...)` and `.overlay(...)` on a
   controller or port builder, plus `.inputTexture(...)`, `.outputTexture(...)`,
   `.inputOverlay(...)` and `.outputOverlay(...)` on ports.
+
+- **Custom block models for controllers and ports.** Add `model` to a controller or port
+  config pointing at any block model, and the block uses that model instead of the usual
+  casing-and-overlay cube. Ports also take `inputModel` / `outputModel` if you want the two
+  halves shaped differently.
+
+  This means real 3D shapes, not just a new texture: recessed panels, raised frames, vents,
+  pipes and anything else you can build in a model editor. The block's item follows the same
+  model automatically, so it looks right in hand, in the inventory and in JEI. Controllers
+  still turn to face you when placed; ports face the same way on every side.
+
+  Two things to know. Give your model a vanilla parent such as `minecraft:block/block` so it
+  inherits the standard hand and inventory positioning. And keep the outer faces of the cube
+  filled in, because the block still counts as a solid cube for lighting and collision, so
+  anything that leaves a gap in the outside surface will show through to the neighbouring
+  blocks.
+
+  When `model` is set it replaces the whole look, so `texture` and `overlay` no longer apply
+  to that block. Leave `model` out and nothing changes.
+
+- **The same option works from KubeJS**, as `.model(...)` on a controller or port builder,
+  plus `.inputModel(...)` and `.outputModel(...)` on ports.
 
 - **Recipes can use a range instead of a fixed amount.** Item `count`, fluid `amount` and
   energy `amount` now accept `{ "min": 1, "max": 5 }` as well as a plain number, and the

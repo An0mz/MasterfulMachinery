@@ -61,6 +61,12 @@ public class MachineControllerBlock extends HorizontalDirectionalBlock implement
 
     @Override
     public void generateModel(MMBlockstateProvider provider) {
+        var custom = model.customModel();
+        if (custom != null) {
+            provider.directionalState(groupHolder.getBlock().get(),
+                    provider.customBlock(groupHolder.getBlock().getId(), custom));
+            return;
+        }
         var base = Objects.requireNonNullElse(model.baseTexture(), Ref.Textures.BASE_BLOCK);
         var overlay = Objects.requireNonNullElse(model.overlayTexture(), Ref.Textures.CONTROLLER_OVERLAY);
         var mdl = provider.dynamicBlockNorthOverlay(groupHolder.getBlock().getId(), base, overlay);

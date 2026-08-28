@@ -52,6 +52,18 @@ public class PortBuilderJS {
         return putTexture("outputTexture", texture);
     }
 
+    public PortBuilderJS model(String model) {
+        return putTexture("model", model);
+    }
+
+    public PortBuilderJS inputModel(String model) {
+        return putTexture("inputModel", model);
+    }
+
+    public PortBuilderJS outputModel(String model) {
+        return putTexture("outputModel", model);
+    }
+
     @HideFromJS
     private PortBuilderJS putTexture(String key, String texture) {
         var rl = ResourceLocation.tryParse(texture);
