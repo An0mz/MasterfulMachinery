@@ -4,89 +4,48 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
-
-
 ## [1.21.1-0.3.0] - 2026-08-28
 
 ### Added
-- **Custom textures for controllers and ports.** Add `texture` to a controller or port
-  config to change the block's casing, and `overlay` to change the symbol drawn on it.
-  Ports also take `inputTexture` / `outputTexture` and `inputOverlay` / `outputOverlay`
-  if you want the two halves to look different.
-
-  This is what a tier ladder needs: one casing per tier, with the port type still
-  readable from the shared overlay. Previously the only way to do this was to hand-write
-  a model file for every single port; now it is one line in the config.
-
-  Leave them out and everything looks exactly as it did before.
-
-  Note: the casing layer is drawn as solid, so a texture with transparent pixels will not
-  show through. Use `overlay` for anything that needs transparency.
-
-- **The same options work from KubeJS**, as `.texture(...)` and `.overlay(...)` on a
-  controller or port builder, plus `.inputTexture(...)`, `.outputTexture(...)`,
-  `.inputOverlay(...)` and `.outputOverlay(...)` on ports.
-
-- **Custom block models for controllers and ports.** Add `model` to a controller or port
-  config pointing at any block model, and the block uses that model instead of the usual
-  casing-and-overlay cube. Ports also take `inputModel` / `outputModel` if you want the two
-  halves shaped differently.
-
-  This means real 3D shapes, not just a new texture: recessed panels, raised frames, vents,
-  pipes and anything else you can build in a model editor. The block's item follows the same
-  model automatically, so it looks right in hand, in the inventory and in JEI. Controllers
-  still turn to face you when placed; ports face the same way on every side.
-
-  Two things to know. Give your model a vanilla parent such as `minecraft:block/block` so it
-  inherits the standard hand and inventory positioning. And keep the outer faces of the cube
-  filled in, because the block still counts as a solid cube for lighting and collision, so
-  anything that leaves a gap in the outside surface will show through to the neighbouring
-  blocks.
-
-  When `model` is set it replaces the whole look, so `texture` and `overlay` no longer apply
-  to that block. Leave `model` out and nothing changes.
-
-- **The same option works from KubeJS**, as `.model(...)` on a controller or port builder,
-  plus `.inputModel(...)` and `.outputModel(...)` on ports.
-
+- **Custom textures for controllers and ports.** `texture` changes the casing, `overlay`
+  changes the symbol on it. Ports also take `inputTexture` / `outputTexture` and
+  `inputOverlay` / `outputOverlay`. The casing is drawn solid, so use `overlay` for anything
+  that needs transparency.
+- **Custom block models.** `model` points a controller or port at any block model, for real
+  3D shapes instead of the plain cube. Ports also take `inputModel` / `outputModel`. Give
+  your model a vanilla parent such as `minecraft:block/block`, and keep the outside of the
+  cube filled in or you will see gaps against neighbouring blocks.
+- **Both work from KubeJS**, as `.texture(...)`, `.overlay(...)` and `.model(...)` on
+  controller and port builders, plus the input and output variants on ports.
 - **Recipes can use a range instead of a fixed amount.** Item `count`, fluid `amount` and
-  energy `amount` now accept `{ "min": 1, "max": 5 }` as well as a plain number, and the
-  machine rolls a value each craft. Works on inputs and outputs, so a recipe can eat 1-5
-  diamonds and give back 4-8 of something.
-
-  Plain numbers behave exactly as before, so existing packs need no edits.
-
-- **Ranges can be linked with `rollGroup`.** Ranges sharing a group in the same recipe roll
-  together, so a cheap craft gives a small output and an expensive one gives a big output.
-  Without a group each range rolls on its own, which means a craft can land on the cheapest
-  input with the richest output, or the other way round.
-
-- JEI shows the range in the slot tooltip, and names the roll group when there is one.
-  The slot itself shows the maximum, so AE2 patterns request enough to cover the worst roll.
+  energy `amount` accept `{ "min": 1, "max": 5 }`, and the machine rolls a value each craft.
+  Plain numbers behave exactly as before.
+- **`rollGroup` links ranges so they roll together**, so a cheap craft gives a small output
+  and an expensive one gives a big output.
+- JEI shows the range in the slot tooltip and names the roll group. Slots show the maximum,
+  so AE2 patterns request enough to cover the worst roll.
+- **The mod now comes with a new machine.** A Pulverizer that doubles raw iron, gold and copper
+    for 400 FE. Build a 3x3x3 shell of smooth stone with a hollow middle, controller on one
+    face, energy port opposite, item input and output on the sides.
+- Its config files are written to `config/mm` on first run. Edit them to make the machine
+  your own, or delete them to remove it — deleted files stay deleted.
 
 ### Fixed
-- **`slotCapacity` on item ports now works when you place items by hand.** Slots stayed
-  capped at 64 in the GUI no matter what the config said. Pipes and automation were already
-  honouring it, which is why the setting looked broken only some of the time.
+- **`slotCapacity` now works when you place items by hand.** Slots stayed capped at 64 in
+  the GUI no matter what the config said.
 - **Item ports holding more than 99 of something in one slot no longer break on save.**
-  This could hit any port with a `slotCapacity` above 99 once a pipe filled it past that.
-  Ports left at the default capacity were never affected.
-- **Shift-clicking into an item port tops up stacks that are already there** instead of
-  spreading one stack per slot and then refusing to accept anything once every slot was
-  occupied. It now behaves like every other container in the game.
-- `slotCapacity` has one maximum again. It was being limited to a different number
-  depending on whether it came from a config file, from KubeJS, or from the port itself.
+  Only affected ports with a `slotCapacity` above 99.
+- **Shift-clicking into an item port tops up stacks already there** instead of spreading one
+  per slot and then refusing to accept anything.
+- `slotCapacity` has one maximum again, whether it comes from a config file, from KubeJS, or
+  from the port itself.
 - Clearing an item port now also clears its per-slot counts.
-- **A recipe's `chance` roll no longer leaks between machines.** The roll was stored on the
-  recipe, which every controller in the world shares, so one machine's luck could decide
-  another machine's craft. Each machine now rolls for itself and saves that roll. Per-tick
-  entries still re-roll every tick, which is the point of them.
-- **One broken structure no longer wipes every machine out of JEI.** If a structure named a
-  controller that did not exist, MM stopped setting up JEI right there, so that machine and
-  every machine after it lost the block you click to look up its recipes. Machines that are
-  fine are now left alone, and the log names each broken structure and what is wrong with it
-  instead of failing quietly.
+- **A recipe's `chance` roll no longer leaks between machines.** Each machine now rolls for
+  itself. Per-tick entries still re-roll every tick.
+- **One broken structure no longer wipes every machine out of JEI.** MM stopped setting up
+  JEI at the first structure naming a controller that did not exist, taking every machine
+  after it with it. Broken structures are now skipped and named in the log.
+
 
 ## [1.21.1-0.2.0] - 2026-08-23
 
