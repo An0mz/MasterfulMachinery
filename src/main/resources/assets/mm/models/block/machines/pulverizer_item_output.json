@@ -4,6 +4,7 @@
     "casing": "mm:block/machines/pulverizer_casing",
     "trim": "mm:block/machines/pulverizer_trim",
     "top": "mm:block/machines/pulverizer_top",
+    "inner": "mm:block/machines/pulverizer_inner",
     "face": "mm:block/machines/pulverizer_item_out",
     "particle": "mm:block/machines/pulverizer_item_out"
   },
@@ -22,16 +23,16 @@
       ],
       "faces": {
         "north": {
-          "texture": "#face"
+          "texture": "#inner"
         },
         "south": {
-          "texture": "#face"
+          "texture": "#inner"
         },
         "east": {
-          "texture": "#face"
+          "texture": "#inner"
         },
         "west": {
-          "texture": "#face"
+          "texture": "#inner"
         },
         "up": {
           "texture": "#top",
@@ -200,7 +201,7 @@
       ],
       "to": [
         14,
-        3,
+        2,
         2
       ],
       "faces": {
@@ -221,7 +222,7 @@
       "name": "rail_north_top",
       "from": [
         2,
-        13,
+        14,
         0
       ],
       "to": [
@@ -252,7 +253,7 @@
       ],
       "to": [
         14,
-        3,
+        2,
         16
       ],
       "faces": {
@@ -273,7 +274,7 @@
       "name": "rail_south_top",
       "from": [
         2,
-        13,
+        14,
         14
       ],
       "to": [
@@ -304,7 +305,7 @@
       ],
       "to": [
         2,
-        3,
+        2,
         14
       ],
       "faces": {
@@ -325,7 +326,7 @@
       "name": "rail_west_top",
       "from": [
         0,
-        13,
+        14,
         2
       ],
       "to": [
@@ -356,7 +357,7 @@
       ],
       "to": [
         16,
-        3,
+        2,
         14
       ],
       "faces": {
@@ -377,7 +378,7 @@
       "name": "rail_east_top",
       "from": [
         14,
-        13,
+        14,
         2
       ],
       "to": [
@@ -396,6 +397,154 @@
         },
         "down": {
           "texture": "#trim"
+        }
+      }
+    },
+    {
+      "name": "panel_north",
+      "from": [
+        4,
+        4,
+        0
+      ],
+      "to": [
+        12,
+        12,
+        2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#face",
+          "cullface": "north"
+        },
+        "east": {
+          "texture": "#inner"
+        },
+        "west": {
+          "texture": "#inner"
+        },
+        "up": {
+          "texture": "#inner"
+        },
+        "down": {
+          "texture": "#inner"
+        }
+      }
+    },
+    {
+      "name": "panel_south",
+      "from": [
+        4,
+        4,
+        14
+      ],
+      "to": [
+        12,
+        12,
+        16
+      ],
+      "faces": {
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#face",
+          "cullface": "south"
+        },
+        "east": {
+          "texture": "#inner"
+        },
+        "west": {
+          "texture": "#inner"
+        },
+        "up": {
+          "texture": "#inner"
+        },
+        "down": {
+          "texture": "#inner"
+        }
+      }
+    },
+    {
+      "name": "panel_west",
+      "from": [
+        0,
+        4,
+        4
+      ],
+      "to": [
+        2,
+        12,
+        12
+      ],
+      "faces": {
+        "north": {
+          "texture": "#inner"
+        },
+        "south": {
+          "texture": "#inner"
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#face",
+          "cullface": "west"
+        },
+        "up": {
+          "texture": "#inner"
+        },
+        "down": {
+          "texture": "#inner"
+        }
+      }
+    },
+    {
+      "name": "panel_east",
+      "from": [
+        14,
+        4,
+        4
+      ],
+      "to": [
+        16,
+        12,
+        12
+      ],
+      "faces": {
+        "north": {
+          "texture": "#inner"
+        },
+        "south": {
+          "texture": "#inner"
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#face",
+          "cullface": "east"
+        },
+        "up": {
+          "texture": "#inner"
+        },
+        "down": {
+          "texture": "#inner"
         }
       }
     }

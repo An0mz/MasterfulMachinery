@@ -4,6 +4,7 @@
     "casing": "mm:block/machines/pulverizer_casing",
     "trim": "mm:block/machines/pulverizer_trim",
     "top": "mm:block/machines/pulverizer_top",
+    "inner": "mm:block/machines/pulverizer_inner",
     "front": "mm:block/machines/pulverizer_front",
     "particle": "mm:block/machines/pulverizer_casing"
   },
@@ -22,7 +23,7 @@
       ],
       "faces": {
         "north": {
-          "texture": "#front"
+          "texture": "#casing"
         },
         "south": {
           "texture": "#casing"
@@ -200,7 +201,7 @@
       ],
       "to": [
         14,
-        3,
+        2,
         2
       ],
       "faces": {
@@ -221,7 +222,7 @@
       "name": "rail_north_top",
       "from": [
         2,
-        13,
+        14,
         0
       ],
       "to": [
@@ -252,7 +253,7 @@
       ],
       "to": [
         14,
-        3,
+        2,
         16
       ],
       "faces": {
@@ -273,7 +274,7 @@
       "name": "rail_south_top",
       "from": [
         2,
-        13,
+        14,
         14
       ],
       "to": [
@@ -304,7 +305,7 @@
       ],
       "to": [
         2,
-        3,
+        2,
         14
       ],
       "faces": {
@@ -325,7 +326,7 @@
       "name": "rail_west_top",
       "from": [
         0,
-        13,
+        14,
         2
       ],
       "to": [
@@ -356,7 +357,7 @@
       ],
       "to": [
         16,
-        3,
+        2,
         14
       ],
       "faces": {
@@ -377,7 +378,7 @@
       "name": "rail_east_top",
       "from": [
         14,
-        13,
+        14,
         2
       ],
       "to": [
@@ -396,6 +397,106 @@
         },
         "down": {
           "texture": "#trim"
+        }
+      }
+    },
+    {
+      "name": "face_north",
+      "from": [
+        2,
+        2,
+        0
+      ],
+      "to": [
+        14,
+        14,
+        2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#front",
+          "cullface": "north"
+        }
+      }
+    },
+    {
+      "name": "face_south",
+      "from": [
+        2,
+        2,
+        14
+      ],
+      "to": [
+        14,
+        14,
+        16
+      ],
+      "faces": {
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#casing",
+          "cullface": "south"
+        }
+      }
+    },
+    {
+      "name": "face_west",
+      "from": [
+        0,
+        2,
+        2
+      ],
+      "to": [
+        2,
+        14,
+        14
+      ],
+      "faces": {
+        "west": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#casing",
+          "cullface": "west"
+        }
+      }
+    },
+    {
+      "name": "face_east",
+      "from": [
+        14,
+        2,
+        2
+      ],
+      "to": [
+        16,
+        14,
+        14
+      ],
+      "faces": {
+        "east": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#casing",
+          "cullface": "east"
         }
       }
     }
