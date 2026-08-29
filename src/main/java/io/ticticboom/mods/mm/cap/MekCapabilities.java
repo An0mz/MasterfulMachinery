@@ -1,6 +1,7 @@
 package io.ticticboom.mods.mm.cap;
 
 import mekanism.api.chemical.IChemicalHandler;
+import mekanism.api.heat.IHeatHandler;
 import mekanism.common.capabilities.Capabilities;
 import net.minecraft.core.Direction;
 import net.neoforged.neoforge.capabilities.BlockCapability;
@@ -15,4 +16,5 @@ import net.neoforged.neoforge.capabilities.BlockCapability;
  */
 public class MekCapabilities {
     public static final BlockCapability<IChemicalHandler, Direction> CHEMICAL = Capabilities.CHEMICAL.block();
+    public static final BlockCapability<IHeatHandler, Direction> HEAT = Capabilities.HEAT;
 }
