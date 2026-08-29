@@ -1,0 +1,35 @@
+{
+  "name": "Pulverizer",
+  "controllerIds": "mm:pulverizer",
+  "layout": [
+    [
+      "FFF",
+      "FFF",
+      "FFF"
+    ],
+    [
+      "FEF",
+      "I O",
+      "FCF"
+    ],
+    [
+      "FFF",
+      "FFF",
+      "FFF"
+    ]
+  ],
+  "key": {
+    "F": {
+      "block": "minecraft:smooth_stone"
+    },
+    "E": {
+      "block": "mm:pulverizer_energy_input"
+    },
+    "I": {
+      "block": "mm:pulverizer_item_input"
+    },
+    "O": {
+      "block": "mm:pulverizer_item_output"
+    }
+  }
+}

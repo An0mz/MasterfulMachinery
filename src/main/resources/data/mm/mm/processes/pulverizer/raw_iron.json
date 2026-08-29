@@ -1,0 +1,31 @@
+{
+  "ticks": 200,
+  "structureId": "mm:pulverizer",
+  "inputs": [
+    {
+      "type": "mm:input/consume",
+      "ingredient": {
+        "type": "mm:item",
+        "item": "minecraft:raw_iron",
+        "count": 1
+      }
+    },
+    {
+      "type": "mm:input/consume",
+      "ingredient": {
+        "type": "mm:energy",
+        "amount": 400
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "type": "mm:output/simple",
+      "ingredient": {
+        "type": "mm:item",
+        "item": "minecraft:raw_iron",
+        "count": 2
+      }
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import io.ticticboom.mods.mm.controller.MMControllerRegistry;
 import io.ticticboom.mods.mm.datagen.PackEventHandler;
 import io.ticticboom.mods.mm.port.MMPortRegistry;
 import io.ticticboom.mods.mm.recipe.MachineRecipeManager;
+import io.ticticboom.mods.mm.setup.BuiltInContentInstaller;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
 import io.ticticboom.mods.mm.setup.loader.ControllerLoader;
 import io.ticticboom.mods.mm.setup.loader.ExtraBlockLoader;
@@ -22,6 +23,7 @@ public class SetupEventHandler {
         event.enqueueWork(() -> {
 
             PackEventHandler.ensureConfigPath();
+            BuiltInContentInstaller.install();
             ControllerLoader.loadAll();
             PortLoader.loadAll();
             ExtraBlockLoader.loadAll();
