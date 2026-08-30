@@ -33,6 +33,7 @@ public class Ref {
         public static final ResourceLocation MEK_SLURRY = id("mekanism/slurry");
         public static final ResourceLocation MEK_PIGMENT = id("mekanism/pigment");
         public static final ResourceLocation MEK_INFUSE = id("mekanism/infuse");
+        public static final ResourceLocation MEK_HEAT = id("mekanism/heat");
         public static final ResourceLocation CREATE_KINETIC = id("create/kinetic");
         public static final ResourceLocation BOTANIA_MANA = id("botania/mana");
 

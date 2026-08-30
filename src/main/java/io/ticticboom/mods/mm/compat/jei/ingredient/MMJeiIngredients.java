@@ -2,6 +2,7 @@ package io.ticticboom.mods.mm.compat.jei.ingredient;
 
 import io.ticticboom.mods.mm.compat.jei.ingredient.create.CreateRotationIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.energy.EnergyIngredientType;
+import io.ticticboom.mods.mm.compat.jei.ingredient.heat.HeatIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.mana.BotaniaManaIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.pncr.PneumaticAirIngredientType;
 import mezz.jei.api.constants.VanillaTypes;
@@ -17,4 +18,5 @@ public class MMJeiIngredients {
     public static final PneumaticAirIngredientType PNEUMATIC_AIR = new PneumaticAirIngredientType();
     public static final BotaniaManaIngredientType BOTANIA_MANA = new BotaniaManaIngredientType();
     public static final CreateRotationIngredientType CREATE_ROTATION = new CreateRotationIngredientType();
+    public static final HeatIngredientType MEKANISM_HEAT = new HeatIngredientType();
 }
