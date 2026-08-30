@@ -94,6 +94,9 @@ public class Ref {
         public static final ResourceLocation INPUT_INFUSE_PORT_OVERLAY = id("block/compat_ports/mekanism_infusion_input_cutout");
         public static final ResourceLocation OUTPUT_INFUSE_PORT_OVERLAY = id("block/compat_ports/mekanism_infusion_output_cutout");
 
+        public static final ResourceLocation INPUT_MEK_HEAT_PORT_OVERLAY = id("block/compat_ports/mekanism_heat_input_cutout");
+        public static final ResourceLocation OUTPUT_MEK_HEAT_PORT_OVERLAY = id("block/compat_ports/mekanism_heat_output_cutout");
+
         public static final ResourceLocation INPUT_KINETIC_PORT_OVERLAY = id("block/compat_ports/create_rotation_input_cutout");
         public static final ResourceLocation OUTPUT_KINETIC_PORT_OVERLAY = id("block/compat_ports/create_rotation_output_cutout");
 
