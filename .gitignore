@@ -26,3 +26,6 @@ forge*changelog.txt
 changelog.txt
 # NeoGradle writes generated run argument files here; they contain absolute machine paths.
 runs/
+
+# Local mod jars used for development builds that are not on any maven.
+libs/

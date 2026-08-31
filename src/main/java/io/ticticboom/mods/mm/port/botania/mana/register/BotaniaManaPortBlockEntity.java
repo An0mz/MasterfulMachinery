@@ -27,28 +27,17 @@ import java.util.Optional;
 
 /**
  * Botania has no 1.21.1 release, so this block entity is stubbed: the mana storage, menu wiring
- * and serialisation are intact, but every hook into Botania is removed and the port does nothing
- * useful at runtime. MMPortRegistry only registers the mana port when Botania is loaded, so on
- * 1.21.1 this class is currently unreachable.
+ * and serialisation are intact, but every hook into Botania is removed. MMPortRegistry only
+ * registers the mana port when Botania is loaded, so on 1.21.1 this class is unreachable.
  *
- * <p>To restore Botania support, re-enable the dependency in build.gradle and put back:
- * <ul>
- *   <li>{@code implements ManaPool} and the {@code @Override}s on the mana methods below, which
- *       are kept verbatim precisely so they can be re-annotated rather than rewritten.</li>
- *   <li>{@code getColor}/{@code setColor}, {@code getManaReceiverLevel}, {@code getManaReceiverPos}
- *       and {@code canReceiveManaFromBursts}.</li>
- *   <li>The {@code WandHud} inner class, which rendered the wand HUD.</li>
- *   <li>{@code tick()} and {@code setRemoved()}, which added and removed this pool from the mana
- *       network via {@code ManaNetworkHandler} and {@code BotaniaAPI}.</li>
- *   <li>Capability exposure for {@code WandHUD} and {@code ManaReceiver}. Note these must now be
- *       registered through {@code RegisterCapabilitiesEvent} rather than a getCapability override,
- *       and {@code io.ticticboom.mods.mm.cap.BotaniaCapabilities} was deleted because it was built
- *       entirely on Forge's removed Capability API.</li>
- * </ul>
+ * <p>The restored version lives on the feature/botania-1.21.1 branch, built against a local
+ * Botania build in libs/. Merge that once Botania publishes a 1.21.1 artifact.
  *
- * <p>Five of the imports this file used were {@code vazkii.botania.common.*} and
- * {@code client.*} internals rather than the {@code api.*} surface, so expect them to have moved
- * and check against the real jar rather than restoring the old names blindly.
+ * <p>The 1.21.1 API differs from the 1.20.1 one this was written against: ManaPool no longer has
+ * getColor/setColor, ManaBlockType.POOL and ManaNetworkHandler.isPoolIn are gone because pools
+ * are not part of the mana network any more, capabilities come from
+ * BotaniaNeoForgeCapabilities.getBlockApiLookupById rather than being declared, and
+ * WandHUD.renderHUD takes a Window and Font instead of a Minecraft.
  */
 public class BotaniaManaPortBlockEntity extends BlockEntity implements IPortBlockEntity {
 
