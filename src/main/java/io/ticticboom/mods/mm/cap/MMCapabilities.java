@@ -66,6 +66,7 @@ public class MMCapabilities {
         var result = new ArrayList<BlockCapability<?, Direction>>();
         if (ModList.get().isLoaded("mekanism")) {
             result.add(MekCapabilities.CHEMICAL);
+            result.add(MekCapabilities.HEAT);
         }
         if (ModList.get().isLoaded("pneumaticcraft")) {
             result.add(PncCapabilities.AIR_HANDLER_MACHINE);

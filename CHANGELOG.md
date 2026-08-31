@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Mekanism heat ports.** `mm:mekanism/heat` stores heat and lets recipes spend it, the same
+  way the energy port handles FE. Thermodynamic Conductors, Resistive Heaters and Fuelwood
+  Heaters feed an input port; an output port pushes its heat back out into anything Mekanism
+  will take it. Recipes use `"amount"`, and ranges and `rollGroup` work on it like everywhere
+  else.
+- Port config takes `capacity` for how much heat it holds, plus optional `heatCapacity` for
+  how much the temperature moves per unit stored, and `inverseConduction` for how fast heat
+  crosses the boundary. Both have sensible defaults.
+- Available from KubeJS as `.capacity(...)`, `.heatCapacity(...)` and `.inverseConduction(...)`.
+
 ## [1.21.1-0.3.0] - 2026-08-28
 
 ### Added
