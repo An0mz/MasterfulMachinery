@@ -1,11 +1,15 @@
 package io.ticticboom.mods.mm.port.botania.mana.register;
 
+import com.mojang.blaze3d.platform.Window;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.model.PortModel;
 import io.ticticboom.mods.mm.port.IPortBlockEntity;
 import io.ticticboom.mods.mm.port.IPortStorage;
 import io.ticticboom.mods.mm.port.botania.mana.BotaniaManaPortStorage;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
+import lombok.Getter;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -16,34 +20,27 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
+import vazkii.botania.api.BotaniaAPIClient;
+import vazkii.botania.api.block.WandHUD;
+import vazkii.botania.api.mana.ManaPool;
+import vazkii.botania.client.core.helper.RenderHelper;
+import vazkii.botania.client.gui.HUDHandler;
+import vazkii.botania.common.item.BotaniaItems;
+import vazkii.botania.common.item.ManaTabletItem;
 
-import java.util.Optional;
-
-/**
- * Botania has no 1.21.1 release, so this block entity is stubbed: the mana storage, menu wiring
- * and serialisation are intact, but every hook into Botania is removed. MMPortRegistry only
- * registers the mana port when Botania is loaded, so on 1.21.1 this class is unreachable.
- *
- * <p>The restored version lives on the feature/botania-1.21.1 branch, built against a local
- * Botania build in libs/. Merge that once Botania publishes a 1.21.1 artifact.
- *
- * <p>The 1.21.1 API differs from the 1.20.1 one this was written against: ManaPool no longer has
- * getColor/setColor, ManaBlockType.POOL and ManaNetworkHandler.isPoolIn are gone because pools
- * are not part of the mana network any more, capabilities come from
- * BotaniaNeoForgeCapabilities.getBlockApiLookupById rather than being declared, and
- * WandHUD.renderHUD takes a Window and Font instead of a Minecraft.
- */
-public class BotaniaManaPortBlockEntity extends BlockEntity implements IPortBlockEntity {
+public class BotaniaManaPortBlockEntity extends BlockEntity implements ManaPool, IPortBlockEntity {
 
     private final PortModel model;
     private final RegistryGroupHolder groupHolder;
     private final BotaniaManaPortStorage storage;
+    @Getter
+    private final WandHud wandHud = new WandHud(this);
 
     public BotaniaManaPortBlockEntity(PortModel model, RegistryGroupHolder groupHolder, BlockPos pos, BlockState state) {
         super(groupHolder.getBe().get(), pos, state);
@@ -78,39 +75,37 @@ public class BotaniaManaPortBlockEntity extends BlockEntity implements IPortBloc
         return null;
     }
 
-    // --- ManaPool implementation, kept unannotated while Botania is unavailable ---
-
+    @Override
     public boolean isOutputtingPower() {
         return !this.model.input();
     }
 
+    @Override
     public int getMaxMana() {
         return storage.getCapacity();
     }
 
-    public Optional<DyeColor> getColor() {
-        return Optional.of(DyeColor.CYAN);
-    }
-
-    public void setColor(Optional<DyeColor> optional) {
-    }
-
+    @Override
     public Level getManaReceiverLevel() {
         return level;
     }
 
+    @Override
     public BlockPos getManaReceiverPos() {
         return this.getBlockPos();
     }
 
+    @Override
     public int getCurrentMana() {
         return storage.getStored();
     }
 
+    @Override
     public boolean isFull() {
         return storage.getStored() >= storage.getCapacity();
     }
 
+    @Override
     public void receiveMana(int i) {
         if (i < 0) {
             storage.extractMana(i, false);
@@ -119,11 +114,10 @@ public class BotaniaManaPortBlockEntity extends BlockEntity implements IPortBloc
         }
     }
 
+    @Override
     public boolean canReceiveManaFromBursts() {
         return this.model.input();
     }
-
-    // --- serialisation, unaffected by Botania ---
 
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
@@ -157,5 +151,31 @@ public class BotaniaManaPortBlockEntity extends BlockEntity implements IPortBloc
     @Override
     public Packet<ClientGamePacketListener> getUpdatePacket() {
         return ClientboundBlockEntityDataPacket.create(this);
+    }
+
+    public static class WandHud implements WandHUD {
+        private final BotaniaManaPortBlockEntity pool;
+
+        public WandHud(BotaniaManaPortBlockEntity pool) {
+            this.pool = pool;
+        }
+
+        @Override
+        public void renderHUD(GuiGraphics gui, Window window, Font font, float partialTicks) {
+            ItemStack poolStack = new ItemStack(this.pool.getBlockState().getBlock());
+            String name = poolStack.getHoverName().getString();
+            int centerX = window.getGuiScaledWidth() / 2;
+            int centerY = window.getGuiScaledHeight() / 2;
+            int width = Math.max(102, font.width(name)) + 4;
+            RenderHelper.renderHUDBox(gui, centerX - width / 2, centerY + 8, centerX + width / 2, centerY + 48);
+            BotaniaAPIClient.instance().drawSimpleManaHUD(gui, window, font, 38399,
+                    this.pool.getCurrentMana(), this.pool.getMaxMana(), name);
+            int arrowU = this.pool.isOutputtingPower() ? 22 : 0;
+            RenderHelper.drawTexturedModalRect(gui, HUDHandler.manaBar, centerX - 11, centerY + 30, arrowU, 38, 22, 15);
+            ItemStack tablet = new ItemStack(BotaniaItems.MANA_TABLET);
+            ManaTabletItem.setStackCreative(tablet);
+            gui.renderItem(tablet, centerX - 31, centerY + 30);
+            gui.renderItem(poolStack, centerX + 15, centerY + 30);
+        }
     }
 }
