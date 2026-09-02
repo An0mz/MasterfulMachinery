@@ -1,12 +1,14 @@
 package io.ticticboom.mods.mm.cap;
 
 import io.ticticboom.mods.mm.port.IPortBlockEntity;
+import io.ticticboom.mods.mm.port.botania.mana.register.BotaniaManaPortBlockEntity;
 import io.ticticboom.mods.mm.port.MMPortRegistry;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
+import net.neoforged.fml.loading.FMLLoader;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -43,6 +45,10 @@ public class MMCapabilities {
 
         // Port block entity types are built from data at load time rather than declared
         // statically, so this walks whatever MMPortRegistry ended up with.
+        if (ModList.get().isLoaded("botania")) {
+            registerBotaniaCapabilities(event);
+        }
+
         for (var holder : MMPortRegistry.PORTS) {
             var beType = holder.getBe().get();
             if (beType == null) {
@@ -72,6 +78,28 @@ public class MMCapabilities {
             result.add(PncCapabilities.AIR_HANDLER_MACHINE);
         }
         return result;
+    }
+
+    /**
+     * Botania's mana receiver is the block entity rather than the port storage, so these two do
+     * not go through the storage-backed loop above. The wand HUD is registered on the client
+     * only, matching how Botania registers it for its own pools.
+     */
+    private static void registerBotaniaCapabilities(RegisterCapabilitiesEvent event) {
+        for (var holder : MMPortRegistry.PORTS) {
+            var beType = holder.getBe().get();
+            if (beType == null) {
+                continue;
+            }
+            @SuppressWarnings("unchecked")
+            var typed = (BlockEntityType<BlockEntity>) beType;
+            event.registerBlockEntity(BotaniaCapabilities.MANA_RECEIVER, typed,
+                    (be, side) -> be instanceof BotaniaManaPortBlockEntity pool ? pool : null);
+            if (FMLLoader.getDist().isClient()) {
+                event.registerBlockEntity(BotaniaCapabilities.WAND_HUD, typed,
+                        (be, ctx) -> be instanceof BotaniaManaPortBlockEntity pool ? pool.getWandHud() : null);
+            }
+        }
     }
 
     private static <T> void registerPortCapability(RegisterCapabilitiesEvent event,

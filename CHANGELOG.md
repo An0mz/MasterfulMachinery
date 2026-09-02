@@ -16,6 +16,10 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   how much the temperature moves per unit stored, and `inverseConduction` for how fast heat
   crosses the boundary. Both have sensible defaults.
 - Available from KubeJS as `.capacity(...)`, `.heatCapacity(...)` and `.inverseConduction(...)`.
+- **The Botania mana port works again.** It was stubbed out on 1.21.1 because Botania had no
+  release for it. Mana pools, spreaders and sparks see the port again, and the wand HUD is
+  back. It needs a 1.21.1 Botania build in `libs/`, so it stays off in published builds
+  until Botania ships one.
 
 ## [1.21.1-0.3.0] - 2026-08-28
 
