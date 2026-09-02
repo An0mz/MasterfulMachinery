@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.21.1-0.4.0] - 2026-08-31
 
 ### Added
 - **Mekanism heat ports.** `mm:mekanism/heat` stores heat and lets recipes spend it, the same
