@@ -64,6 +64,9 @@ public class ConsumeRecipeIngredientEntry implements IRecipeIngredientEntry {
         // should implement their own processTick() to perform the actual extraction.
         // This prevents calling ingredient.process() repeatedly (which performs a
         // full one-time consume) and avoids double-consumption.
+        if (!perTick) {
+            return;
+        }
         try {
             ingredient.processTick(level, storages, state);
         } catch (Throwable ignored) { }

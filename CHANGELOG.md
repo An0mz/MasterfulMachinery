@@ -17,6 +17,14 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   crosses the boundary. Both have sensible defaults.
 - Available from KubeJS as `.capacity(...)`, `.heatCapacity(...)` and `.inverseConduction(...)`.
 
+### Fixed
+- **Recipes no longer drain a port every tick.** An energy or heat input written as a plain
+  `mm:input/consume` was consumed once per tick instead of once per craft, so a recipe asking
+  for 2000 could quietly take many times that. Inputs marked `per_tick: true` were always
+  handled correctly and are unchanged.
+- **Jammed machines stop consuming.** A machine sitting at 100% because its output is full no
+  longer eats energy or heat while it waits for room, and no longer produces per-tick outputs.
+
 ## [1.21.1-0.3.0] - 2026-08-28
 
 ### Added
