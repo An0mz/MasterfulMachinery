@@ -66,6 +66,8 @@
   "port.mm.mekanism_pigment.title": "Pigment Port",
   "port.mm.mekanism_heat.name": "Mekanism Heat",
   "port.mm.mekanism_heat.title": "Mekanism Heat Port",
+  "port.mm.replication_matter.name": "Replication Matter",
+  "port.mm.replication_matter.title": "Replication Matter Port",
 
   "piece.mm.block.description": "Block Id: %s",
   "piece.mm.tag.description": "Block Tag: %s",
@@ -84,6 +86,9 @@
   "gui.mm.port.mekanism_chemical.amount": "%s amB",
   "gui.mm.port.mekanism_heat.storage": "Stored Heat: %s / %s",
   "gui.mm.port.mekanism_heat.temperature": "Temperature: %s K",
+  "gui.mm.port.replication_matter.storage": "Stored Matter: %s / %s",
+  "gui.mm.port.replication_matter.empty": "Empty",
+  "gui.mm.port.replication_matter.reserved": "Reserved for %s",
   "gui.mm.port.pneumaticcraft_air.air": "Air: %s mB",
   "gui.mm.port.pneumaticcraft_air.pressure": "pressure: %s Bar",
   "gui.mm.port.pneumaticcraft_air.volume": "volume: %s mB",

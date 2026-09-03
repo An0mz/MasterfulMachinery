@@ -105,6 +105,9 @@ public class Ref {
         public static final ResourceLocation INPUT_PNCR_AIR_PORT_OVERLAY = id("block/compat_ports/pncr_pressure_input_cutout");
         public static final ResourceLocation OUTPUT_PNCR_AIR_PORT_OVERLAY = id("block/compat_ports/pncr_pressure_output_cutout");
 
+        public static final ResourceLocation INPUT_REPLICATION_MATTER_PORT_OVERLAY = id("block/compat_ports/replication_matter_input_cutout");
+        public static final ResourceLocation OUTPUT_REPLICATION_MATTER_PORT_OVERLAY = id("block/compat_ports/replication_matter_output_cutout");
+
         public static final ResourceLocation INPUT_BOTANIA_MANA_PORT_OVERLAY = id("block/compat_ports/botania_mana_input_cutout");
         public static final ResourceLocation OUTPUT_BOTANIA_MANA_PORT_OVERLAY = id("block/compat_ports/botania_mana_output_cutout");
     }
