@@ -37,6 +37,8 @@ public class Ref {
         public static final ResourceLocation CREATE_KINETIC = id("create/kinetic");
         public static final ResourceLocation BOTANIA_MANA = id("botania/mana");
 
+        public static final ResourceLocation REPLICATION_MATTER = id("replication/matter");
+
         public static final ResourceLocation PNEUMATIC_AIR = id("pneumaticcraft/air");
         public static final ResourceLocation PNEUMATIC_TEMPERATURE = id("pneumaticcraft/temperature");
     }
