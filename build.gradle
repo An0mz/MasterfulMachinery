@@ -130,6 +130,13 @@ repositories {
             includeGroup 'dev.ftb.mods'
         }
     }
+    maven {
+        url = "https://api.modrinth.com/maven"
+        content {
+            includeGroup 'maven.modrinth'
+        }
+    } // Replication
+
     maven { url = "https://maven.createmod.net" } // Create, Ponder, Flywheel
     maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // ForgeConfigAPIPort
 
@@ -162,6 +169,12 @@ dependencies {
 
     //PNEUMATICCRAFT (PNCR)
     compileOnly "curse.maven:pneumaticcraft-repressurized-281849:${pneumaticcraft_id}"
+
+    //REPLICATION
+    // Replication's matter network is built on Titanium's block_network package, so Titanium has
+    // to be on the compile classpath next to it: MM's port registers a NetworkElement of its own.
+    compileOnly "maven.modrinth:replication:${replication_version}"
+    compileOnly "com.hrznstudio:titanium:${titanium_version}"
 
     //KUBEJS
     compileOnly "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
@@ -233,6 +246,10 @@ dependencies {
     //PNEUMATICCRAFT (PNCR)
     runtimeOnly "curse.maven:pneumaticcraft-repressurized-281849:${pneumaticcraft_id}"
 
+    // REPLICATION
+    runtimeOnly "maven.modrinth:replication:${replication_version}"
+    runtimeOnly "com.hrznstudio:titanium:${titanium_version}"
+
     // KUBEJS
     runtimeOnly "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
     runtimeOnly "dev.latvian.mods:rhino:${rhino_version}"
@@ -248,7 +265,6 @@ dependencies {
     //runtimeOnly "curse.maven:emi-580555:8081408"                        // EMI
     runtimeOnly "curse.maven:immersive-engineering-231951:6733669"      // Immersive Engineering
     runtimeOnly "curse.maven:spark-361579:6225208"                     // Spark profiler
-    runtimeOnly "curse.maven:titanium-287342:7951516"                 // titanium
     runtimeOnly "curse.maven:cucumber-272335:8035802"
     runtimeOnly "curse.maven:factory-blocks-640001:6266334"
     runtimeOnly "curse.maven:chisel-chipped-integration-971089:6693853"
