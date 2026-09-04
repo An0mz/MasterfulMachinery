@@ -15,6 +15,8 @@ import io.ticticboom.mods.mm.port.mekanism.infuse.MekanismInfusePortType;
 import io.ticticboom.mods.mm.port.mekanism.pigment.MekanismPigmentPortType;
 import io.ticticboom.mods.mm.port.mekanism.slurry.MekanismSlurryPortType;
 import io.ticticboom.mods.mm.port.pneumaticcraft.air.PneumaticAirPortType;
+import io.ticticboom.mods.mm.port.replication.matter.ReplicationMatterPortType;
+import io.ticticboom.mods.mm.port.replication.matter.feature.ReplicationMatterPipeHook;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
 import io.ticticboom.mods.mm.util.ParserUtils;
 import net.minecraft.resources.ResourceLocation;
@@ -46,6 +48,11 @@ public class MMPortRegistry {
 
         if (ModList.get().isLoaded("pneumaticcraft")) {
             register(Ref.Ports.PNEUMATIC_AIR, new PneumaticAirPortType());
+        }
+
+        if (ModList.get().isLoaded("replication")) {
+            register(Ref.Ports.REPLICATION_MATTER, new ReplicationMatterPortType());
+            ReplicationMatterPipeHook.register();
         }
 
         if (ModList.get().isLoaded("botania")) {

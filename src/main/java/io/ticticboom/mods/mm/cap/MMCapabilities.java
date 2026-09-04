@@ -71,6 +71,9 @@ public class MMCapabilities {
         if (ModList.get().isLoaded("pneumaticcraft")) {
             result.add(PncCapabilities.AIR_HANDLER_MACHINE);
         }
+        if (ModList.get().isLoaded("replication")) {
+            result.add(ReplicationCapabilities.MATTER_HANDLER);
+        }
         return result;
     }
 

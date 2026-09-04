@@ -16,6 +16,22 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   how much the temperature moves per unit stored, and `inverseConduction` for how fast heat
   crosses the boundary. Both have sensible defaults.
 - Available from KubeJS as `.capacity(...)`, `.heatCapacity(...)` and `.inverseConduction(...)`.
+- **Replication matter ports.** `mm:replication/matter` joins Replication's matter network, so a
+  machine can spend matter or produce it. An output port behaves like a Disintegrator: the
+  network empties it into your matter tanks on its own. An input port goes and takes what it is
+  short of, the way a Replicator does, so it fills from anywhere on the network rather than only
+  from what a pipe happens to push at it.
+- Port config takes `capacity` for how much each tank holds, `matter` for the type each tank is
+  reserved for (one string, or a list for several tanks), `tanks` for unreserved tanks that lock
+  to whatever arrives first, `priority` for MM's own output ordering, and `network` to keep the
+  port off the matter network entirely.
+- Recipes name the type and the amount: `{ "type": "mm:replication/matter", "matter":
+  "replication:metallic", "amount": 64 }`. Ranges and `rollGroup` work on it like everywhere else.
+- Matter pipes connect to the port and draw the connection, the same as they do to
+  Replication's own blocks.
+- The port answers Replication's matter capability too, so other mods' pipes can see it.
+- Available from KubeJS as `.capacity(...)`, `.matter(...)`, `.tanks(...)`, `.priority(...)` and
+  `.network(...)`.
 
 ### Fixed
 - **Recipes no longer drain a port every tick.** An energy or heat input written as a plain

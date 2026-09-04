@@ -9,6 +9,8 @@ import io.ticticboom.mods.mm.port.energy.register.EnergyPortBlock;
 import io.ticticboom.mods.mm.port.kinetic.register.CreateKineticPortBlock;
 import io.ticticboom.mods.mm.port.pneumaticcraft.air.register.PneumaticAirPortBlock;
 import io.ticticboom.mods.mm.port.botania.mana.register.BotaniaManaPortBlock;
+import io.ticticboom.mods.mm.port.replication.matter.register.ReplicationMatterPortBlock;
+import net.neoforged.fml.ModList;
 import snownee.jade.api.IWailaClientRegistration;
 import snownee.jade.api.IWailaCommonRegistration;
 import snownee.jade.api.IWailaPlugin;
@@ -35,5 +37,10 @@ public class MMWailaPlugin implements IWailaPlugin {
         registration.registerBlockComponent(PortPriorityDataProvider.INSTANCE, CreateKineticPortBlock.class);
         registration.registerBlockComponent(PortPriorityDataProvider.INSTANCE, PneumaticAirPortBlock.class);
         registration.registerBlockComponent(PortPriorityDataProvider.INSTANCE, BotaniaManaPortBlock.class);
+        // Unlike the other port blocks this one implements a Titanium interface, so naming the
+        // class at all resolves it. Behind the check it stays unloaded when Replication is absent.
+        if (ModList.get().isLoaded("replication")) {
+            registration.registerBlockComponent(PortPriorityDataProvider.INSTANCE, ReplicationMatterPortBlock.class);
+        }
     }
 }
