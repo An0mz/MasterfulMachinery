@@ -4,18 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
-## [1.21.1-0.4.0] - 2026-09-02
+## [1.21.1-0.5.0] - 2026-09-04
 
 ### Added
-- **Mekanism heat ports.** `mm:mekanism/heat` stores heat and lets recipes spend it, the same
-  way the energy port handles FE. Thermodynamic Conductors, Resistive Heaters and Fuelwood
-  Heaters feed an input port; an output port pushes its heat back out into anything Mekanism
-  will take it. Recipes use `"amount"`, and ranges and `rollGroup` work on it like everywhere
-  else.
-- Port config takes `capacity` for how much heat it holds, plus optional `heatCapacity` for
-  how much the temperature moves per unit stored, and `inverseConduction` for how fast heat
-  crosses the boundary. Both have sensible defaults.
-- Available from KubeJS as `.capacity(...)`, `.heatCapacity(...)` and `.inverseConduction(...)`.
 - **Replication matter ports.** `mm:replication/matter` joins Replication's matter network, so a
   machine can spend matter or produce it. An output port behaves like a Disintegrator: the
   network empties it into your matter tanks on its own. An input port goes and takes what it is
@@ -32,6 +23,19 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 - The port answers Replication's matter capability too, so other mods' pipes can see it.
 - Available from KubeJS as `.capacity(...)`, `.matter(...)`, `.tanks(...)`, `.priority(...)` and
   `.network(...)`.
+
+## [1.21.1-0.4.0] - 2026-09-02
+
+### Added
+- **Mekanism heat ports.** `mm:mekanism/heat` stores heat and lets recipes spend it, the same
+  way the energy port handles FE. Thermodynamic Conductors, Resistive Heaters and Fuelwood
+  Heaters feed an input port; an output port pushes its heat back out into anything Mekanism
+  will take it. Recipes use `"amount"`, and ranges and `rollGroup` work on it like everywhere
+  else.
+- Port config takes `capacity` for how much heat it holds, plus optional `heatCapacity` for
+  how much the temperature moves per unit stored, and `inverseConduction` for how fast heat
+  crosses the boundary. Both have sensible defaults.
+- Available from KubeJS as `.capacity(...)`, `.heatCapacity(...)` and `.inverseConduction(...)`.
 
 ### Fixed
 - **Recipes no longer drain a port every tick.** An energy or heat input written as a plain
