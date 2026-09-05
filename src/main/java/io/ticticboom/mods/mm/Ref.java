@@ -81,6 +81,9 @@ public class Ref {
         public static final ResourceLocation INPUT_ENERGY_PORT_OVERLAY = id("block/base_ports/energy_input_cutout");
         public static final ResourceLocation OUTPUT_ENERGY_PORT_OVERLAY = id("block/base_ports/energy_output_cutout");
 
+        public static final ResourceLocation INPUT_ENTITY_PORT_OVERLAY = id("block/base_ports/entity_input_cutout");
+        public static final ResourceLocation OUTPUT_ENTITY_PORT_OVERLAY = id("block/base_ports/entity_output_cutout");
+
         public static final ResourceLocation CIRCUIT_OVERLAY = id("block/circuit_cutout");
         public static final ResourceLocation GEARBOX_OVERLAY = id("block/gearbox_cutout");
         public static final ResourceLocation VENT_OVERLAY = id("block/vent_cutout");
