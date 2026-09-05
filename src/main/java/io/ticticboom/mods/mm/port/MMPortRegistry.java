@@ -6,6 +6,7 @@ import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.model.PortModel;
 import io.ticticboom.mods.mm.port.botania.mana.BotaniaManaPortType;
 import io.ticticboom.mods.mm.port.energy.EnergyPortType;
+import io.ticticboom.mods.mm.port.entity.EntityPortType;
 import io.ticticboom.mods.mm.port.fluid.FluidPortType;
 import io.ticticboom.mods.mm.port.item.ItemPortType;
 import io.ticticboom.mods.mm.port.kinetic.CreateKineticPortType;
@@ -34,6 +35,7 @@ public class MMPortRegistry {
         register(Ref.Ports.ITEM, new ItemPortType());
         register(Ref.Ports.FLUID, new FluidPortType());
         register(Ref.Ports.ENERGY, new EnergyPortType());
+        register(Ref.Ports.ENTITY, new EntityPortType());
 
         if (ModList.get().isLoaded("mekanism")) {
             register(Ref.Ports.MEK_GAS, new MekanismGasPortType());

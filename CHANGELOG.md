@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
-## [1.21.1-0.5.0] - 2026-09-04
+## [1.21.1-0.5.0] - 2026-09-05
 
 ### Added
 - **Replication matter ports.** `mm:replication/matter` joins Replication's matter network, so a
@@ -23,6 +23,38 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 - The port answers Replication's matter capability too, so other mods' pipes can see it.
 - Available from KubeJS as `.capacity(...)`, `.matter(...)`, `.tanks(...)`, `.priority(...)` and
   `.network(...)`.
+
+- **Entity ports.** `mm:entity` holds mobs for a machine to work with. A mob that walks onto the
+  port is picked up on its own, and what happens next is the port's `mode`. `stored` swallows the
+  mob into the block, so it stops ticking, cannot be hurt and cannot despawn; `standing` leaves it
+  on top of the block and registers it where you can still see it.
+- Port config takes `capacity` for how many mobs the port holds, `mode` for `stored` or
+  `standing`, `invulnerable` to stop anything hurting a mob that is standing on the port,
+  `immobile` to pin it in place with its AI switched off, `silent` to shut the mob up while it sits
+  there, `zone` for how much space above the block the port watches, `consume` for whether a recipe
+  destroys the mob or keeps it as a catalyst, and `entities` / `tags` to restrict what the port
+  accepts. `consume` defaults to on for `stored` and off for `standing`, so a pedestal machine runs
+  forever off one mob without any extra config.
+- `zone` sizes the catch area, which sits on top of the block and defaults to the single block
+  above. One number makes a cube (`"zone": 3` is 3x3x3), and `[width, height, depth]` or
+  `{ "width": 3, "height": 1, "depth": 3 }` shapes it — a flat 3x3 pad, a tall 1x3x1 chimney, or
+  anything up to 16 on a side. Wider zones leave mobs standing where they are rather than snapping
+  them to the middle.
+- `speedPerEntity` makes a crowd worth having: every mob past the first adds that much to the
+  machine's speed, so a pedestal holding three mobs at `1.0` runs a recipe three times as fast.
+  Defaults to `0`, which keeps the extra mobs as spares.
+- Recipes name a mob or an entity tag: `{ "type": "mm:entity", "entity": "minecraft:zombie",
+  "amount": 1 }` or `{ "type": "mm:entity", "tag": "minecraft:skeletons" }`. Ranges and
+  `rollGroup` work on it like everywhere else, and `amount` defaults to 1.
+- An output port produces mobs. In `stored` mode the mob goes into the block; in `standing` mode
+  it spawns on top of the port.
+- Breaking a port gives its mobs back: stored mobs respawn on the spot with their health, name,
+  gear and taming intact, and a mob that was pinned gets its AI and its vulnerability back.
+- Entity ports stagger their scans by position instead of all firing on the same tick, and send
+  clients only the mob types they hold rather than every held mob's full NBT.
+- Available from KubeJS as `.capacity(...)`, `.mode(...)`, `.invulnerable(...)`, `.immobile(...)`,
+  `.silent(...)`, `.zone(size)` or `.zone(width, height, depth)`, `.speedPerEntity(...)`,
+  `.consume(...)`, `.entity(...)` and `.tag(...)`.
 
 ## [1.21.1-0.4.0] - 2026-09-02
 
