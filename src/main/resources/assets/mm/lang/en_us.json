@@ -114,6 +114,8 @@
   "jei.mm.ingredient.mekanism_chemical.amount": "%s mB",
   "jei.mm.ingredient.mekanism_heat.title": "Mekanism Heat:",
   "jei.mm.ingredient.mekanism_heat.amount": "%s Heat",
+  "jei.mm.ingredient.entity.title": "%s:",
+  "jei.mm.ingredient.entity.amount": "%s Entity",
   "jei.mm.ingredient.replication_matter.title": "%s Matter:",
   "jei.mm.ingredient.replication_matter.amount": "%s Matter",
   "jei.mm.ingredient.botania_mana.title": "Botania Mana:",

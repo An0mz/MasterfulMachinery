@@ -29,6 +29,7 @@ public class Ref {
         public static final ResourceLocation ITEM = id("item");
         public static final ResourceLocation FLUID = id("fluid");
         public static final ResourceLocation ENERGY = id("energy");
+        public static final ResourceLocation ENTITY = id("entity");
         public static final ResourceLocation MEK_GAS = id("mekanism/gas");
         public static final ResourceLocation MEK_SLURRY = id("mekanism/slurry");
         public static final ResourceLocation MEK_PIGMENT = id("mekanism/pigment");

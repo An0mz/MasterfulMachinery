@@ -8,6 +8,8 @@ import io.ticticboom.mods.mm.compat.jei.ingredient.MMJeiIngredients;
 import io.ticticboom.mods.mm.compat.jei.ingredient.create.CreateRotationIngredientHelper;
 import io.ticticboom.mods.mm.compat.jei.ingredient.create.CreateRotationIngredientRenderer;
 import io.ticticboom.mods.mm.compat.jei.ingredient.energy.EnergyIngredientHelper;
+import io.ticticboom.mods.mm.compat.jei.ingredient.entity.EntityIngredientHelper;
+import io.ticticboom.mods.mm.compat.jei.ingredient.entity.EntityIngredientRenderer;
 import io.ticticboom.mods.mm.compat.jei.ingredient.energy.EnergyIngredientRenderer;
 import io.ticticboom.mods.mm.compat.jei.ingredient.heat.HeatIngredientHelper;
 import io.ticticboom.mods.mm.compat.jei.ingredient.heat.HeatIngredientRenderer;
@@ -108,6 +110,7 @@ public class MMJeiPlugin implements IModPlugin {
         registration.register(MMJeiIngredients.CREATE_ROTATION, ImmutableList.of(), new CreateRotationIngredientHelper(), new CreateRotationIngredientRenderer());
         registration.register(MMJeiIngredients.MEKANISM_HEAT, ImmutableList.of(), new HeatIngredientHelper(), new HeatIngredientRenderer());
         registration.register(MMJeiIngredients.REPLICATION_MATTER, ImmutableList.of(), new MatterIngredientHelper(), new MatterIngredientRenderer());
+        registration.register(MMJeiIngredients.ENTITY, ImmutableList.of(), new EntityIngredientHelper(), new EntityIngredientRenderer());
     }
 
     @Override
