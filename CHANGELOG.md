@@ -56,6 +56,9 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   `.silent(...)`, `.zone(size)` or `.zone(width, height, depth)`, `.speedPerEntity(...)`,
   `.consume(...)`, `.entity(...)` and `.tag(...)`.
 
+- Machine recipes can now run faster than one tick of progress per tick. Nothing changes unless a
+  port asks for it, and today only the entity port's `speedPerEntity` does.
+
 ## [1.21.1-0.4.0] - 2026-09-02
 
 ### Added

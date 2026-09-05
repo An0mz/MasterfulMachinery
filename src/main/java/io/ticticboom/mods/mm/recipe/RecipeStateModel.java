@@ -21,11 +21,23 @@ public class RecipeStateModel {
     private int tickProgress = 0;
     private double tickPercentage = 0;
     private boolean canFinish = false;
+    private double progressCarry = 0;
 
     private final Map<String, Double> rollTokens = new HashMap<>();
 
     public void proceedTick() {
-        tickProgress++;
+        proceedTick(1.0);
+    }
+
+    public void proceedTick(double speed) {
+        if (speed <= 1.0) {
+            tickProgress++;
+            return;
+        }
+        progressCarry += speed;
+        int steps = (int) progressCarry;
+        progressCarry -= steps;
+        tickProgress += Math.max(1, steps);
     }
 
     public double getRollToken(String key) {
@@ -43,6 +55,7 @@ public class RecipeStateModel {
         tag.putInt("tickProgress", tickProgress);
         tag.putDouble("tickPercentage", tickPercentage);
         tag.putBoolean("canFinish", canFinish);
+        tag.putDouble("progressCarry", progressCarry);
         if (!rollTokens.isEmpty()) {
             var rolls = new CompoundTag();
             rollTokens.forEach(rolls::putDouble);
@@ -57,6 +70,7 @@ public class RecipeStateModel {
         model.setTickProgress(tag.getInt("tickProgress"));
         model.setTickPercentage(tag.getDouble("tickPercentage"));
         model.setCanFinish(tag.getBoolean("canFinish"));
+        model.setProgressCarry(tag.getDouble("progressCarry"));
         if (tag.contains(ROLL_TOKENS_KEY)) {
             var rolls = tag.getCompound(ROLL_TOKENS_KEY);
             for (String key : rolls.getAllKeys()) {

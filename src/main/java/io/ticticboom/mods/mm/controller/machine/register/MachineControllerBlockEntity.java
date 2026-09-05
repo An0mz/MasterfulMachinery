@@ -79,6 +79,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private StructureModel structure = null;
     private final Map<ResourceLocation, RecipeStateModel> activeRecipes = new HashMap<>();
     private RecipeStorages portStorages = null;
+    private List<io.ticticboom.mods.mm.port.entity.EntityPortStorage> speedStorages = List.of();
     private boolean isFormed = false;
     @Getter
     private RecipeModel currentRecipe;
@@ -197,6 +198,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private void runRecipe() {
         if (portStorages == null) {
             portStorages = (structure == null) ? null : structure.getStorages(level, getBlockPos());
+            speedStorages = resolveSpeedStorages();
         }
         detectExternalStorageChanges();
         long gameTime = (level == null) ? 0L : level.getGameTime();
@@ -728,6 +730,30 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         return baseId;
     }
 
+    private List<io.ticticboom.mods.mm.port.entity.EntityPortStorage> resolveSpeedStorages() {
+        if (portStorages == null) {
+            return List.of();
+        }
+        var found = new ArrayList<io.ticticboom.mods.mm.port.entity.EntityPortStorage>();
+        for (var storage : portStorages.getInputStorages(io.ticticboom.mods.mm.port.entity.EntityPortStorage.class)) {
+            if (((io.ticticboom.mods.mm.port.entity.EntityPortStorageModel) storage.getStorageModel()).speedPerEntity() > 0) {
+                found.add(storage);
+            }
+        }
+        return found.isEmpty() ? List.of() : found;
+    }
+
+    private double recipeSpeedMultiplier() {
+        if (speedStorages.isEmpty()) {
+            return 1;
+        }
+        double multiplier = 1;
+        for (var storage : speedStorages) {
+            multiplier += storage.speedBonus();
+        }
+        return multiplier;
+    }
+
     private boolean canStartRecipeGivenParallelRules(RecipeModel recipe) {
         boolean allowParallel = recipe.parallelProcessing();
         if (recipe.parallelProcessing() == MMConfig.PARALLEL_PROCESSING_DEFAULT) {
@@ -892,7 +918,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                     // outputs tick may have modified storages; invalidate cached view so next tick rebuilds
                     storageContentCacheValid = false;
                 }
-                if (!state.isCanFinish()) state.proceedTick();
+                if (!state.isCanFinish()) state.proceedTick(recipeSpeedMultiplier());
                 state.setTickPercentage(((double) state.getTickProgress() / recipe.ticks()) * 100);
                 boolean progressed = state.getTickProgress() != prevProgress;
                 if (state.getTickProgress() >= recipe.ticks()) {
@@ -947,6 +973,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         activeRecipes.clear();
         currentRecipe = null;
         portStorages = null;
+        speedStorages = List.of();
         // clear cached views and backoff timers as recipe state is reset
         storageContentCacheValid = false;
         cachedAvailableItemIds.clear();
