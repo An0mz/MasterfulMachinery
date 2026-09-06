@@ -7,67 +7,28 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 ## [1.21.1-0.5.0] - 2026-09-05
 
 ### Added
-- **Replication matter ports.** `mm:replication/matter` joins Replication's matter network, so a
-  machine can spend matter or produce it. An output port behaves like a Disintegrator: the
-  network empties it into your matter tanks on its own. An input port goes and takes what it is
-  short of, the way a Replicator does, so it fills from anywhere on the network rather than only
-  from what a pipe happens to push at it.
-- Port config takes `capacity` for how much each tank holds, `matter` for the type each tank is
-  reserved for (one string, or a list for several tanks), `tanks` for unreserved tanks that lock
-  to whatever arrives first, `priority` for MM's own output ordering, and `network` to keep the
-  port off the matter network entirely.
-- Recipes name the type and the amount: `{ "type": "mm:replication/matter", "matter":
-  "replication:metallic", "amount": 64 }`. Ranges and `rollGroup` work on it like everywhere else.
-- Matter pipes connect to the port and draw the connection, the same as they do to
-  Replication's own blocks.
-- The port answers Replication's matter capability too, so other mods' pipes can see it.
-- Available from KubeJS as `.capacity(...)`, `.matter(...)`, `.tanks(...)`, `.priority(...)` and
-  `.network(...)`.
-
-- **Entity ports.** `mm:entity` holds mobs for a machine to work with. A mob that walks onto the
-  port is picked up on its own, and what happens next is the port's `mode`. `stored` swallows the
-  mob into the block, so it stops ticking, cannot be hurt and cannot despawn; `standing` leaves it
-  on top of the block and registers it where you can still see it.
-- Port config takes `capacity` for how many mobs the port holds, `mode` for `stored` or
-  `standing`, `invulnerable` to stop anything hurting a mob that is standing on the port,
-  `immobile` to pin it in place with its AI switched off, `silent` to shut the mob up while it sits
-  there, `persistent` for whether it is allowed to despawn, `zone` for how much space above the
-  block the port watches, `consume` for whether a recipe destroys the mob or keeps it as a
-  catalyst, and `entities` / `tags` to restrict what the port accepts. `consume` defaults to on for
-  `stored` and off for `standing`, so a pedestal machine runs forever off one mob without any extra
-  config.
-- `zone` sizes the catch area, which sits on top of the block and defaults to the single block
-  above. One number makes a cube (`"zone": 3` is 3x3x3), and `[width, height, depth]` or
-  `{ "width": 3, "height": 1, "depth": 3 }` shapes it — a flat 3x3 pad, a tall 1x3x1 chimney, or
-  anything up to 16 on a side. Wider zones leave mobs standing where they are rather than snapping
-  them to the middle.
-- `speedPerEntity` makes a crowd worth having: every mob past the first adds that much to the
-  machine's speed, so a pedestal holding three mobs at `1.0` runs a recipe three times as fast.
-  Defaults to `0`, which keeps the extra mobs as spares.
-- `persistent` decides whether a mob the port is holding may despawn. Left unset it follows the
-  port: an input keeps its mobs alive so automation cannot quietly break, while an output lets the
-  mobs it spawned despawn normally instead of piling up. Set it either way to override that.
-- Recipes name a mob or an entity tag: `{ "type": "mm:entity", "entity": "minecraft:zombie",
-  "amount": 1 }` or `{ "type": "mm:entity", "tag": "minecraft:skeletons" }`. Ranges and
-  `rollGroup` work on it like everywhere else, and `amount` defaults to 1.
-- An output port produces mobs. In `stored` mode the mob goes into the block; in `standing` mode
-  it spawns on top of the port.
-- Breaking a port gives its mobs back: stored mobs respawn on the spot with their health, name,
-  gear and taming intact, and a mob that was pinned gets its AI and its vulnerability back.
-- Entity ports stagger their scans by position instead of all firing on the same tick, and send
-  clients only the mob types they hold rather than every held mob's full NBT.
-- Available from KubeJS as `.capacity(...)`, `.mode(...)`, `.invulnerable(...)`, `.immobile(...)`,
-  `.silent(...)`, `.persistent(...)`, `.zone(size)` or `.zone(width, height, depth)`,
-  `.speedPerEntity(...)`, `.consume(...)`, `.entity(...)` and `.tag(...)`.
-
-- Machine recipes can now run faster than one tick of progress per tick. Nothing changes unless a
-  port asks for it, and today only the entity port's `speedPerEntity` does.
-
+- **Replication matter ports.** `mm:replication/matter` puts a machine on Replication's matter
+  network. An output port empties itself into your tanks like a Disintegrator; an input port pulls
+  what it needs from anywhere on the network like a Replicator, rather than waiting for a pipe to
+  push at it. Matter pipes connect to it, and other mods can see it through Replication's own
+  capability. Config: `capacity`, `matter`, `tanks`, `priority`, `network`.
+- **Entity ports.** `mm:entity` lets a machine work with mobs. A mob that walks onto the port is
+  picked up on its own — `stored` swallows it into the block, `standing` leaves it on top where you
+  can still see it. A recipe can spend a mob or keep it as a catalyst, ask for one type or a whole
+  entity tag, and an output port produces mobs instead of consuming them. Break the port and you
+  get every mob back. Config: `capacity`, `mode`, `invulnerable`, `immobile`, `silent`,
+  `persistent`, `zone`, `speedPerEntity`, `consume`, `entities` / `tags`.
+- `zone` sets how much space above a port it watches — a flat 3x3 pad, a tall chimney, or a cube up
+  to 16 on a side. `speedPerEntity` makes a crowd worth having: every mob past the first speeds the
+  recipe up, so three on a pedestal can run it three times as fast.
+- Machine recipes can run faster than one tick of progress per tick. Nothing changes unless a port
+  asks for it, and today only `speedPerEntity` does.
+- Both ports take their options from KubeJS under the same names.
 
 ### Changed
-- The Replication matter port screen draws a divider between its tanks, tints an empty tank with
-  the colour of the matter it is reserved for, and lights up the tank under the cursor. A port with
-  several tanks used to be a flat grey slab that only gave up which section was which on hover.
+- The Replication matter port screen puts a divider between its tanks, tints an empty tank with the
+  matter it is reserved for, and highlights the one under your cursor. It used to be a flat grey
+  slab you had to hover over to read.
 
 ## [1.21.1-0.4.0] - 2026-09-02
 
