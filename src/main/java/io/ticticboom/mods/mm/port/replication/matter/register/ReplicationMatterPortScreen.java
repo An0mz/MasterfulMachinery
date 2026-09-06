@@ -19,6 +19,9 @@ public class ReplicationMatterPortScreen extends AbstractContainerScreen<Replica
     private static final int AREA_Y = 51;
     private static final int AREA_WIDTH = 160;
     private static final int AREA_HEIGHT = 78;
+    private static final int SEPARATOR_COLOR = 0xFF373737;
+    private static final int RESERVED_ALPHA = 0x38000000;
+    private static final int HOVER_COLOR = 0x30FFFFFF;
 
     private final FormattedText header;
 
@@ -58,21 +61,41 @@ public class ReplicationMatterPortScreen extends AbstractContainerScreen<Replica
         int top = this.topPos + AREA_Y;
         int bottom = top + AREA_HEIGHT;
         ReplicationMatterPortTank hovered = null;
+        int hoveredLeft = 0;
+        int hoveredRight = 0;
+
         for (int i = 0; i < count; i++) {
             var tank = tanks.get(i);
-            int left = this.leftPos + AREA_X + (AREA_WIDTH * i / count);
-            int right = this.leftPos + AREA_X + (AREA_WIDTH * (i + 1) / count);
+            int left = columnLeft(i, count);
+            int right = columnLeft(i + 1, count);
+            var reserved = tank.getRequestedType();
+            if (reserved != null) {
+                gfx.fill(left, top, right, bottom, (MatterTypes.colorOf(reserved) & 0x00FFFFFF) | RESERVED_ALPHA);
+            }
             var filled = (int) (Math.min(tank.getMatterAmount() / tank.getCapacity(), 1) * AREA_HEIGHT);
             if (filled > 0) {
                 gfx.fill(left, bottom - filled, right, bottom, MatterTypes.colorOf(tank.getMatter().getMatterType()));
             }
             if (WidgetUtils.isPointerWithinSized(mouseX, mouseY, left, top, right - left, AREA_HEIGHT)) {
                 hovered = tank;
+                hoveredLeft = left;
+                hoveredRight = right;
             }
         }
+
+        for (int i = 1; i < count; i++) {
+            int boundary = columnLeft(i, count);
+            gfx.fill(boundary, top, boundary + 1, bottom, SEPARATOR_COLOR);
+        }
+
         if (hovered != null) {
+            gfx.fill(hoveredLeft, top, hoveredRight, bottom, HOVER_COLOR);
             gfx.renderComponentTooltip(this.font, tooltip(hovered), mouseX, mouseY);
         }
+    }
+
+    private int columnLeft(int index, int count) {
+        return this.leftPos + AREA_X + (AREA_WIDTH * index / count);
     }
 
     private ArrayList<Component> tooltip(ReplicationMatterPortTank tank) {

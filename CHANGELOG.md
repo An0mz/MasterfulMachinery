@@ -59,6 +59,12 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 - Machine recipes can now run faster than one tick of progress per tick. Nothing changes unless a
   port asks for it, and today only the entity port's `speedPerEntity` does.
 
+
+### Changed
+- The Replication matter port screen draws a divider between its tanks, tints an empty tank with
+  the colour of the matter it is reserved for, and lights up the tank under the cursor. A port with
+  several tanks used to be a flat grey slab that only gave up which section was which on hover.
+
 ## [1.21.1-0.4.0] - 2026-09-02
 
 ### Added
