@@ -17,6 +17,7 @@ public class EntityConfigBuilderJS extends PortConfigBuilderJS {
     private boolean invulnerable = false;
     private boolean immobile = true;
     private boolean silent = false;
+    private Boolean persistent = null;
     private Boolean consume = null;
     private double speedPerEntity = 0;
     private int zoneWidth = 1;
@@ -47,6 +48,11 @@ public class EntityConfigBuilderJS extends PortConfigBuilderJS {
 
     public EntityConfigBuilderJS silent(boolean silent) {
         this.silent = silent;
+        return this;
+    }
+
+    public EntityConfigBuilderJS persistent(boolean persistent) {
+        this.persistent = persistent;
         return this;
     }
 
@@ -89,6 +95,7 @@ public class EntityConfigBuilderJS extends PortConfigBuilderJS {
                 invulnerable,
                 immobile,
                 silent,
+                persistent,
                 consume == null ? mode == EntityPortMode.STORED : consume,
                 speedPerEntity,
                 zoneWidth,

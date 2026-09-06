@@ -243,8 +243,12 @@ public class EntityPortStorage implements IPortStorage {
         return owner instanceof IPortBlockEntity portBlockEntity && portBlockEntity.isInput();
     }
 
+    private boolean keepsAlive() {
+        return model.persistent() != null ? model.persistent() : holdsForMachine();
+    }
+
     private void applyPin(LivingEntity entity) {
-        if (entity instanceof Mob held && holdsForMachine()) {
+        if (entity instanceof Mob held && keepsAlive()) {
             held.setPersistenceRequired();
         }
         if (model.immobile()) {
@@ -378,6 +382,7 @@ public class EntityPortStorage implements IPortStorage {
         dump.addProperty("invulnerable", model.invulnerable());
         dump.addProperty("immobile", model.immobile());
         dump.addProperty("silent", model.silent());
+        dump.addProperty("persistent", keepsAlive());
         dump.addProperty("speedPerEntity", model.speedPerEntity());
         dump.addProperty("zone", model.zoneWidth() + "x" + model.zoneHeight() + "x" + model.zoneDepth());
         dump.addProperty("consume", model.consume());

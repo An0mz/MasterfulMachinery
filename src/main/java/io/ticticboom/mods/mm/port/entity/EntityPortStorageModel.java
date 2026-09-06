@@ -17,6 +17,7 @@ public record EntityPortStorageModel(
         boolean invulnerable,
         boolean immobile,
         boolean silent,
+        Boolean persistent,
         boolean consume,
         double speedPerEntity,
         int zoneWidth,
@@ -41,6 +42,9 @@ public record EntityPortStorageModel(
         boolean invulnerable = json.has("invulnerable") && json.get("invulnerable").getAsBoolean();
         boolean immobile = !json.has("immobile") || json.get("immobile").getAsBoolean();
         boolean silent = json.has("silent") && json.get("silent").getAsBoolean();
+        Boolean persistent = json.has("persistent") && !json.get("persistent").isJsonNull()
+                ? json.get("persistent").getAsBoolean()
+                : null;
         boolean consume = json.has("consume")
                 ? json.get("consume").getAsBoolean()
                 : mode == EntityPortMode.STORED;
@@ -49,7 +53,7 @@ public record EntityPortStorageModel(
             speedPerEntity = 0;
         }
         var zone = parseZone(json.get("zone"));
-        return new EntityPortStorageModel(capacity, mode, invulnerable, immobile, silent, consume,
+        return new EntityPortStorageModel(capacity, mode, invulnerable, immobile, silent, persistent, consume,
                 speedPerEntity, zone[0], zone[1], zone[2],
                 Collections.unmodifiableList(parseIds(json, "entities")),
                 Collections.unmodifiableList(parseIds(json, "tags")),

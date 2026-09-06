@@ -31,10 +31,11 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 - Port config takes `capacity` for how many mobs the port holds, `mode` for `stored` or
   `standing`, `invulnerable` to stop anything hurting a mob that is standing on the port,
   `immobile` to pin it in place with its AI switched off, `silent` to shut the mob up while it sits
-  there, `zone` for how much space above the block the port watches, `consume` for whether a recipe
-  destroys the mob or keeps it as a catalyst, and `entities` / `tags` to restrict what the port
-  accepts. `consume` defaults to on for `stored` and off for `standing`, so a pedestal machine runs
-  forever off one mob without any extra config.
+  there, `persistent` for whether it is allowed to despawn, `zone` for how much space above the
+  block the port watches, `consume` for whether a recipe destroys the mob or keeps it as a
+  catalyst, and `entities` / `tags` to restrict what the port accepts. `consume` defaults to on for
+  `stored` and off for `standing`, so a pedestal machine runs forever off one mob without any extra
+  config.
 - `zone` sizes the catch area, which sits on top of the block and defaults to the single block
   above. One number makes a cube (`"zone": 3` is 3x3x3), and `[width, height, depth]` or
   `{ "width": 3, "height": 1, "depth": 3 }` shapes it — a flat 3x3 pad, a tall 1x3x1 chimney, or
@@ -43,6 +44,9 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 - `speedPerEntity` makes a crowd worth having: every mob past the first adds that much to the
   machine's speed, so a pedestal holding three mobs at `1.0` runs a recipe three times as fast.
   Defaults to `0`, which keeps the extra mobs as spares.
+- `persistent` decides whether a mob the port is holding may despawn. Left unset it follows the
+  port: an input keeps its mobs alive so automation cannot quietly break, while an output lets the
+  mobs it spawned despawn normally instead of piling up. Set it either way to override that.
 - Recipes name a mob or an entity tag: `{ "type": "mm:entity", "entity": "minecraft:zombie",
   "amount": 1 }` or `{ "type": "mm:entity", "tag": "minecraft:skeletons" }`. Ranges and
   `rollGroup` work on it like everywhere else, and `amount` defaults to 1.
@@ -53,8 +57,8 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 - Entity ports stagger their scans by position instead of all firing on the same tick, and send
   clients only the mob types they hold rather than every held mob's full NBT.
 - Available from KubeJS as `.capacity(...)`, `.mode(...)`, `.invulnerable(...)`, `.immobile(...)`,
-  `.silent(...)`, `.zone(size)` or `.zone(width, height, depth)`, `.speedPerEntity(...)`,
-  `.consume(...)`, `.entity(...)` and `.tag(...)`.
+  `.silent(...)`, `.persistent(...)`, `.zone(size)` or `.zone(width, height, depth)`,
+  `.speedPerEntity(...)`, `.consume(...)`, `.entity(...)` and `.tag(...)`.
 
 - Machine recipes can now run faster than one tick of progress per tick. Nothing changes unless a
   port asks for it, and today only the entity port's `speedPerEntity` does.

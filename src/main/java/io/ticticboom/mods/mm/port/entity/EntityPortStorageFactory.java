@@ -28,6 +28,7 @@ public class EntityPortStorageFactory implements IPortStorageFactory {
         json.addProperty("invulnerable", model.invulnerable());
         json.addProperty("immobile", model.immobile());
         json.addProperty("silent", model.silent());
+        json.addProperty("persistent", model.persistent());
         json.addProperty("consume", model.consume());
         json.addProperty("speedPerEntity", model.speedPerEntity());
         var zone = new JsonObject();
