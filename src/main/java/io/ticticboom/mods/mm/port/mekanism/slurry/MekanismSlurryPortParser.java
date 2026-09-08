@@ -16,7 +16,7 @@ public class MekanismSlurryPortParser extends MekanismChemicalPortParser {
 
     @Override
     public IPortIngredient parseRecipeIngredient(JsonObject json) {
-        var slurry = ParserUtils.parseId(json, "slurry");
+        var slurry = parseChemicalId(json, "slurry");
         var amount = json.get("amount").getAsLong();
         return new MekanismSlurryPortIngredient(slurry, amount);
     }

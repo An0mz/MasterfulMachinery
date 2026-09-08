@@ -15,7 +15,7 @@ public class MekanismGasPortParser extends MekanismChemicalPortParser {
 
     @Override
     public IPortIngredient parseRecipeIngredient(JsonObject json) {
-        var gas = ParserUtils.parseId(json, "gas");
+        var gas = parseChemicalId(json, "gas");
         var amount = json.get("amount").getAsLong();
         return new MekanismGasPortIngredient(gas, amount);
     }

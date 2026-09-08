@@ -15,7 +15,7 @@ public class MekanismInfusePortParser extends MekanismChemicalPortParser {
 
     @Override
     public IPortIngredient parseRecipeIngredient(JsonObject json) {
-        var infuseType = ParserUtils.parseId(json, "infuse");
+        var infuseType = parseChemicalId(json, "infuse");
         var amount = json.get("amount").getAsLong();
         return new MekanismInfusePortIngredient(infuseType, amount);
     }

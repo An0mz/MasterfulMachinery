@@ -16,7 +16,7 @@ public class MekanismPigmentPortParser extends MekanismChemicalPortParser
 
     @Override
     public IPortIngredient parseRecipeIngredient(JsonObject json) {
-        var chemical = ParserUtils.parseId(json, "pigment");
+        var chemical = parseChemicalId(json, "pigment");
         var amount = json.get("amount").getAsLong();
         return new MekanismPigmentPortIngredient(chemical, amount);
     }
