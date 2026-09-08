@@ -38,6 +38,7 @@ public class MMPortRegistry {
         register(Ref.Ports.ENTITY, new EntityPortType());
 
         if (ModList.get().isLoaded("mekanism")) {
+            register(Ref.Ports.MEK_CHEMICAL, new MekanismGasPortType());
             register(Ref.Ports.MEK_GAS, new MekanismGasPortType());
             register(Ref.Ports.MEK_SLURRY, new MekanismSlurryPortType());
             register(Ref.Ports.MEK_PIGMENT, new MekanismPigmentPortType());
