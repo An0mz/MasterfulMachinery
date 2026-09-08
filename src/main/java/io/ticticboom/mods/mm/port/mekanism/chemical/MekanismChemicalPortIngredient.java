@@ -19,7 +19,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 
-public abstract class MekanismChemicalPortIngredient implements IPortIngredient {
+public class MekanismChemicalPortIngredient implements IPortIngredient {
 
     protected final ResourceLocation id;
     protected final long amount;
@@ -36,8 +36,13 @@ public abstract class MekanismChemicalPortIngredient implements IPortIngredient 
         return MekanismAPI.CHEMICAL_REGISTRY.get(id);
     }
 
-    public abstract Class<? extends MekanismChemicalPortStorage> getStorageClass();
-    public abstract ResourceLocation getTypeId();
+    public Class<? extends MekanismChemicalPortStorage> getStorageClass() {
+        return MekanismChemicalPortStorage.class;
+    }
+
+    public ResourceLocation getTypeId() {
+        return io.ticticboom.mods.mm.Ref.Ports.MEK_CHEMICAL;
+    }
 
     public MekanismChemicalPortIngredient(ResourceLocation chemical, long amount) {
         this.id = chemical;

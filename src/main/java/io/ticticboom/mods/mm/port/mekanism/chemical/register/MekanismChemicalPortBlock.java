@@ -20,7 +20,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
-public abstract class MekanismChemicalPortBlock extends Block implements EntityBlock, IPortBlock {
+public class MekanismChemicalPortBlock extends Block implements EntityBlock, IPortBlock {
 
     private final PortModel model;
     private final RegistryGroupHolder groupHolder;
@@ -31,6 +31,13 @@ public abstract class MekanismChemicalPortBlock extends Block implements EntityB
         this.model = model;
         this.groupHolder = groupHolder;
         this.isInput = isInput;
+    }
+
+    @Override
+    public void generateModel(io.ticticboom.mods.mm.datagen.provider.MMBlockstateProvider provider) {
+        io.ticticboom.mods.mm.util.PortUtils.commonGenerateModel(provider, groupHolder, isInput,
+                io.ticticboom.mods.mm.Ref.Textures.INPUT_CHEMICAL_PORT_OVERLAY,
+                io.ticticboom.mods.mm.Ref.Textures.OUTPUT_CHEMICAL_PORT_OVERLAY);
     }
 
     @Override

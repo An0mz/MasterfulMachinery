@@ -10,11 +10,8 @@ import io.ticticboom.mods.mm.port.entity.EntityPortType;
 import io.ticticboom.mods.mm.port.fluid.FluidPortType;
 import io.ticticboom.mods.mm.port.item.ItemPortType;
 import io.ticticboom.mods.mm.port.kinetic.CreateKineticPortType;
-import io.ticticboom.mods.mm.port.mekanism.gas.MekanismGasPortType;
+import io.ticticboom.mods.mm.port.mekanism.chemical.MekanismChemicalPortType;
 import io.ticticboom.mods.mm.port.mekanism.heat.MekanismHeatPortType;
-import io.ticticboom.mods.mm.port.mekanism.infuse.MekanismInfusePortType;
-import io.ticticboom.mods.mm.port.mekanism.pigment.MekanismPigmentPortType;
-import io.ticticboom.mods.mm.port.mekanism.slurry.MekanismSlurryPortType;
 import io.ticticboom.mods.mm.port.pneumaticcraft.air.PneumaticAirPortType;
 import io.ticticboom.mods.mm.port.replication.matter.ReplicationMatterPortType;
 import io.ticticboom.mods.mm.port.replication.matter.feature.ReplicationMatterPipeHook;
@@ -38,11 +35,7 @@ public class MMPortRegistry {
         register(Ref.Ports.ENTITY, new EntityPortType());
 
         if (ModList.get().isLoaded("mekanism")) {
-            register(Ref.Ports.MEK_CHEMICAL, new MekanismGasPortType());
-            register(Ref.Ports.MEK_GAS, new MekanismGasPortType());
-            register(Ref.Ports.MEK_SLURRY, new MekanismSlurryPortType());
-            register(Ref.Ports.MEK_PIGMENT, new MekanismPigmentPortType());
-            register(Ref.Ports.MEK_INFUSE, new MekanismInfusePortType());
+            register(Ref.Ports.MEK_CHEMICAL, new MekanismChemicalPortType());
             register(Ref.Ports.MEK_HEAT, new MekanismHeatPortType());
         }
         if (ModList.get().isLoaded("create")) {

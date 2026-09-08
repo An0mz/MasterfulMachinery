@@ -7,7 +7,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 
-public abstract class MekanismChemicalPortBlockItem extends BlockItem implements IPortItem {
+public class MekanismChemicalPortBlockItem extends BlockItem implements IPortItem {
 
     private final PortModel model;
     private final RegistryGroupHolder groupHolder;
@@ -16,6 +16,12 @@ public abstract class MekanismChemicalPortBlockItem extends BlockItem implements
         super(groupHolder.getBlock().get(), new Properties());
         this.model = model;
         this.groupHolder = groupHolder;
+    }
+
+    @Override
+    public Component getTypeName() {
+        return Component.translatable("port.mm.mekanism_chemical.name")
+                .withStyle(net.minecraft.ChatFormatting.BOLD, net.minecraft.ChatFormatting.LIGHT_PURPLE);
     }
 
     @Override

@@ -21,11 +21,8 @@ import java.util.UUID;
 
 /**
  * Mekanism 1.21.1 merged the gas, slurry, pigment and infusion registries into a single Chemical
- * type with no discriminator, so this class is no longer generic over a chemical/stack pair and
- * every Mekanism port shares one tank implementation. The four port ids MM exposes to packs are
- * kept as aliases over this, which means the distinction between them is now cosmetic: a port
- * declared as mm:mekanism/gas will accept any chemical, because Mekanism itself no longer
- * separates them.
+ * type with no discriminator, so this class is not generic over a chemical/stack pair and MM
+ * exposes one mm:mekanism/chemical port rather than one per former kind.
  */
 public class MekanismChemicalPortStorage implements IPortStorage {
 

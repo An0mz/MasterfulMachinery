@@ -8,21 +8,28 @@ import net.minecraft.resources.ResourceLocation;
 import mekanism.api.chemical.Chemical;
 import mekanism.api.chemical.ChemicalStack;
 
-public abstract class MekanismChemicalPortParser implements IPortParser {
+public class MekanismChemicalPortParser implements IPortParser {
 
-    public abstract MekanismChemicalPortStorageFactory createFactory(long amount);
+    public MekanismChemicalPortStorageFactory createFactory(long amount) {
+        return new MekanismChemicalPortStorageFactory(new MekanismChemicalPortStorageModel(amount));
+    }
 
-    protected static ResourceLocation parseChemicalId(JsonObject json, String key) {
-        var specific = ParserUtils.parseOptionalId(json, key);
-        if (specific != null) {
-            return specific;
-        }
-        var chemical = ParserUtils.parseOptionalId(json, "chemical");
-        if (chemical != null) {
-            return chemical;
+    @Override
+    public io.ticticboom.mods.mm.port.IPortIngredient parseRecipeIngredient(JsonObject json) {
+        var chemical = parseChemicalId(json, "chemical");
+        var amount = json.get("amount").getAsLong();
+        return new MekanismChemicalPortIngredient(chemical, amount);
+    }
+
+    protected static ResourceLocation parseChemicalId(JsonObject json, String preferred) {
+        for (String key : new String[] {preferred, "chemical", "gas", "slurry", "pigment", "infuse"}) {
+            var found = ParserUtils.parseOptionalId(json, key);
+            if (found != null) {
+                return found;
+            }
         }
         throw new RuntimeException(String.format(
-                "An MM Mekanism ingredient needs either '%s' or 'chemical': %s", key, json));
+                "An MM Mekanism ingredient needs a 'chemical' field: %s", json));
     }
 
     @Override

@@ -24,7 +24,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public abstract class MekanismChemicalPortBlockEntity extends AbstractPortBlockEntity {
+public class MekanismChemicalPortBlockEntity extends AbstractPortBlockEntity {
 
     private final PortModel model;
     private final RegistryGroupHolder groupHolder;
@@ -37,6 +37,17 @@ public abstract class MekanismChemicalPortBlockEntity extends AbstractPortBlockE
         this.groupHolder = groupHolder;
         this.isInput = isInput;
         this.storage = (MekanismChemicalPortStorage) model.config().createPortStorage(this::setChanged);
+    }
+
+    @Override
+    public net.minecraft.network.chat.Component getDisplayName() {
+        return net.minecraft.network.chat.Component.translatable("port.mm.mekanism_chemical.title");
+    }
+
+    @Nullable
+    @Override
+    public net.minecraft.world.inventory.AbstractContainerMenu createMenu(int windowId, net.minecraft.world.entity.player.Inventory inventory, net.minecraft.world.entity.player.Player player) {
+        return new MekanismChemicalPortMenu(model, groupHolder, windowId, this, inventory);
     }
 
     @Override
