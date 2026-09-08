@@ -34,7 +34,6 @@ public class MekanismChemicalPortParser implements IPortParser {
 
     @Override
     public IPortStorageFactory parseStorage(JsonObject json) {
-        var amount = json.get("capacity").getAsLong();
-        return createFactory(amount);
+        return new MekanismChemicalPortStorageFactory(MekanismChemicalPortStorageModel.parse(json));
     }
 }

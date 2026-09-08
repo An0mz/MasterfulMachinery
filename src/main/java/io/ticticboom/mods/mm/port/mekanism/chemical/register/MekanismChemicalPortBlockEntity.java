@@ -6,7 +6,11 @@ import io.ticticboom.mods.mm.port.IPortBlockEntity;
 import io.ticticboom.mods.mm.port.IPortStorage;
 import io.ticticboom.mods.mm.port.common.AbstractPortBlockEntity;
 import io.ticticboom.mods.mm.port.mekanism.chemical.MekanismChemicalPortStorage;
+import io.ticticboom.mods.mm.port.mekanism.chemical.MekanismChemicalPortStorageModel;
+import io.ticticboom.mods.mm.port.mekanism.chemical.feature.MekanismChemicalPortPushFeature;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
+
+import java.util.Optional;
 import io.ticticboom.mods.mm.util.BlockUtils;
 import io.ticticboom.mods.mm.util.MenuUtils;
 import net.minecraft.core.BlockPos;
@@ -30,6 +34,8 @@ public class MekanismChemicalPortBlockEntity extends AbstractPortBlockEntity {
     private final RegistryGroupHolder groupHolder;
     private final boolean isInput;
     private final MekanismChemicalPortStorage storage;
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private final Optional<MekanismChemicalPortPushFeature> push;
 
     public MekanismChemicalPortBlockEntity(PortModel model, RegistryGroupHolder groupHolder, boolean isInput, BlockPos pos, BlockState state) {
         super(groupHolder.getBe().get(), pos, state);
@@ -37,6 +43,8 @@ public class MekanismChemicalPortBlockEntity extends AbstractPortBlockEntity {
         this.groupHolder = groupHolder;
         this.isInput = isInput;
         this.storage = (MekanismChemicalPortStorage) model.config().createPortStorage(this::setChanged);
+        var shouldPush = !isInput && ((MekanismChemicalPortStorageModel) storage.getStorageModel()).autoPush().get();
+        this.push = shouldPush ? Optional.of(new MekanismChemicalPortPushFeature(this)) : Optional.empty();
     }
 
     @Override
@@ -48,6 +56,25 @@ public class MekanismChemicalPortBlockEntity extends AbstractPortBlockEntity {
     @Override
     public net.minecraft.world.inventory.AbstractContainerMenu createMenu(int windowId, net.minecraft.world.entity.player.Inventory inventory, net.minecraft.world.entity.player.Player player) {
         return new MekanismChemicalPortMenu(model, groupHolder, windowId, this, inventory);
+    }
+
+    public void tick() {
+        assert level != null;
+        if (lastTick == level.getGameTime()) {
+            return;
+        }
+        lastTick = level.getGameTime();
+        push.ifPresent(MekanismChemicalPortPushFeature::tick);
+    }
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        push.ifPresent(MekanismChemicalPortPushFeature::onLoad);
+    }
+
+    public void neighborsChanged() {
+        push.ifPresent(MekanismChemicalPortPushFeature::neighborsChanged);
     }
 
     @Override

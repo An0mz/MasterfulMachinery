@@ -19,6 +19,10 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   `pigment` and `infuse` keys for naming the chemical, so only the type needs changing.
 
 ### Fixed
+- The Mekanism chemical port had no auto push at all — no `autoPush` in its config, nothing on its
+  KubeJS builder, and no code to move chemicals. Calling `.autoPush(true)` on one from KubeJS took
+  the game down on startup, and setting it in JSON did nothing. It now works the way the energy,
+  fluid, item and heat ports do.
 - Auto push on the energy port only ever moved energy between MM ports, so an output bus sitting
   against a cable or a machine never emptied. It now pushes into anything that accepts energy.
   Auto push is still off unless the port or the config turns it on.

@@ -13,6 +13,9 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -60,6 +63,23 @@ public class MekanismChemicalPortBlock extends Block implements EntityBlock, IPo
      * Matches the block item: the generated block.mm.<id> entry loses a pack-supplied translation
      * key and hardcodes the English Input/Output suffix, so the model name is used directly.
      */
+    @Override
+    public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> entityType) {
+        return (a, b, c, d) -> {
+            if (d instanceof MekanismChemicalPortBlockEntity pbe) {
+                pbe.tick();
+            }
+        };
+    }
+
+    @Override
+    public void onNeighborChange(BlockState state, LevelReader level, BlockPos pos, BlockPos neighbor) {
+        super.onNeighborChange(state, level, pos, neighbor);
+        if (level instanceof Level actual && actual.getBlockEntity(pos) instanceof MekanismChemicalPortBlockEntity pbe) {
+            pbe.neighborsChanged();
+        }
+    }
+
     @Override
     public MutableComponent getName() {
         var name = model.displayName();
