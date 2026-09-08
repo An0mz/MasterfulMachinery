@@ -4,14 +4,42 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.5.1] - 2026-09-08
+
+### Added
+- `docs/mekanism.md` covers the chemical and heat ports, custom chemicals from KubeJS, and how to
+  migrate off the old port types.
+
+### Changed
+- **Breaking: the four Mekanism port types are now one.** `mm:mekanism/gas`, `/slurry`, `/pigment`
+  and `/infuse` are gone; use `mm:mekanism/chemical`. Mekanism merged those registries into a
+  single chemical type in 1.21.1, so the four ports had become the same port wearing four names.
+  A pack has to change the `type` on its Mekanism ports and recipes — a config naming a removed
+  type stops the game with a message saying so. Recipes still accept the old `gas`, `slurry`,
+  `pigment` and `infuse` keys for naming the chemical, so only the type needs changing.
+
+### Fixed
+- Auto push on the energy port only ever moved energy between MM ports, so an output bus sitting
+  against a cable or a machine never emptied. It now pushes into anything that accepts energy.
+  Auto push is still off unless the port or the config turns it on.
+
 ## [1.21.1-0.5.0] - 2026-09-05
 
 ### Added
-- **Replication matter ports.** `mm:replication/matter` puts a machine on Replication's matter
-  network. An output port empties itself into your tanks like a Disintegrator; an input port pulls
-  what it needs from anywhere on the network like a Replicator, rather than waiting for a pipe to
-  push at it. Matter pipes connect to it, and other mods can see it through Replication's own
-  capability. Config: `capacity`, `matter`, `tanks`, `priority`, `network`.
+- **Replication matter ports.** `mm:replication/matter` joins Replication's matter network, so a
+  machine can spend matter or produce it. An output port behaves like a Disintegrator: the
+  network empties it into your matter tanks on its own. An input port goes and takes what it is
+  short of, the way a Replicator does, so it fills from anywhere on the network rather than only
+  from what a pipe happens to push at it.
+- Port config takes `capacity` for how much each tank holds, `matter` for the type each tank is
+  reserved for (one string, or a list for several tanks), `tanks` for unreserved tanks that lock
+  to whatever arrives first, `priority` for MM's own output ordering, and `network` to keep the
+  port off the matter network entirely.
+- Recipes name the type and the amount: `{ "type": "mm:replication/matter", "matter":
+  "replication:metallic", "amount": 64 }`. Ranges and `rollGroup` work on it like everywhere else.
+- Matter pipes connect to the port and draw the connection, the same as they do to
+  Replication's own blocks.
+- The port answers Replication's matter capability too, so other mods' pipes can see it.
 - **Entity ports.** `mm:entity` lets a machine work with mobs. A mob that walks onto the port is
   picked up on its own — `stored` swallows it into the block, `standing` leaves it on top where you
   can still see it. A recipe can spend a mob or keep it as a catalyst, ask for one type or a whole
