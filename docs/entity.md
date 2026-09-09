@@ -246,6 +246,27 @@ Colour is RGB only — Minecraft's text colour has no alpha channel, so ARGB val
 A plain string still goes through the generated `block.mm.<id>` lang entry so resource packs can
 override it; a styled or translated name is shown directly instead.
 
+Two extra forms build the colours for you. A **gradient** spreads colours across the text:
+
+```json
+"inputName": { "text": "Gradient Input Port", "gradient": ["#FF0000", "#FFFF00", "#00FFFF"] }
+```
+
+Any number of stops is allowed and the colours are interpolated evenly across the characters.
+
+A **rainbow** cycles through the spectrum and animates on its own:
+
+```json
+"outputName": { "text": "Rainbow Output Port", "rainbow": true, "speed": 0.5, "spread": 0.08 }
+```
+
+`speed` is full colour cycles per second (default `0.5`) and `spread` is how far the hue shifts per
+character (default `0.05`), so a small spread makes the whole name pulse together and a larger one
+makes the colours travel along it.
+
+Animation only shows where the name is redrawn each frame — tooltips and GUI titles. It will not
+animate in a place that resolves the name once and caches it.
+
 From KubeJS: `.inputName(...)` and `.outputName(...)` take plain strings.
 
 ## See also

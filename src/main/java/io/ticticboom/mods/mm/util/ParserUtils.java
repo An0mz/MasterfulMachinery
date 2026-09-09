@@ -7,6 +7,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -52,6 +54,39 @@ public class ParserUtils {
     }
 
     /**
+     * Name element as a supplier so an animated style can rebuild itself each time the name is
+     * drawn. Everything except "rainbow" resolves once and hands back the same component.
+     */
+    public static Supplier<Component> parseNameSupplier(JsonElement json) {
+        if (json != null && json.isJsonObject()) {
+            var obj = json.getAsJsonObject();
+            if (obj.has("gradient")) {
+                var colours = new ArrayList<Integer>();
+                for (JsonElement colour : obj.getAsJsonArray("gradient")) {
+                    colours.add(parseColour(colour.getAsString()));
+                }
+                return NameStyles.gradient(obj.get("text").getAsString(), colours);
+            }
+            if (obj.has("rainbow") && obj.get("rainbow").getAsBoolean()) {
+                double speed = obj.has("speed") ? obj.get("speed").getAsDouble() : 0.5;
+                double spread = obj.has("spread") ? obj.get("spread").getAsDouble() : 0.05;
+                return NameStyles.rainbow(obj.get("text").getAsString(), speed, spread);
+            }
+        }
+        var component = parseComponent(json);
+        return () -> component;
+    }
+
+    public static int parseColour(String value) {
+        var text = value.startsWith("#") ? value.substring(1) : value;
+        try {
+            return (int) (Long.parseLong(text, 16) & 0xFFFFFF);
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("Invalid colour [" + value + "], expected a hex value such as #55FFFF");
+        }
+    }
+
+    /**
      * Raw string form of a name element, for serialization, data generation and NBT, where a
      * resolved {@link Component} is not usable. Returns the literal text for plain strings, or the
      * translation key for translation objects.
@@ -61,6 +96,12 @@ public class ParserUtils {
             return json.getAsString();
         } else if (json.isJsonObject() && json.getAsJsonObject().has("translation")) {
             return json.getAsJsonObject().get("translation").getAsString();
+        }
+        if (json.isJsonObject()) {
+            var obj = json.getAsJsonObject();
+            if (obj.has("text")) {
+                return obj.get("text").getAsString();
+            }
         }
         return parseComponent(json).getString();
     }

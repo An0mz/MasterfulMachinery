@@ -8,15 +8,21 @@ import io.ticticboom.mods.mm.util.PortUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.function.Supplier;
+
 public record PortModel(
         String id,
         String name,
-        Component displayName,
+        Supplier<Component> displayNameSource,
         IdList controllerIds,
         ResourceLocation type,
         IPortStorageFactory config,
         JsonObject jsonConfig,
         boolean input) {
+
+    public Component displayName() {
+        return displayNameSource.get();
+    }
 
     public ResourceLocation overlayTexture() {
         var specific = ParserUtils.parseOptionalId(jsonConfig, input ? "inputOverlay" : "outputOverlay");
@@ -40,13 +46,14 @@ public record PortModel(
         // included, for packs that do not want "<name> Input".
         var sideName = json.get(input ? "inputName" : "outputName");
         String name;
-        Component displayName;
+        Supplier<Component> displayName;
         if (sideName != null && !sideName.isJsonNull()) {
             name = ParserUtils.parseComponentKey(sideName);
-            displayName = ParserUtils.parseComponent(sideName);
+            displayName = ParserUtils.parseNameSupplier(sideName);
         } else {
             name = PortUtils.name(ParserUtils.parseComponentKey(json.get("name")), input);
-            displayName = PortUtils.name(ParserUtils.parseComponent(json.get("name")), input);
+            var base = ParserUtils.parseNameSupplier(json.get("name"));
+            displayName = () -> PortUtils.name(base.get(), input);
         }
         var controllerIds = IdList.parse(json.get("controllerIds"));
         var type = ParserUtils.parseId(json, "type");
@@ -63,7 +70,8 @@ public record PortModel(
         var fid = PortUtils.id(id, input);
         var fname = sideName != null ? sideName : PortUtils.name(name, input);
         var json = paramsToJson(fid, fname, controllerIds, type, config, input);
-        return new PortModel(fid, fname, Component.literal(fname), controllerIds, type, config, json, input);
+        var literal = Component.literal(fname);
+        return new PortModel(fid, fname, () -> literal, controllerIds, type, config, json, input);
     }
 
     public static JsonObject paramsToJson(String id, String name, IdList controllerIds, ResourceLocation type, IPortStorageFactory config, boolean input) {
