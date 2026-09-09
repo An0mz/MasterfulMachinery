@@ -103,6 +103,56 @@ The key uses the **path** of the id, not the namespace, so `kubejs:plasma` becom
 - `network: false` is for a buffer you want to fill and drain only through recipes, with the
   network unable to see it.
 
+## From KubeJS
+
+```js
+// kubejs/startup_scripts/
+MMEvents.registerPorts(event => {
+    event.create('matter_hatch')
+        .name('Matter Hatch')
+        .controllerId('mm:my_machine')
+        .config('mm:replication/matter', config => {
+            config.capacity(4000)
+            config.matter('replication:metallic')
+            config.matter('kubejs:plasma')
+            config.priority(5)
+            config.network(true)
+        })
+})
+```
+
+Call `.matter(...)` once per reserved tank, or `.tanks(n)` for unreserved ones.
+
+```js
+// kubejs/server_scripts/
+MMEvents.createProcesses(event => {
+    event.create('plasma_to_emerald')
+        .structureId('kubejs:my_structure')
+        .ticks(40)
+        .input({
+            type: 'mm:input/consume',
+            ingredient: { type: 'mm:replication/matter', matter: 'kubejs:plasma', amount: 200 }
+        })
+        .output({
+            type: 'mm:output/simple',
+            ingredient: { type: 'mm:item', item: 'minecraft:emerald', count: 1 }
+        })
+})
+```
+
+### Where the script goes
+
+Registering a port is a **startup** event, so it belongs in `kubejs/startup_scripts/`. Processes are
+a **server** event and belong in `kubejs/server_scripts/`. Put either in the wrong folder and it
+silently never runs.
+
+Ids take your namespace: `event.create('my_port')` registers `kubejs:my_port`, and one `create`
+makes both the `_input` and `_output` block.
+
+If you call a method that does not exist, KubeJS does not log a warning — it kills the game on
+startup with `TypeError: Cannot find function ... in object <SomeBuilder>`. The builder named in
+that message tells you which port type you were configuring. Names are case sensitive.
+
 ## See also
 
 - [`mekanism.md`](mekanism.md) — Mekanism chemicals and heat.

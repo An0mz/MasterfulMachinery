@@ -149,6 +149,63 @@ type — every mob on the same port is worth the same.
   other mods' mechanics.
 - Players are never captured.
 
+## From KubeJS
+
+```js
+// kubejs/startup_scripts/
+MMEvents.registerPorts(event => {
+    event.create('mob_pedestal')
+        .name('Mob Pedestal')
+        .controllerId('mm:my_machine')
+        .config('mm:entity', config => {
+            config.capacity(3)
+            config.mode('standing')
+            config.invulnerable(true)
+            config.immobile(true)
+            config.silent(true)
+            config.persistent(true)
+            config.consume(false)
+            config.speedPerEntity(1.0)
+            config.zone(3, 1, 3)
+            config.entity('minecraft:chicken')
+            config.tag('minecraft:raiders')
+        })
+})
+```
+
+`config.zone(3)` is the short form for a cube. Every option above is optional; the defaults are in
+the table further up.
+
+```js
+// kubejs/server_scripts/
+MMEvents.createProcesses(event => {
+    event.create('chicken_eggs')
+        .structureId('kubejs:mob_altar')
+        .ticks(40)
+        .input({
+            type: 'mm:input/consume',
+            ingredient: { type: 'mm:entity', entity: 'minecraft:chicken', amount: 1 }
+        })
+        .output({
+            type: 'mm:output/simple',
+            ingredient: { type: 'mm:item', item: 'minecraft:egg', count: 1 }
+        })
+})
+```
+
+### Where the script goes
+
+Registering a port is a **startup** event, so it belongs in `kubejs/startup_scripts/`. Processes are
+a **server** event and belong in `kubejs/server_scripts/`. Put either in the wrong folder and it
+silently never runs.
+
+Ids take your namespace: `event.create('my_port')` registers `kubejs:my_port`, and one `create`
+makes both the `_input` and `_output` block.
+
+If you call a method that does not exist, KubeJS does not log a warning — it kills the game on
+startup with `TypeError: Cannot find function ... in object <SomeBuilder>`. The builder named in
+that message tells you which port type you were configuring. Names are case sensitive.
+
 ## See also
 
 - [`mekanism.md`](mekanism.md) — Mekanism chemicals and heat.

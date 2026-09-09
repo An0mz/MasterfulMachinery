@@ -88,7 +88,7 @@ Recipe ingredient:
 
 Ranges and `rollGroup` work on `amount` like everywhere else.
 
-## Custom chemicals from KubeJS
+## Custom chemicals
 
 Register into the unified `mekanism:chemical` registry in a **startup script**:
 
@@ -138,6 +138,55 @@ file and listing the port types that do exist.
 
 Ports placed in a world as one of the removed types will not load, because their blocks no longer
 register.
+
+## From KubeJS
+
+```js
+// kubejs/startup_scripts/
+MMEvents.registerPorts(event => {
+    event.create('chemical_hatch')
+        .name('Chemical Hatch')
+        .controllerId('mm:my_machine')
+        .config('mm:mekanism/chemical', config => {
+            config.capacity(64000)
+            config.autoPush(true)
+        })
+})
+```
+
+The heat port takes `.capacity(...)`, `.heatCapacity(...)`, `.inverseConduction(...)` and
+`.autoPush(...)` instead. **`autoPush` does not exist on every port type** — asking for it on one
+that has none crashes the game rather than warning you.
+
+```js
+// kubejs/server_scripts/
+MMEvents.createProcesses(event => {
+    event.create('hydrogen_burn')
+        .structureId('kubejs:my_structure')
+        .ticks(40)
+        .input({
+            type: 'mm:input/consume',
+            ingredient: { type: 'mm:mekanism/chemical', chemical: 'mekanism:hydrogen', amount: 1000 }
+        })
+        .output({
+            type: 'mm:output/simple',
+            ingredient: { type: 'mm:item', item: 'minecraft:blaze_powder', count: 1 }
+        })
+})
+```
+
+### Where the script goes
+
+Registering a port is a **startup** event, so it belongs in `kubejs/startup_scripts/`. Processes are
+a **server** event and belong in `kubejs/server_scripts/`. Put either in the wrong folder and it
+silently never runs.
+
+Ids take your namespace: `event.create('my_port')` registers `kubejs:my_port`, and one `create`
+makes both the `_input` and `_output` block.
+
+If you call a method that does not exist, KubeJS does not log a warning — it kills the game on
+startup with `TypeError: Cannot find function ... in object <SomeBuilder>`. The builder named in
+that message tells you which port type you were configuring. Names are case sensitive.
 
 ## See also
 
