@@ -90,7 +90,7 @@ public class GuiStructureRenderer {
         this.hoverBounds = viewport;
         renderSetup.setViewportPos(viewport);
     }
-    
+
     public void setHoverBounds(GuiPos bounds) {
         this.hoverBounds = bounds;
     }

@@ -4,6 +4,7 @@ import dev.latvian.mods.rhino.util.HideFromJS;
 import io.ticticboom.mods.mm.model.IdList;
 import io.ticticboom.mods.mm.model.PortModel;
 import io.ticticboom.mods.mm.port.MMPortRegistry;
+import io.ticticboom.mods.mm.port.PortSides;
 import lombok.Getter;
 import net.minecraft.resources.ResourceLocation;
 
@@ -21,6 +22,7 @@ public class PortBuilderJS {
     private String name;
     private final List<ResourceLocation> controllers = new ArrayList<>();
     private Consumer<PortConfigBuilderJS> builder;
+    private PortSides sides = PortSides.BOTH;
     private final Map<String, String> textures = new LinkedHashMap<>();
 
     @HideFromJS
@@ -72,6 +74,11 @@ public class PortBuilderJS {
         return this;
     }
 
+    public PortBuilderJS only(String side) {
+        this.sides = PortSides.parse(side);
+        return this;
+    }
+
     public PortBuilderJS name(String name) {
         this.name = name;
         return this;
@@ -98,12 +105,14 @@ public class PortBuilderJS {
         var portType = MMPortRegistry.requirePortType(type);
         var storageFactory = portType.createStorageFactory(builder);
         IdList controllerIds = new IdList(controllers);
-        var inputPort = PortModel.create(id, name, controllerIds, type, storageFactory, true);
-        var outputPort = PortModel.create(id, name, controllerIds, type, storageFactory, false);
-        textures.forEach((key, value) -> {
-            inputPort.jsonConfig().addProperty(key, value);
-            outputPort.jsonConfig().addProperty(key, value);
-        });
-        return List.of(inputPort, outputPort);
+        var built = new ArrayList<PortModel>(2);
+        if (sides.hasInput()) {
+            built.add(PortModel.create(id, name, controllerIds, type, storageFactory, true));
+        }
+        if (sides.hasOutput()) {
+            built.add(PortModel.create(id, name, controllerIds, type, storageFactory, false));
+        }
+        built.forEach(port -> textures.forEach((key, value) -> port.jsonConfig().addProperty(key, value)));
+        return built;
     }
 }

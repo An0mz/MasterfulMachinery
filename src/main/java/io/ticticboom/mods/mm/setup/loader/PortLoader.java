@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.compat.interop.MMInteropManager;
 import io.ticticboom.mods.mm.model.PortModel;
 import io.ticticboom.mods.mm.port.MMPortRegistry;
+import io.ticticboom.mods.mm.port.PortSides;
 import io.ticticboom.mods.mm.port.PortType;
 
 import java.util.List;
@@ -23,7 +24,15 @@ public class PortLoader extends AbstractConfigLoader<PortModel> {
     protected List<PortModel> parseModels(JsonObject json) {
         // One file declares a port; MM registers it twice, once as the input side and once as the
         // output side.
-        return List.of(PortModel.parse(json, true), PortModel.parse(json, false));
+        var sides = PortSides.parse(json.get("only"));
+        var models = new java.util.ArrayList<PortModel>(2);
+        if (sides.hasInput()) {
+            models.add(PortModel.parse(json, true));
+        }
+        if (sides.hasOutput()) {
+            models.add(PortModel.parse(json, false));
+        }
+        return models;
     }
 
     @Override

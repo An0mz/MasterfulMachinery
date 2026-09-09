@@ -206,6 +206,22 @@ If you call a method that does not exist, KubeJS does not log a warning — it k
 startup with `TypeError: Cannot find function ... in object <SomeBuilder>`. The builder named in
 that message tells you which port type you were configuring. Names are case sensitive.
 
+### One side only
+
+By default a port definition registers **both** an input and an output block. `only` restricts it
+to one:
+
+```json
+{ "id": "mob_intake", "type": "mm:entity", "only": "input", "config": { } }
+```
+
+```js
+event.create('mob_intake').only('input').config('mm:entity', config => { })
+```
+
+Accepts `input`, `output` or `both` (the default). With `only: "input"` the `_output` block is
+never registered, so a structure referring to it will fail to load.
+
 ## See also
 
 - [`mekanism.md`](mekanism.md) — Mekanism chemicals and heat.
