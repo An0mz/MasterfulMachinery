@@ -191,6 +191,7 @@ public class MMStructureCategory implements IRecipeCategory<StructureModel> {
 
         var renderer = recipe.getGuiRenderer();
         renderer.setViewport(GuiPos.of(pos.x + 1, pos.y + 1, RENDER_SIZE.x, RENDER_SIZE.y));
+        renderer.setHoverBounds(GuiPos.of(1, 1, RENDER_SIZE.x, RENDER_SIZE.y));
         renderer.render(guiGraphics, (int) mouseX, (int) mouseY);
 
         guiGraphics.pose().popPose();

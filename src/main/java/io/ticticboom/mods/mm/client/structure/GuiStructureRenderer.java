@@ -15,6 +15,13 @@ import java.util.List;
 
 public class GuiStructureRenderer {
     public static boolean shouldEnsureValidated = false;
+
+    private static GuiStructureRenderer hovered = null;
+
+    public static GuiStructureRenderer getHovered() {
+        return hovered;
+    }
+
     private final StructureModel model;
     private List<PositionedCyclingBlockRenderer> parts;
     private final GuiStructureLayout guiLayout;
@@ -77,14 +84,31 @@ public class GuiStructureRenderer {
         renderZoomAdjustment = Math.max(extentX, Math.max(extentY, extentZ));
     }
 
+    private GuiPos hoverBounds;
+
     public void setViewport(GuiPos viewport) {
+        this.hoverBounds = viewport;
         renderSetup.setViewportPos(viewport);
+    }
+    
+    public void setHoverBounds(GuiPos bounds) {
+        this.hoverBounds = bounds;
+    }
+
+    public void scroll(double delta) {
+        viewTransform.applyScroll(delta);
     }
 
     public void render(GuiGraphics gfx, int mouseX, int mouseY) {
         if (shouldEnsureValidated) {
             StructureManager.validateAllPieces();
             shouldEnsureValidated = false;
+        }
+
+        if (hoverBounds != null && hoverBounds.contains(mouseX, mouseY)) {
+            hovered = this;
+        } else if (hovered == this) {
+            hovered = null;
         }
 
         viewTransform.run(mouseX, mouseY);

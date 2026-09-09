@@ -59,7 +59,11 @@ public class AutoTransform {
             scaleFactor = Math.max(0.003f, scaleFactor);
         }
 
-        if (GLFW.glfwGetMouseButton(mc.getWindow().getWindow(), GLFW.GLFW_MOUSE_BUTTON_MIDDLE) == GLFW.GLFW_PRESS) {
+        boolean shift = GLFW.glfwGetKey(mc.getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS;
+        boolean leftDown = GLFW.glfwGetMouseButton(mc.getWindow().getWindow(), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
+        boolean middleDown = GLFW.glfwGetMouseButton(mc.getWindow().getWindow(), GLFW.GLFW_MOUSE_BUTTON_MIDDLE) == GLFW.GLFW_PRESS;
+
+        if (middleDown || (leftDown && !shift)) {
             var mx = (double) mouseX - lastX;
             var my = (double) mouseY - lastY;
 
@@ -67,7 +71,7 @@ public class AutoTransform {
             yRotation += my;
         }
 
-        if (GLFW.glfwGetMouseButton(mc.getWindow().getWindow(), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS && GLFW.glfwGetKey(mc.getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS) {
+        if (leftDown && shift) {
             double relMoveX = mouseX - lastX;
             double relMoveY = mouseY - lastY;
             pan.add((float) relMoveX * 0.08f, (float) -relMoveY * 0.08f, 0);
@@ -76,6 +80,11 @@ public class AutoTransform {
         offset = new Vector3f(-0.5f, -0.5f, -0.5f);
         lastX = mouseX;
         lastY = mouseY;
+    }
+
+    public void applyScroll(double delta) {
+        scaleFactor += (float) delta * scaleFactor * 0.15f;
+        scaleFactor = Math.max(0.003f, scaleFactor);
     }
 
     public Matrix4f getModelTransform() {
