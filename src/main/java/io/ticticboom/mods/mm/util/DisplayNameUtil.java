@@ -29,6 +29,14 @@ public final class DisplayNameUtil {
         if (displayName == null) {
             return null;
         }
-        return displayName.getContents() instanceof TranslatableContents ? displayName : null;
+        if (displayName.getContents() instanceof TranslatableContents) {
+            return displayName;
+        }
+        // A styled or multi-part name carries colour and formatting that block.mm.<id> cannot,
+        // so it has to be shown directly. A plain literal still goes through the lang entry.
+        if (!displayName.getStyle().isEmpty() || !displayName.getSiblings().isEmpty()) {
+            return displayName;
+        }
+        return null;
     }
 }

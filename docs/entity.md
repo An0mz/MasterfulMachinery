@@ -222,6 +222,32 @@ event.create('mob_intake').only('input').config('mm:entity', config => { })
 Accepts `input`, `output` or `both` (the default). With `only: "input"` the `_output` block is
 never registered, so a structure referring to it will fail to load.
 
+### Naming and colour
+
+A port's `name` gets " Input" / " Output" appended, which gives "Basic Chemical Port Input". To
+control the whole name per side instead, use `inputName` / `outputName` — they replace the name for
+that side, suffix included:
+
+```json
+{
+  "name": "Basic Chemical Port",
+  "inputName": "Basic Chemical Input Port",
+  "outputName": "Basic Chemical Output Port"
+}
+```
+
+Any name field also accepts a full text component, so names can be coloured and formatted:
+
+```json
+"inputName": { "text": "Basic Chemical Input Port", "color": "#55FFFF", "bold": true }
+```
+
+Colour is RGB only — Minecraft's text colour has no alpha channel, so ARGB values lose their alpha.
+A plain string still goes through the generated `block.mm.<id>` lang entry so resource packs can
+override it; a styled or translated name is shown directly instead.
+
+From KubeJS: `.inputName(...)` and `.outputName(...)` take plain strings.
+
 ## See also
 
 - [`mekanism.md`](mekanism.md) — Mekanism chemicals and heat.

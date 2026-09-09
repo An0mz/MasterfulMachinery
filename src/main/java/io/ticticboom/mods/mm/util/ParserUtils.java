@@ -2,7 +2,9 @@ package io.ticticboom.mods.mm.util;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.function.Function;
@@ -43,7 +45,10 @@ public class ParserUtils {
         } else if (json.isJsonObject() && json.getAsJsonObject().has("translation")) {
             return Component.translatable(json.getAsJsonObject().get("translation").getAsString());
         }
-        throw new RuntimeException("Failed to parse text component as literal or translatable, Refer to MM documentation for assistance");
+        return ComponentSerialization.CODEC.parse(JsonOps.INSTANCE, json)
+                .getOrThrow(error -> new RuntimeException(
+                        "Failed to parse text component: " + error + ". A name may be a plain string, "
+                                + "a { \"translation\": \"key\" } object, or a full text component."));
     }
 
     /**
@@ -57,7 +62,7 @@ public class ParserUtils {
         } else if (json.isJsonObject() && json.getAsJsonObject().has("translation")) {
             return json.getAsJsonObject().get("translation").getAsString();
         }
-        throw new RuntimeException("Failed to parse text component as literal or translatable, Refer to MM documentation for assistance");
+        return parseComponent(json).getString();
     }
 
     @SuppressWarnings("unused")

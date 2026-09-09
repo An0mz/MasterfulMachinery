@@ -35,9 +35,19 @@ public record PortModel(
 
     public static PortModel parse(JsonObject json, boolean input) {
         var id = PortUtils.id(json.get("id").getAsString(), input);
-        // "name" accepts a plain string or a { "translation": "key" } object.
-        var name = PortUtils.name(ParserUtils.parseComponentKey(json.get("name")), input);
-        var displayName = PortUtils.name(ParserUtils.parseComponent(json.get("name")), input);
+        // "name" accepts a plain string, a { "translation": "key" } object or a full text
+        // component. "inputName" and "outputName" replace the whole name for that side, suffix
+        // included, for packs that do not want "<name> Input".
+        var sideName = json.get(input ? "inputName" : "outputName");
+        String name;
+        Component displayName;
+        if (sideName != null && !sideName.isJsonNull()) {
+            name = ParserUtils.parseComponentKey(sideName);
+            displayName = ParserUtils.parseComponent(sideName);
+        } else {
+            name = PortUtils.name(ParserUtils.parseComponentKey(json.get("name")), input);
+            displayName = PortUtils.name(ParserUtils.parseComponent(json.get("name")), input);
+        }
         var controllerIds = IdList.parse(json.get("controllerIds"));
         var type = ParserUtils.parseId(json, "type");
         var portType = MMPortRegistry.requirePortType(type);
@@ -46,8 +56,12 @@ public record PortModel(
     }
 
     public static PortModel create(String id, String name, IdList controllerIds, ResourceLocation type, IPortStorageFactory config, boolean input) {
+        return create(id, name, null, controllerIds, type, config, input);
+    }
+
+    public static PortModel create(String id, String name, String sideName, IdList controllerIds, ResourceLocation type, IPortStorageFactory config, boolean input) {
         var fid = PortUtils.id(id, input);
-        var fname = PortUtils.name(name, input);
+        var fname = sideName != null ? sideName : PortUtils.name(name, input);
         var json = paramsToJson(fid, fname, controllerIds, type, config, input);
         return new PortModel(fid, fname, Component.literal(fname), controllerIds, type, config, json, input);
     }

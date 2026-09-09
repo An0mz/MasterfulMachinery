@@ -23,6 +23,8 @@ public class PortBuilderJS {
     private final List<ResourceLocation> controllers = new ArrayList<>();
     private Consumer<PortConfigBuilderJS> builder;
     private PortSides sides = PortSides.BOTH;
+    private String inputName;
+    private String outputName;
     private final Map<String, String> textures = new LinkedHashMap<>();
 
     @HideFromJS
@@ -74,6 +76,16 @@ public class PortBuilderJS {
         return this;
     }
 
+    public PortBuilderJS inputName(String name) {
+        this.inputName = name;
+        return this;
+    }
+
+    public PortBuilderJS outputName(String name) {
+        this.outputName = name;
+        return this;
+    }
+
     public PortBuilderJS only(String side) {
         this.sides = PortSides.parse(side);
         return this;
@@ -107,10 +119,10 @@ public class PortBuilderJS {
         IdList controllerIds = new IdList(controllers);
         var built = new ArrayList<PortModel>(2);
         if (sides.hasInput()) {
-            built.add(PortModel.create(id, name, controllerIds, type, storageFactory, true));
+            built.add(PortModel.create(id, name, inputName, controllerIds, type, storageFactory, true));
         }
         if (sides.hasOutput()) {
-            built.add(PortModel.create(id, name, controllerIds, type, storageFactory, false));
+            built.add(PortModel.create(id, name, outputName, controllerIds, type, storageFactory, false));
         }
         built.forEach(port -> textures.forEach((key, value) -> port.jsonConfig().addProperty(key, value)));
         return built;
