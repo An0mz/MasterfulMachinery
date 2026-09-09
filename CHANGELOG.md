@@ -11,7 +11,7 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   migrate off the old port types.
 
 ### Changed
-- **Breaking: the four Mekanism port types are now one.** `mm:mekanism/gas`, `/slurry`, `/pigment`
+- **The four Mekanism port types are now one.** `mm:mekanism/gas`, `/slurry`, `/pigment`
   and `/infuse` are gone; use `mm:mekanism/chemical`. Mekanism merged those registries into a
   single chemical type in 1.21.1, so the four ports had become the same port wearing four names.
   A pack has to change the `type` on its Mekanism ports and recipes — a config naming a removed
