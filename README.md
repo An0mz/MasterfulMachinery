@@ -14,3 +14,4 @@ It allows modpack developers to create custom multiblock machines through data/c
 - Documentation: https://frozengalaxy.github.io/masterful-machinery-wiki/
 - Source: https://github.com/BOLTMAGIC/MasterfulMachinery
 - Mekanism on 1.21.1: [docs/mekanism.md](docs/mekanism.md)
+- Replication matter: [docs/replication.md](docs/replication.md)

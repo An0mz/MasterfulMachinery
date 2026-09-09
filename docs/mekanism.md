@@ -138,3 +138,7 @@ file and listing the port types that do exist.
 
 Ports placed in a world as one of the removed types will not load, because their blocks no longer
 register.
+
+## See also
+
+- [`replication.md`](replication.md) — Replication matter, including custom matter types.
