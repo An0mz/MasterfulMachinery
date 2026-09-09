@@ -142,3 +142,4 @@ register.
 ## See also
 
 - [`replication.md`](replication.md) — Replication matter, including custom matter types.
+- [`entity.md`](entity.md) — entity ports, for machines that work with mobs.

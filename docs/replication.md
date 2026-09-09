@@ -106,3 +106,4 @@ The key uses the **path** of the id, not the namespace, so `kubejs:plasma` becom
 ## See also
 
 - [`mekanism.md`](mekanism.md) — Mekanism chemicals and heat.
+- [`entity.md`](entity.md) — entity ports, for machines that work with mobs.
