@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.6.1] - 2026-09-10
+
+### Added
+- **Jade shows what's inside more ports.** Chemical, heat, matter and entity ports now show their
+  contents when you look at them, like fluid ports already did.
+- **Coloured names from KubeJS.** `.name()`, `.inputName()` and `.outputName()` take the same
+  objects as the JSON configs, so colours, gradients and rainbows work from scripts too:
+  `.inputName({ text: 'My Input Port', rainbow: true })`.
+
 ## [1.21.1-0.6.0] - 2026-09-10
 
 ### Added
