@@ -50,5 +50,8 @@ public class MMWailaPlugin implements IWailaPlugin {
             registration.registerBlockComponent(PortPriorityDataProvider.INSTANCE, ReplicationMatterPortBlock.class);
             registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, ReplicationMatterPortBlock.class);
         }
+        if (ModList.get().isLoaded("nuclear_radiation")) {
+            registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, io.ticticboom.mods.mm.port.nuclear.radiation.register.NuclearRadiationPortBlock.class);
+        }
     }
 }

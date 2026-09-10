@@ -34,6 +34,7 @@ public class Ref {
         public static final ResourceLocation MEK_HEAT = id("mekanism/heat");
         public static final ResourceLocation CREATE_KINETIC = id("create/kinetic");
         public static final ResourceLocation BOTANIA_MANA = id("botania/mana");
+        public static final ResourceLocation NUCLEAR_RADIATION = id("nuclear_radiation/radiation");
 
         public static final ResourceLocation REPLICATION_MATTER = id("replication/matter");
 
@@ -106,6 +107,9 @@ public class Ref {
 
         public static final ResourceLocation INPUT_BOTANIA_MANA_PORT_OVERLAY = id("block/compat_ports/botania_mana_input_cutout");
         public static final ResourceLocation OUTPUT_BOTANIA_MANA_PORT_OVERLAY = id("block/compat_ports/botania_mana_output_cutout");
+
+        public static final ResourceLocation INPUT_NUCLEAR_RADIATION_PORT_OVERLAY = id("block/compat_ports/nuclear_radiation_input_cutout");
+        public static final ResourceLocation OUTPUT_NUCLEAR_RADIATION_PORT_OVERLAY = id("block/compat_ports/nuclear_radiation_output_cutout");
     }
 
     public static class UiTextures {

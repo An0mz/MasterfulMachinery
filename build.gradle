@@ -166,6 +166,7 @@ dependencies {
 
     // MEKANISM
     compileOnly "curse.maven:mekanism-268560:${mekanism_id}"
+    compileOnly "curse.maven:nuclear-radiation-1148833:${nuclear_radiation_id}"
 
     //PNEUMATICCRAFT (PNCR)
     compileOnly "curse.maven:pneumaticcraft-repressurized-281849:${pneumaticcraft_id}"
@@ -242,6 +243,7 @@ dependencies {
 
     // MEKANISM
     runtimeOnly "curse.maven:mekanism-268560:${mekanism_id}"
+    runtimeOnly "curse.maven:nuclear-radiation-1148833:${nuclear_radiation_id}"
 
     //PNEUMATICCRAFT (PNCR)
     runtimeOnly "curse.maven:pneumaticcraft-repressurized-281849:${pneumaticcraft_id}"

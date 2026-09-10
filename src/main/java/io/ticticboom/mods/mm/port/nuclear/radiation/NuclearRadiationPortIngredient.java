@@ -1,0 +1,126 @@
+package io.ticticboom.mods.mm.port.nuclear.radiation;
+
+import com.google.gson.JsonObject;
+import io.ticticboom.mods.mm.Ref;
+import io.ticticboom.mods.mm.compat.jei.SlotGrid;
+import io.ticticboom.mods.mm.compat.jei.ingredient.MMJeiIngredients;
+import io.ticticboom.mods.mm.compat.jei.ingredient.radiation.RadiationIngredient;
+import io.ticticboom.mods.mm.port.IPortIngredient;
+import io.ticticboom.mods.mm.recipe.RecipeModel;
+import io.ticticboom.mods.mm.recipe.RecipeStateModel;
+import io.ticticboom.mods.mm.recipe.RecipeStorages;
+import io.ticticboom.mods.mm.util.AmountRange;
+import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
+import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
+import mezz.jei.api.helpers.IJeiHelpers;
+import mezz.jei.api.recipe.IFocusGroup;
+import net.minecraft.world.level.Level;
+
+public class NuclearRadiationPortIngredient implements IPortIngredient {
+
+    private final String isotope;
+    private final double amount;
+    private final AmountRange range;
+
+    public NuclearRadiationPortIngredient(String isotope, double amount, AmountRange range) {
+        this.isotope = isotope;
+        this.amount = amount;
+        this.range = range;
+    }
+
+    private double amount(RecipeStateModel state) {
+        return range != null ? range.resolve(state) : amount;
+    }
+
+    private static boolean satisfied(double remaining, double wanted) {
+        return remaining <= wanted * 1.0e-6;
+    }
+
+    private double extractAll(RecipeStorages storages, double wanted, boolean simulate) {
+        double remaining = wanted;
+        for (var storage : storages.getInputStorages(NuclearRadiationPortStorage.class)) {
+            remaining -= storage.extract(isotope, remaining, simulate);
+            if (satisfied(remaining, wanted)) {
+                break;
+            }
+        }
+        return remaining;
+    }
+
+    private double insertAll(RecipeStorages storages, double wanted, boolean simulate) {
+        double remaining = wanted;
+        for (var storage : storages.getOutputStorages(NuclearRadiationPortStorage.class)) {
+            remaining -= storage.insert(isotope, remaining, simulate);
+            if (satisfied(remaining, wanted)) {
+                break;
+            }
+        }
+        return remaining;
+    }
+
+    @Override
+    public boolean canProcess(Level level, RecipeStorages storages, RecipeStateModel state) {
+        if (storages == null) {
+            return false;
+        }
+        double wanted = amount(state);
+        return satisfied(extractAll(storages, wanted, true), wanted);
+    }
+
+    @Override
+    public void process(Level level, RecipeStorages storages, RecipeStateModel state) {
+        extractAll(storages, amount(state), false);
+    }
+
+    @Override
+    public void processTick(Level level, RecipeStorages storages, RecipeStateModel state) {
+        process(level, storages, state);
+    }
+
+    @Override
+    public boolean canOutput(Level level, RecipeStorages storages, RecipeStateModel state) {
+        if (storages == null || isotope == null) {
+            return false;
+        }
+        double wanted = amount(state);
+        return satisfied(insertAll(storages, wanted, true), wanted);
+    }
+
+    @Override
+    public void output(Level level, RecipeStorages storages, RecipeStateModel state) {
+        insertAll(storages, amount(state), false);
+    }
+
+    @Override
+    public void outputTick(Level level, RecipeStorages storages, RecipeStateModel state) {
+        output(level, storages, state);
+    }
+
+    @Override
+    public void setRecipe(IRecipeLayoutBuilder builder, RecipeModel model, IFocusGroup focus, IJeiHelpers helpers, SlotGrid grid, IRecipeSlotBuilder recipeSlot) {
+        recipeSlot.addIngredient(MMJeiIngredients.NUCLEAR_RADIATION, new RadiationIngredient(isotope, range != null ? range.max() : amount));
+    }
+
+    @Override
+    public AmountRange getAmountRange() {
+        return range;
+    }
+
+    @Override
+    public JsonObject debugInput(Level level, RecipeStorages storages, JsonObject json) {
+        json.addProperty("ingredientType", Ref.Ports.NUCLEAR_RADIATION.toString());
+        json.addProperty("isotope", isotope == null ? "any" : isotope);
+        json.addProperty("amountToExtract", amount(null));
+        json.addProperty("canRun", canProcess(level, storages, null));
+        return json;
+    }
+
+    @Override
+    public JsonObject debugOutput(Level level, RecipeStorages storages, JsonObject json) {
+        json.addProperty("ingredientType", Ref.Ports.NUCLEAR_RADIATION.toString());
+        json.addProperty("isotope", isotope == null ? "any" : isotope);
+        json.addProperty("amountToInsert", amount(null));
+        json.addProperty("canRun", canOutput(level, storages, null));
+        return json;
+    }
+}

@@ -117,6 +117,7 @@ MMEvents.registerControllers(event => {
 | `mm:pneumaticcraft/air` | PneumaticCraft | `volume`, `danger`, `critical` | `air`, `pressure` (optional) |
 | `mm:botania/mana` | Botania | `capacity` | `mana` |
 | `mm:replication/matter` | Replication | see [`replication.md`](replication.md) | `matter`, `amount` |
+| `mm:nuclear_radiation/radiation` | Nuclear Radiation | see [`radiation.md`](radiation.md) | `isotope` (optional), `amount` (Bq) |
 
 Notes on the config keys:
 

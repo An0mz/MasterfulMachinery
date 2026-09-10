@@ -12,6 +12,7 @@ import io.ticticboom.mods.mm.port.item.ItemPortType;
 import io.ticticboom.mods.mm.port.kinetic.CreateKineticPortType;
 import io.ticticboom.mods.mm.port.mekanism.chemical.MekanismChemicalPortType;
 import io.ticticboom.mods.mm.port.mekanism.heat.MekanismHeatPortType;
+import io.ticticboom.mods.mm.port.nuclear.radiation.NuclearRadiationPortType;
 import io.ticticboom.mods.mm.port.pneumaticcraft.air.PneumaticAirPortType;
 import io.ticticboom.mods.mm.port.replication.matter.ReplicationMatterPortType;
 import io.ticticboom.mods.mm.port.replication.matter.feature.ReplicationMatterPipeHook;
@@ -53,6 +54,10 @@ public class MMPortRegistry {
 
         if (ModList.get().isLoaded("botania")) {
             register(Ref.Ports.BOTANIA_MANA, new BotaniaManaPortType());
+        }
+
+        if (ModList.get().isLoaded("nuclear_radiation")) {
+            register(Ref.Ports.NUCLEAR_RADIATION, new NuclearRadiationPortType());
         }
     }
 

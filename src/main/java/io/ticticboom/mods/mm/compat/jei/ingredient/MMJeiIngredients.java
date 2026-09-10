@@ -7,6 +7,7 @@ import io.ticticboom.mods.mm.compat.jei.ingredient.heat.HeatIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.mana.BotaniaManaIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.matter.MatterIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.pncr.PneumaticAirIngredientType;
+import io.ticticboom.mods.mm.compat.jei.ingredient.radiation.RadiationIngredientType;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.neoforge.NeoForgeTypes;
 import mezz.jei.api.ingredients.IIngredientType;
@@ -23,4 +24,5 @@ public class MMJeiIngredients {
     public static final HeatIngredientType MEKANISM_HEAT = new HeatIngredientType();
     public static final MatterIngredientType REPLICATION_MATTER = new MatterIngredientType();
     public static final EntityIngredientType ENTITY = new EntityIngredientType();
+    public static final RadiationIngredientType NUCLEAR_RADIATION = new RadiationIngredientType();
 }
