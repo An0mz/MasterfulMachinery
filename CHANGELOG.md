@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.6.0] - 2026-09-10
+
+### Added
+- **A port can register just one side.** `only` takes `input`, `output` or `both` (the default), so
+  a hatch that only ever takes things in no longer registers an output block nobody uses. Available
+  from KubeJS as `.only('input')`.
+- **Ports can name each side themselves.** `inputName` and `outputName` replace the whole name for
+  that side, suffix included, so "Basic Chemical Port Input" can be written as "Basic Chemical
+  Input Port". `name` on its own still appends " Input" / " Output" as before.
+- **Names can be coloured.** Any name field now takes a full text component, so ports and
+  controllers can use colour and formatting: `{ "text": "Fry Basket", "color": "#FFC72C",
+  "bold": true }`.
+- **Gradients and rainbows.** `{ "text": "...", "gradient": ["#FF0000", "#00FFFF"] }` spreads
+  colours across the letters, and `{ "text": "...", "rainbow": true }` cycles by itself. `speed` is
+  colour cycles per second and `spread` is the hue shift per character, so `spread: 0` makes the
+  whole name one colour that cycles together while a larger value sends the colour travelling along
+  it.
+- **The structure preview rotates with left click and zooms with the scroll wheel.** The old
+  middle-drag rotate, right-drag zoom and shift-drag pan still work.
+
 ## [1.21.1-0.5.1] - 2026-09-08
 
 ### Added
