@@ -242,10 +242,6 @@ Any name field also accepts a full text component, so names can be coloured and 
 "inputName": { "text": "Basic Chemical Input Port", "color": "#55FFFF", "bold": true }
 ```
 
-Colour is RGB only — Minecraft's text colour has no alpha channel, so ARGB values lose their alpha.
-A plain string still goes through the generated `block.mm.<id>` lang entry so resource packs can
-override it; a styled or translated name is shown directly instead.
-
 Two extra forms build the colours for you. A **gradient** spreads colours across the text:
 
 ```json
@@ -264,10 +260,19 @@ A **rainbow** cycles through the spectrum and animates on its own:
 character (default `0.05`), so a small spread makes the whole name pulse together and a larger one
 makes the colours travel along it.
 
-Animation only shows where the name is redrawn each frame — tooltips and GUI titles. It will not
-animate in a place that resolves the name once and caches it.
+From KubeJS, `.name(...)`, `.inputName(...)` and `.outputName(...)` take a string or an object with
+the same fields. Controllers take the same in `.name(...)`:
 
-From KubeJS: `.inputName(...)` and `.outputName(...)` take plain strings.
+```js
+MMEvents.registerPorts(event => {
+    event.create('service_counter')
+        .name('Service Counter')
+        .inputName({ text: 'Service Counter Input', rainbow: true, speed: 0.5, spread: 0.08 })
+        .outputName({ text: 'Service Counter Output', gradient: ['#FFC72C', '#DA291C'] })
+        .controllerId('kubejs:my_machine')
+        .config('mm:item', config => { config.rows(1); config.columns(1) })
+})
+```
 
 ## See also
 

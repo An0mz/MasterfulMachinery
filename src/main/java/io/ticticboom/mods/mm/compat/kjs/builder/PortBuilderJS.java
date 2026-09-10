@@ -1,10 +1,13 @@
 package io.ticticboom.mods.mm.compat.kjs.builder;
 
+import com.google.gson.JsonElement;
 import dev.latvian.mods.rhino.util.HideFromJS;
+import io.ticticboom.mods.mm.compat.kjs.KubeJsValues;
 import io.ticticboom.mods.mm.model.IdList;
 import io.ticticboom.mods.mm.model.PortModel;
 import io.ticticboom.mods.mm.port.MMPortRegistry;
 import io.ticticboom.mods.mm.port.PortSides;
+import io.ticticboom.mods.mm.util.ParserUtils;
 import lombok.Getter;
 import net.minecraft.resources.ResourceLocation;
 
@@ -25,6 +28,9 @@ public class PortBuilderJS {
     private PortSides sides = PortSides.BOTH;
     private String inputName;
     private String outputName;
+    private JsonElement nameSpec;
+    private JsonElement inputNameSpec;
+    private JsonElement outputNameSpec;
     private final Map<String, String> textures = new LinkedHashMap<>();
 
     @HideFromJS
@@ -76,13 +82,15 @@ public class PortBuilderJS {
         return this;
     }
 
-    public PortBuilderJS inputName(String name) {
-        this.inputName = name;
+    public PortBuilderJS inputName(Object name) {
+        this.inputNameSpec = KubeJsValues.toJson(name);
+        this.inputName = ParserUtils.parseComponentKey(inputNameSpec);
         return this;
     }
 
-    public PortBuilderJS outputName(String name) {
-        this.outputName = name;
+    public PortBuilderJS outputName(Object name) {
+        this.outputNameSpec = KubeJsValues.toJson(name);
+        this.outputName = ParserUtils.parseComponentKey(outputNameSpec);
         return this;
     }
 
@@ -91,8 +99,9 @@ public class PortBuilderJS {
         return this;
     }
 
-    public PortBuilderJS name(String name) {
-        this.name = name;
+    public PortBuilderJS name(Object name) {
+        this.nameSpec = KubeJsValues.toJson(name);
+        this.name = ParserUtils.parseComponentKey(nameSpec);
         return this;
     }
 
@@ -119,10 +128,10 @@ public class PortBuilderJS {
         IdList controllerIds = new IdList(controllers);
         var built = new ArrayList<PortModel>(2);
         if (sides.hasInput()) {
-            built.add(PortModel.create(id, name, inputName, controllerIds, type, storageFactory, true));
+            built.add(PortModel.createStyled(id, nameSpec, inputNameSpec, controllerIds, type, storageFactory, true));
         }
         if (sides.hasOutput()) {
-            built.add(PortModel.create(id, name, outputName, controllerIds, type, storageFactory, false));
+            built.add(PortModel.createStyled(id, nameSpec, outputNameSpec, controllerIds, type, storageFactory, false));
         }
         built.forEach(port -> textures.forEach((key, value) -> port.jsonConfig().addProperty(key, value)));
         return built;

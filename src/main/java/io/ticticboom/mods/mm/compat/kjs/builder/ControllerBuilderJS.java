@@ -1,8 +1,11 @@
 package io.ticticboom.mods.mm.compat.kjs.builder;
 
+import com.google.gson.JsonElement;
 import dev.latvian.mods.rhino.util.HideFromJS;
+import io.ticticboom.mods.mm.compat.kjs.KubeJsValues;
 import io.ticticboom.mods.mm.model.ControllerModel;
 import io.ticticboom.mods.mm.model.RecipeSelectionMode;
+import io.ticticboom.mods.mm.util.ParserUtils;
 import lombok.Getter;
 import net.minecraft.resources.ResourceLocation;
 
@@ -13,6 +16,7 @@ import java.util.Map;
 public class ControllerBuilderJS {
     private final String id;
     private String name;
+    private JsonElement nameSpec;
     private ResourceLocation type;
     private boolean parallelProcessingDefault = false;
     private int maxParallelRecipes = -1;
@@ -51,8 +55,9 @@ public class ControllerBuilderJS {
         return this;
     }
 
-    public ControllerBuilderJS name(String name) {
-        this.name = name;
+    public ControllerBuilderJS name(Object name) {
+        this.nameSpec = KubeJsValues.toJson(name);
+        this.name = ParserUtils.parseComponentKey(nameSpec);
         return this;
     }
 
@@ -78,7 +83,7 @@ public class ControllerBuilderJS {
 
     @HideFromJS
     public ControllerModel build() {
-        var model = ControllerModel.create(id, type, name, parallelProcessingDefault, maxParallelRecipes, recipeSelectionMode);
+        var model = ControllerModel.createStyled(id, type, nameSpec, parallelProcessingDefault, maxParallelRecipes, recipeSelectionMode);
         textures.forEach(model.config()::addProperty);
         return model;
     }

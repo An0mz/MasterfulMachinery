@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.model;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.port.IPortStorageFactory;
 import io.ticticboom.mods.mm.port.MMPortRegistry;
@@ -72,6 +73,26 @@ public record PortModel(
         var json = paramsToJson(fid, fname, controllerIds, type, config, input);
         var literal = Component.literal(fname);
         return new PortModel(fid, fname, () -> literal, controllerIds, type, config, json, input);
+    }
+
+    public static PortModel createStyled(String id, JsonElement nameSpec, JsonElement sideSpec, IdList controllerIds, ResourceLocation type, IPortStorageFactory config, boolean input) {
+        var fid = PortUtils.id(id, input);
+        String fname;
+        Supplier<Component> display;
+        if (sideSpec != null && !sideSpec.isJsonNull()) {
+            fname = ParserUtils.parseComponentKey(sideSpec);
+            display = ParserUtils.parseNameSupplier(sideSpec);
+        } else if (nameSpec != null && !nameSpec.isJsonNull()) {
+            fname = PortUtils.name(ParserUtils.parseComponentKey(nameSpec), input);
+            var base = ParserUtils.parseNameSupplier(nameSpec);
+            display = () -> PortUtils.name(base.get(), input);
+        } else {
+            fname = PortUtils.name((String) null, input);
+            var literal = Component.literal(fname);
+            display = () -> literal;
+        }
+        var json = paramsToJson(fid, fname, controllerIds, type, config, input);
+        return new PortModel(fid, fname, display, controllerIds, type, config, json, input);
     }
 
     public static JsonObject paramsToJson(String id, String name, IdList controllerIds, ResourceLocation type, IPortStorageFactory config, boolean input) {

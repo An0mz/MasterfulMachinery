@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.model;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.util.ParserUtils;
 import net.minecraft.network.chat.Component;
@@ -74,6 +75,17 @@ public record ControllerModel(
         if (recipeSelectionMode == null) recipeSelectionMode = RecipeSelectionMode.DEFAULT;
         JsonObject json = paramsToJson(id, type, name, parallelProcessingDefault, maxParallelRecipes, recipeSelectionMode);
         return new ControllerModel(id, type, name, literalOf(name), parallelProcessingDefault, maxParallelRecipes, recipeSelectionMode, json);
+    }
+
+    public static ControllerModel createStyled(String id, ResourceLocation type, JsonElement nameSpec, boolean parallelProcessingDefault, int maxParallelRecipes, RecipeSelectionMode recipeSelectionMode) {
+        if (nameSpec == null || nameSpec.isJsonNull()) {
+            return create(id, type, null, parallelProcessingDefault, maxParallelRecipes, recipeSelectionMode);
+        }
+        maxParallelRecipes = clampMaxParallelRecipesMarker(maxParallelRecipes);
+        if (recipeSelectionMode == null) recipeSelectionMode = RecipeSelectionMode.DEFAULT;
+        var name = ParserUtils.parseComponentKey(nameSpec);
+        JsonObject json = paramsToJson(id, type, name, parallelProcessingDefault, maxParallelRecipes, recipeSelectionMode);
+        return new ControllerModel(id, type, name, ParserUtils.parseNameSupplier(nameSpec), parallelProcessingDefault, maxParallelRecipes, recipeSelectionMode, json);
     }
 
     public static JsonObject paramsToJson(String id, ResourceLocation type, String name) {
