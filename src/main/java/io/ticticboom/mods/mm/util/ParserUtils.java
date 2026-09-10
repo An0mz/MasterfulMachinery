@@ -70,6 +70,13 @@ public class ParserUtils {
             if (obj.has("rainbow") && obj.get("rainbow").getAsBoolean()) {
                 double speed = obj.has("speed") ? obj.get("speed").getAsDouble() : 0.5;
                 double spread = obj.has("spread") ? obj.get("spread").getAsDouble() : 0.05;
+                if (obj.has("colors")) {
+                    var colours = new ArrayList<Integer>();
+                    for (JsonElement colour : obj.getAsJsonArray("colors")) {
+                        colours.add(parseColour(colour.getAsString()));
+                    }
+                    return NameStyles.cycle(obj.get("text").getAsString(), colours, speed, spread);
+                }
                 return NameStyles.rainbow(obj.get("text").getAsString(), speed, spread);
             }
         }

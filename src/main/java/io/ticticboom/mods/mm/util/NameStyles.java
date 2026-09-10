@@ -30,6 +30,29 @@ public final class NameStyles {
         };
     }
 
+    public static Supplier<Component> cycle(String text, List<Integer> colours, double speed, double spread) {
+        if (colours.isEmpty()) {
+            return rainbow(text, speed, spread);
+        }
+        return () -> {
+            double time = System.currentTimeMillis() / 1000.0;
+            return colourPerCharacter(text, index -> {
+                double position = time * speed + index * spread;
+                return sampleLooping(colours, position - Math.floor(position));
+            });
+        };
+    }
+
+    private static int sampleLooping(List<Integer> colours, double t) {
+        if (colours.size() == 1) {
+            return colours.get(0);
+        }
+        double scaled = t * colours.size();
+        int from = Math.min((int) scaled, colours.size() - 1);
+        int to = (from + 1) % colours.size();
+        return lerp(colours.get(from), colours.get(to), (float) (scaled - from));
+    }
+
     private static Component colourPerCharacter(String text, java.util.function.IntUnaryOperator colourAt) {
         MutableComponent root = Component.empty();
         for (int i = 0; i < text.length(); i++) {

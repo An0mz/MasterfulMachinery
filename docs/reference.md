@@ -381,6 +381,9 @@ MMEvents.createProcesses(event => {
 - A gradient takes any number of colours.
 - A rainbow's `speed` is how fast it cycles, and `spread` is how much the colour changes from one
   letter to the next. `spread: 0` makes the whole name one colour that cycles together.
+- Add `colors` to a rainbow to cycle through only those colours instead of the whole spectrum:
+  `{ "text": "Alloy Kiln", "rainbow": true, "colors": ["#00FFFF", "#0000FF"], "spread": 0 }` fades
+  the whole name between cyan and blue.
 - The coloured form also takes `italic`, `underlined`, `strikethrough` and `obfuscated`.
 
 From KubeJS, `.name()`, `.inputName()` and `.outputName()` take the same forms:
