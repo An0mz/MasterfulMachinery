@@ -126,7 +126,7 @@ Call `.matter(...)` once per reserved tank, or `.tanks(n)` for unreserved ones.
 ```js
 // kubejs/server_scripts/
 MMEvents.createProcesses(event => {
-    event.create('plasma_to_emerald')
+    event.create('kubejs:plasma_to_emerald')
         .structureId('kubejs:my_structure')
         .ticks(40)
         .input({
@@ -146,8 +146,9 @@ Registering a port is a **startup** event, so it belongs in `kubejs/startup_scri
 a **server** event and belong in `kubejs/server_scripts/`. Put either in the wrong folder and it
 silently never runs.
 
-Ids take your namespace: `event.create('my_port')` registers `kubejs:my_port`, and one `create`
-makes both the `_input` and `_output` block.
+Controllers and ports register under `mm:`: `event.create('my_port')` makes `mm:my_port_input` and
+`mm:my_port_output`, and `.controllerId(...)` takes `mm:<controller id>`. Structures and processes
+need the namespace written out: `event.create('kubejs:my_structure')`.
 
 If you call a method that does not exist, KubeJS does not log a warning — it kills the game on
 startup with `TypeError: Cannot find function ... in object <SomeBuilder>`. The builder named in

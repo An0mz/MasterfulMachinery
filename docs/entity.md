@@ -179,7 +179,7 @@ the table further up.
 ```js
 // kubejs/server_scripts/
 MMEvents.createProcesses(event => {
-    event.create('chicken_eggs')
+    event.create('kubejs:chicken_eggs')
         .structureId('kubejs:mob_altar')
         .ticks(40)
         .input({
@@ -199,8 +199,9 @@ Registering a port is a **startup** event, so it belongs in `kubejs/startup_scri
 a **server** event and belong in `kubejs/server_scripts/`. Put either in the wrong folder and it
 silently never runs.
 
-Ids take your namespace: `event.create('my_port')` registers `kubejs:my_port`, and one `create`
-makes both the `_input` and `_output` block.
+Controllers and ports register under `mm:`: `event.create('my_port')` makes `mm:my_port_input` and
+`mm:my_port_output`, and `.controllerId(...)` takes `mm:<controller id>`. Structures and processes
+need the namespace written out: `event.create('kubejs:my_structure')`.
 
 If you call a method that does not exist, KubeJS does not log a warning — it kills the game on
 startup with `TypeError: Cannot find function ... in object <SomeBuilder>`. The builder named in
@@ -269,7 +270,7 @@ MMEvents.registerPorts(event => {
         .name('Service Counter')
         .inputName({ text: 'Service Counter Input', rainbow: true, speed: 0.5, spread: 0.08 })
         .outputName({ text: 'Service Counter Output', gradient: ['#FFC72C', '#DA291C'] })
-        .controllerId('kubejs:my_machine')
+        .controllerId('mm:my_machine')
         .config('mm:item', config => { config.rows(1); config.columns(1) })
 })
 ```
