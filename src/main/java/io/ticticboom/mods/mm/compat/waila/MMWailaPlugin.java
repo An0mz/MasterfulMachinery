@@ -24,6 +24,7 @@ public class MMWailaPlugin implements IWailaPlugin {
     public void register(IWailaCommonRegistration registration) {
         registration.registerBlockDataProvider(ControllerDataProvider.INSTANCE, MachineControllerBlockEntity.class);
         registration.registerBlockDataProvider(PortPriorityDataProvider.INSTANCE, AbstractPortBlockEntity.class);
+        registration.registerBlockDataProvider(PortContentsDataProvider.INSTANCE, AbstractPortBlockEntity.class);
     }
 
     @Override
@@ -37,10 +38,17 @@ public class MMWailaPlugin implements IWailaPlugin {
         registration.registerBlockComponent(PortPriorityDataProvider.INSTANCE, CreateKineticPortBlock.class);
         registration.registerBlockComponent(PortPriorityDataProvider.INSTANCE, PneumaticAirPortBlock.class);
         registration.registerBlockComponent(PortPriorityDataProvider.INSTANCE, BotaniaManaPortBlock.class);
+
+        registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, io.ticticboom.mods.mm.port.entity.register.EntityPortBlock.class);
+        if (ModList.get().isLoaded("mekanism")) {
+            registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, io.ticticboom.mods.mm.port.mekanism.chemical.register.MekanismChemicalPortBlock.class);
+            registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, io.ticticboom.mods.mm.port.mekanism.heat.register.MekanismHeatPortBlock.class);
+        }
         // Unlike the other port blocks this one implements a Titanium interface, so naming the
         // class at all resolves it. Behind the check it stays unloaded when Replication is absent.
         if (ModList.get().isLoaded("replication")) {
             registration.registerBlockComponent(PortPriorityDataProvider.INSTANCE, ReplicationMatterPortBlock.class);
+            registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, ReplicationMatterPortBlock.class);
         }
     }
 }

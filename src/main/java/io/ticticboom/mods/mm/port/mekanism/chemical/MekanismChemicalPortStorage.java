@@ -57,6 +57,16 @@ public class MekanismChemicalPortStorage implements IPortStorage {
     }
 
     @Override
+    public java.util.List<net.minecraft.network.chat.Component> describeContents() {
+        var stack = chemicalTank.getStack();
+        if (stack.isEmpty()) {
+            return java.util.List.of(net.minecraft.network.chat.Component.translatable("jade.mm.port.empty"));
+        }
+        return java.util.List.of(net.minecraft.network.chat.Component.translatable("jade.mm.port.chemical",
+                stack.getChemical().getTextComponent(), stack.getAmount(), chemicalTank.getCapacity()));
+    }
+
+    @Override
     public <T> boolean hasCapability(BlockCapability<T, ?> capability) {
         return capability == Capabilities.CHEMICAL.block();
     }

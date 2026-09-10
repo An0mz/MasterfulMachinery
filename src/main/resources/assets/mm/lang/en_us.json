@@ -126,6 +126,10 @@
   "jei.mm.ingredient.pneumaticcraft_air.pressure": "%s Bar",
 
   "jade.mm.controller.progress": "Progress: %s",
+  "jade.mm.port.empty": "Empty",
+  "jade.mm.port.amount": "%s: %s / %s",
+  "jade.mm.port.chemical": "%s: %s / %s mB",
+  "jade.mm.port.mobs": "Mobs: %s / %s",
   "jade.mm.controller.redstone.with": "Redstone: Requires redstone",
   "jade.mm.controller.redstone.without": "Redstone: Remove redstone",
   "jade.mm.controller.redstone.other": "Redstone: %s",

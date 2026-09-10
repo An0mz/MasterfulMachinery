@@ -86,6 +86,16 @@ public class MekanismHeatPortStorage implements IPortStorage {
         return handler.insert(amount, simulate);
     }
 
+    @Override
+    public java.util.List<net.minecraft.network.chat.Component> describeContents() {
+        var capacity = ((MekanismHeatPortStorageModel) getStorageModel()).capacity();
+        return java.util.List.of(
+                net.minecraft.network.chat.Component.translatable("gui.mm.port.mekanism_heat.temperature",
+                        String.format(java.util.Locale.ROOT, "%.1f", getTemperature())),
+                net.minecraft.network.chat.Component.translatable("gui.mm.port.mekanism_heat.storage",
+                        getStoredHeat(), capacity));
+    }
+
     public int getStoredHeat() {
         return (int) Math.floor(handler.getStored());
     }

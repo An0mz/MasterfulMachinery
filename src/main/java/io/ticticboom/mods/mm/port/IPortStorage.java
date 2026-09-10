@@ -10,6 +10,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface IPortStorage {
@@ -40,6 +41,10 @@ public interface IPortStorage {
     // Implementations should persist this value in their save/load methods under the key "Priority" if applicable.
     default int getPriority() {
         return 0;
+    }
+
+    default List<net.minecraft.network.chat.Component> describeContents() {
+        return List.of();
     }
 
     default void setPriority(int priority) {

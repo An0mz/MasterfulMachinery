@@ -96,6 +96,22 @@ public class ReplicationMatterPortStorage implements IPortStorage {
         return dump;
     }
 
+    @Override
+    public java.util.List<net.minecraft.network.chat.Component> describeContents() {
+        var lines = new java.util.ArrayList<net.minecraft.network.chat.Component>();
+        for (var tank : handler.tanks()) {
+            if (tank.getMatter().isEmpty()) {
+                lines.add(tank.getFilter() == null
+                        ? net.minecraft.network.chat.Component.translatable("jade.mm.port.empty")
+                        : net.minecraft.network.chat.Component.translatable("gui.mm.port.replication_matter.reserved", tank.getFilter().toString()));
+            } else {
+                lines.add(net.minecraft.network.chat.Component.translatable("jade.mm.port.amount",
+                        tank.getMatter().getDisplayName(), (int) Math.floor(tank.getMatterAmount()), (int) tank.getCapacity()));
+            }
+        }
+        return lines;
+    }
+
     public int internalExtract(IMatterType type, int amount, boolean simulate) {
         var action = simulate ? IFluidHandler.FluidAction.SIMULATE : IFluidHandler.FluidAction.EXECUTE;
         return (int) Math.floor(handler.drain(type, amount, action).getAmount());
