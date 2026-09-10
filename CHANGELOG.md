@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.6.2] - 2026-09-10
+
+### Added
+- **Rainbows with your own colours.** Add `colors` to a rainbow name to cycle through just those
+  colours: `{ "text": "My Port", "rainbow": true, "colors": ["#00FFFF", "#0000FF"], "spread": 0 }`
+  fades the whole name between cyan and blue. Works from KubeJS too.
+- `docs/example.md` builds a complete machine step by step, and `docs/reference.md` lists every key
+  and option.
+
 ## [1.21.1-0.6.1] - 2026-09-10
 
 ### Added
