@@ -34,7 +34,7 @@ public class RadiationIngredientHelper implements IIngredientHelper<RadiationIng
 
     @Override
     public @NotNull RadiationIngredient copyIngredient(@NotNull RadiationIngredient ingredient) {
-        return new RadiationIngredient(ingredient.isotope(), ingredient.amount());
+        return new RadiationIngredient(ingredient.isotope(), ingredient.min(), ingredient.max());
     }
 
     @Override

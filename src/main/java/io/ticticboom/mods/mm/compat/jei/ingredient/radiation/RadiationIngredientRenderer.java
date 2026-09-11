@@ -22,8 +22,11 @@ public class RadiationIngredientRenderer implements IIngredientRenderer<Radiatio
     @SuppressWarnings("removal")
     @Override
     public @NotNull List<Component> getTooltip(RadiationIngredient ingredient, @NotNull TooltipFlag tooltipFlag) {
+        String amount = ingredient.max() > ingredient.min()
+                ? RadiationText.bq(ingredient.min()) + " – " + RadiationText.bq(ingredient.max())
+                : RadiationText.bq(ingredient.max());
         return List.of(
                 RadiationText.isotopeName(ingredient.isotope()).copy().withStyle(ChatFormatting.YELLOW),
-                Component.translatable("jei.mm.ingredient.nuclear_radiation.amount", RadiationText.bq(ingredient.amount())));
+                Component.translatable("jei.mm.ingredient.nuclear_radiation.amount", amount));
     }
 }

@@ -20,9 +20,25 @@ public class NuclearRadiationPortParser implements IPortParser {
         if (element == null || element.isJsonNull()) {
             throw new RuntimeException("Missing 'amount' on a radiation ingredient: " + json);
         }
-        if (element.isJsonObject()) {
-            return new NuclearRadiationPortIngredient(isotope, 0, AmountRange.parse(json, "amount"));
+        if (!element.isJsonObject()) {
+            double amount = element.getAsDouble();
+            return new NuclearRadiationPortIngredient(isotope, amount, amount, null);
         }
-        return new NuclearRadiationPortIngredient(isotope, element.getAsDouble(), null);
+        var range = element.getAsJsonObject();
+        if (!range.has("min") || !range.has("max")) {
+            throw new RuntimeException("Ranged 'amount' on a radiation ingredient needs both 'min' and 'max': " + json);
+        }
+        double min = range.get("min").getAsDouble();
+        double max = range.get("max").getAsDouble();
+        if (max < min) {
+            throw new RuntimeException("Ranged 'amount' on a radiation ingredient has max below min: " + json);
+        }
+        if (max == min) {
+            return new NuclearRadiationPortIngredient(isotope, min, max, null);
+        }
+        String rollKey = range.has("rollGroup") && !range.get("rollGroup").isJsonNull()
+                ? "g:" + range.get("rollGroup").getAsString()
+                : AmountRange.nextRollKey();
+        return new NuclearRadiationPortIngredient(isotope, min, max, rollKey);
     }
 }

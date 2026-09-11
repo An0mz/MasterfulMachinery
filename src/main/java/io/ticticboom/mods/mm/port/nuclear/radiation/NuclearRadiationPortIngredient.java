@@ -9,7 +9,6 @@ import io.ticticboom.mods.mm.port.IPortIngredient;
 import io.ticticboom.mods.mm.recipe.RecipeModel;
 import io.ticticboom.mods.mm.recipe.RecipeStateModel;
 import io.ticticboom.mods.mm.recipe.RecipeStorages;
-import io.ticticboom.mods.mm.util.AmountRange;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
 import mezz.jei.api.helpers.IJeiHelpers;
@@ -19,17 +18,25 @@ import net.minecraft.world.level.Level;
 public class NuclearRadiationPortIngredient implements IPortIngredient {
 
     private final String isotope;
-    private final double amount;
-    private final AmountRange range;
+    private final double min;
+    private final double max;
+    private final String rollKey;
 
-    public NuclearRadiationPortIngredient(String isotope, double amount, AmountRange range) {
+    public NuclearRadiationPortIngredient(String isotope, double min, double max, String rollKey) {
         this.isotope = isotope;
-        this.amount = amount;
-        this.range = range;
+        this.min = min;
+        this.max = max;
+        this.rollKey = rollKey;
     }
 
     private double amount(RecipeStateModel state) {
-        return range != null ? range.resolve(state) : amount;
+        if (max <= min || rollKey == null) {
+            return max;
+        }
+        if (state == null) {
+            return max;
+        }
+        return min + state.getRollToken(rollKey) * (max - min);
     }
 
     private static boolean satisfied(double remaining, double wanted) {
@@ -98,19 +105,15 @@ public class NuclearRadiationPortIngredient implements IPortIngredient {
 
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, RecipeModel model, IFocusGroup focus, IJeiHelpers helpers, SlotGrid grid, IRecipeSlotBuilder recipeSlot) {
-        recipeSlot.addIngredient(MMJeiIngredients.NUCLEAR_RADIATION, new RadiationIngredient(isotope, range != null ? range.max() : amount));
-    }
-
-    @Override
-    public AmountRange getAmountRange() {
-        return range;
+        recipeSlot.addIngredient(MMJeiIngredients.NUCLEAR_RADIATION, new RadiationIngredient(isotope, min, max));
     }
 
     @Override
     public JsonObject debugInput(Level level, RecipeStorages storages, JsonObject json) {
         json.addProperty("ingredientType", Ref.Ports.NUCLEAR_RADIATION.toString());
         json.addProperty("isotope", isotope == null ? "any" : isotope);
-        json.addProperty("amountToExtract", amount(null));
+        json.addProperty("min", min);
+        json.addProperty("max", max);
         json.addProperty("canRun", canProcess(level, storages, null));
         return json;
     }
@@ -119,7 +122,8 @@ public class NuclearRadiationPortIngredient implements IPortIngredient {
     public JsonObject debugOutput(Level level, RecipeStorages storages, JsonObject json) {
         json.addProperty("ingredientType", Ref.Ports.NUCLEAR_RADIATION.toString());
         json.addProperty("isotope", isotope == null ? "any" : isotope);
-        json.addProperty("amountToInsert", amount(null));
+        json.addProperty("min", min);
+        json.addProperty("max", max);
         json.addProperty("canRun", canOutput(level, storages, null));
         return json;
     }
