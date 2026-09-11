@@ -99,11 +99,6 @@ public class NuclearRadiationPortIngredient implements IPortIngredient {
     }
 
     @Override
-    public void outputTick(Level level, RecipeStorages storages, RecipeStateModel state) {
-        output(level, storages, state);
-    }
-
-    @Override
     public void setRecipe(IRecipeLayoutBuilder builder, RecipeModel model, IFocusGroup focus, IJeiHelpers helpers, SlotGrid grid, IRecipeSlotBuilder recipeSlot) {
         recipeSlot.addIngredient(MMJeiIngredients.NUCLEAR_RADIATION, new RadiationIngredient(isotope, min, max));
     }
