@@ -13,6 +13,8 @@ public class NuclearRadiationConfigBuilderJS extends PortConfigBuilderJS {
     private final List<String> isotopes = new ArrayList<>();
     private boolean decay = true;
     private boolean shielded = true;
+    private final List<String> carriers = new ArrayList<>();
+    private double loadPerItem = NuclearRadiationPortStorageModel.DEFAULT_LOAD_PER_ITEM;
 
     public NuclearRadiationConfigBuilderJS capacity(double capacity) {
         this.capacity = capacity;
@@ -34,8 +36,19 @@ public class NuclearRadiationConfigBuilderJS extends PortConfigBuilderJS {
         return this;
     }
 
+    public NuclearRadiationConfigBuilderJS carrier(String carrier) {
+        this.carriers.add(carrier);
+        return this;
+    }
+
+    public NuclearRadiationConfigBuilderJS loadPerItem(double loadPerItem) {
+        this.loadPerItem = loadPerItem;
+        return this;
+    }
+
     @Override
     public IPortStorageModel build() {
-        return new NuclearRadiationPortStorageModel(capacity, List.copyOf(isotopes), decay, shielded);
+        return new NuclearRadiationPortStorageModel(capacity, List.copyOf(isotopes), decay, shielded,
+                List.copyOf(carriers), loadPerItem);
     }
 }

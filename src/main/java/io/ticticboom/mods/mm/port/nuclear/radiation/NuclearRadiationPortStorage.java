@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import igentuman.nr.api.RadiationProfile;
 import igentuman.nr.api.binding.RadiationBindings;
+import igentuman.nr.api.binding.RadiationComponent;
 import igentuman.nr.api.isotope.Isotope;
 import igentuman.nr.api.isotope.IsotopeRegistry;
 import igentuman.nr.api.isotope.IsotopeStack;
@@ -15,15 +16,20 @@ import io.ticticboom.mods.mm.port.common.INotifyChangeFunction;
 import io.ticticboom.mods.mm.util.RadiationText;
 import lombok.Getter;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
 import org.jetbrains.annotations.Nullable;
@@ -37,8 +43,10 @@ import java.util.UUID;
 
 public class NuclearRadiationPortStorage implements IPortStorage {
 
-    public static final int SLOT_X = 80;
     public static final int SLOT_Y = 116;
+    public static final int INPUT_SLOT_X = 80;
+    public static final int CARRIER_SLOT_X = 62;
+    public static final int LOADED_SLOT_X = 98;
     private static final double EMPTY_BQ = 1.0e-6;
     private static final int DECAY_INTERVAL = 20;
     private static final int GUI_LINES = 7;
@@ -50,8 +58,10 @@ public class NuclearRadiationPortStorage implements IPortStorage {
     private final List<CompoundTag> unresolved = new ArrayList<>();
     private final Map<String, Double> displayBq = new LinkedHashMap<>();
     @Getter
-    private final ItemStackHandler slot;
+    private final ItemStackHandler items;
+    private final IItemHandler automation = new AutomationHandler();
     private boolean inputSide;
+    private boolean loading;
     private long clock;
     private long lastDecay;
     private int priority;
@@ -59,20 +69,26 @@ public class NuclearRadiationPortStorage implements IPortStorage {
     public NuclearRadiationPortStorage(NuclearRadiationPortStorageModel model, INotifyChangeFunction changed) {
         this.model = model;
         this.changed = changed;
-        this.slot = new ItemStackHandler(1) {
+        this.items = new ItemStackHandler(2) {
             @Override
             public boolean isItemValid(int index, ItemStack stack) {
-                return canAbsorb(stack);
+                if (index == 0) {
+                    return inputSide ? canAbsorb(stack) : canLoad(stack);
+                }
+                return !inputSide;
             }
 
             @Override
             protected int getStackLimit(int index, ItemStack stack) {
-                return Math.min(super.getStackLimit(index, stack), absorbableCount(stack));
+                int limit = super.getStackLimit(index, stack);
+                return index == 0 && inputSide ? Math.min(limit, absorbableCount(stack)) : limit;
             }
 
             @Override
             protected void onContentsChanged(int index) {
-                changed.call();
+                if (!loading) {
+                    changed.call();
+                }
             }
         };
     }
@@ -89,6 +105,8 @@ public class NuclearRadiationPortStorage implements IPortStorage {
         }
         if (inputSide) {
             absorb();
+        } else {
+            load();
         }
     }
 
@@ -115,7 +133,7 @@ public class NuclearRadiationPortStorage implements IPortStorage {
     }
 
     private void absorb() {
-        var item = slot.getStackInSlot(0);
+        var item = items.getStackInSlot(0);
         if (item.isEmpty()) {
             return;
         }
@@ -133,7 +151,42 @@ public class NuclearRadiationPortStorage implements IPortStorage {
             var stack = stackFor(source.isotope());
             stack.setAtoms(stack.atoms() + source.atoms() * count);
         }
-        slot.extractItem(0, count, false);
+        items.extractItem(0, count, false);
+        changed.call();
+    }
+
+    private void load() {
+        var carrier = items.getStackInSlot(0);
+        if (carrier.isEmpty() || !canLoad(carrier)) {
+            return;
+        }
+        double perItem = model.loadPerItem();
+        double total = totalBq();
+        if (perItem <= 0 || total < perItem) {
+            return;
+        }
+        int count = (int) Math.min(carrier.getCount(), Math.floor(total / perItem));
+        if (count <= 0) {
+            return;
+        }
+        double share = perItem / total;
+        var atoms = new LinkedHashMap<String, Double>();
+        for (var stack : stored.values()) {
+            atoms.put(stack.isotope().id(), stack.atoms() * share);
+        }
+        var loaded = carrier.copyWithCount(count);
+        loaded.set(RadiationComponent.TYPE.get(), new RadiationComponent(atoms, clock));
+        int moved = count - items.insertItem(1, loaded, true).getCount();
+        if (moved <= 0) {
+            return;
+        }
+        loaded.setCount(moved);
+        items.insertItem(1, loaded, false);
+        items.extractItem(0, moved, false);
+        double taken = perItem * moved;
+        for (var stack : new ArrayList<>(stored.values())) {
+            removeActivity(stack, stack.currentActivityBq() / total * taken);
+        }
         changed.call();
     }
 
@@ -164,6 +217,28 @@ public class NuclearRadiationPortStorage implements IPortStorage {
             return 0;
         }
         return (int) Math.min(Integer.MAX_VALUE, Math.floor((model.capacity() - totalBq()) / perItem));
+    }
+
+    public boolean canLoad(ItemStack stack) {
+        return !stack.isEmpty() && isCarrier(stack) && !RadiationBindings.isRadioactive(stack);
+    }
+
+    private boolean isCarrier(ItemStack stack) {
+        if (model.carriers().isEmpty()) {
+            return true;
+        }
+        var id = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+        for (String entry : model.carriers()) {
+            if (entry.startsWith("#")) {
+                var tag = ResourceLocation.tryParse(entry.substring(1));
+                if (tag != null && stack.is(TagKey.create(Registries.ITEM, tag))) {
+                    return true;
+                }
+            } else if (entry.equals(id)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private IsotopeStack stackFor(Isotope isotope) {
@@ -284,20 +359,28 @@ public class NuclearRadiationPortStorage implements IPortStorage {
     @Override
     public void setupContainer(AbstractContainerMenu container, Inventory inv, PortModel portModel) {
         if (inputSide) {
-            container.addSlot(new SlotItemHandler(slot, 0, SLOT_X + 1, SLOT_Y + 1));
+            container.addSlot(new SlotItemHandler(items, 0, INPUT_SLOT_X + 1, SLOT_Y + 1));
+        } else {
+            container.addSlot(new SlotItemHandler(items, 0, CARRIER_SLOT_X + 1, SLOT_Y + 1));
+            container.addSlot(new SlotItemHandler(items, 1, LOADED_SLOT_X + 1, SLOT_Y + 1) {
+                @Override
+                public boolean mayPlace(ItemStack stack) {
+                    return false;
+                }
+            });
         }
         IPortStorage.super.setupContainer(container, inv, portModel);
     }
 
     @Override
     public <T> @Nullable T getCapability(BlockCapability<T, ?> capability) {
-        @SuppressWarnings("unchecked") var cast = (T) slot;
+        @SuppressWarnings("unchecked") var cast = (T) automation;
         return hasCapability(capability) ? cast : null;
     }
 
     @Override
     public <T> boolean hasCapability(BlockCapability<T, ?> capability) {
-        return inputSide && capability == Capabilities.ItemHandler.BLOCK;
+        return capability == Capabilities.ItemHandler.BLOCK;
     }
 
     @Override
@@ -313,7 +396,7 @@ public class NuclearRadiationPortStorage implements IPortStorage {
         }
         unresolved.forEach(entry -> list.add(entry.copy()));
         tag.put("Isotopes", list);
-        tag.put("Slot", slot.serializeNBT(registries));
+        tag.put("Slot", items.serializeNBT(registries));
         tag.putInt("Priority", priority);
         return tag;
     }
@@ -335,8 +418,20 @@ public class NuclearRadiationPortStorage implements IPortStorage {
                 stored.put(id, new IsotopeStack(isotope, entry.getDouble("Atoms"), entry.getLong("Time")));
             }
         }
-        if (tag.contains("Slot")) {
-            slot.deserializeNBT(registries, tag.getCompound("Slot"));
+        loading = true;
+        try {
+            for (int i = 0; i < items.getSlots(); i++) {
+                items.setStackInSlot(i, ItemStack.EMPTY);
+            }
+            if (tag.contains("Slot")) {
+                var saved = new ItemStackHandler();
+                saved.deserializeNBT(registries, tag.getCompound("Slot"));
+                for (int i = 0; i < Math.min(saved.getSlots(), items.getSlots()); i++) {
+                    items.setStackInSlot(i, saved.getStackInSlot(i));
+                }
+            }
+        } finally {
+            loading = false;
         }
         priority = Math.max(0, Math.min(10, tag.getInt("Priority")));
     }
@@ -377,5 +472,37 @@ public class NuclearRadiationPortStorage implements IPortStorage {
     @Override
     public void setPriority(int priority) {
         this.priority = Math.max(0, Math.min(10, priority));
+    }
+
+    private class AutomationHandler implements IItemHandler {
+        @Override
+        public int getSlots() {
+            return inputSide ? 1 : 2;
+        }
+
+        @Override
+        public ItemStack getStackInSlot(int slot) {
+            return items.getStackInSlot(slot);
+        }
+
+        @Override
+        public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+            return slot == 0 ? items.insertItem(0, stack, simulate) : stack;
+        }
+
+        @Override
+        public ItemStack extractItem(int slot, int amount, boolean simulate) {
+            return !inputSide && slot == 1 ? items.extractItem(1, amount, simulate) : ItemStack.EMPTY;
+        }
+
+        @Override
+        public int getSlotLimit(int slot) {
+            return items.getSlotLimit(slot);
+        }
+
+        @Override
+        public boolean isItemValid(int slot, ItemStack stack) {
+            return slot == 0 && items.isItemValid(0, stack);
+        }
     }
 }

@@ -14,7 +14,7 @@ public class NuclearRadiationPortMenu extends MMContainerMenu implements IPortMe
     private final NuclearRadiationPortBlockEntity be;
 
     public NuclearRadiationPortMenu(PortModel model, RegistryGroupHolder groupHolder, int windowId, NuclearRadiationPortBlockEntity be, Inventory inv) {
-        super(groupHolder.getMenu().get(), groupHolder.getBlock().get(), windowId, MenuUtils.createAccessFromBlockEntity(be), be.isInput() ? 1 : 0);
+        super(groupHolder.getMenu().get(), groupHolder.getBlock().get(), windowId, MenuUtils.createAccessFromBlockEntity(be), be.isInput() ? 1 : 2);
         this.model = model;
         this.be = be;
         be.getStorage().setupContainer(this, inv, model);

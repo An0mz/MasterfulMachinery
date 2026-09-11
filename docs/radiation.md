@@ -37,6 +37,8 @@ shows. It is not an amount of stuff like mB or items, and numbers get big fast: 
 | `isotopes` | any | Only accept these isotopes |
 | `decay` | `true` | Stored radiation decays at the isotope's real half-life |
 | `shielded` | `true` | When `false`, a port holding radiation irradiates the area around it |
+| `carriers` | any | Items an output port can load radiation onto — item ids or `#tags` |
+| `loadPerItem` | `1000000000000` | How many Bq an output port puts on each item (1 TBq) |
 
 Isotope ids start with `nr:` — `nr:u_235`, `nr:u_238`, `nr:pu_239`, `nr:cs_137`, `nr:co_60` and so
 on. JEI lists every isotope the mod knows.
@@ -80,6 +82,19 @@ A recipe can put radiation into an **output** port. Outputs must name an isotope
 { "type": "mm:output/simple", "ingredient": { "type": "mm:nuclear_radiation/radiation", "isotope": "nr:cs_137", "amount": 250000 } }
 ```
 
+## Getting radiation out
+
+The **output** port has two slots. Put an item in the left slot and the port loads `loadPerItem` Bq
+of its radiation onto it, then moves it to the right slot. The loaded item is radioactive like any
+other: it gives dose when carried, and another machine's radiation input port absorbs it. That is
+how radiation travels from one machine to the next.
+
+- `carriers` limits which items can be loaded — `"carriers": ["minecraft:glass_bottle", "#c:ingots"]`.
+  Leave it out to allow any item.
+- Items that are already radioactive are never loaded.
+- The port only loads an item once it holds a full `loadPerItem`.
+- Hoppers and pipes insert into the left slot and take from the right one.
+
 ## Decay
 
 With `decay` on, stored radiation fades at the isotope's real half-life, so short-lived isotopes
@@ -105,6 +120,8 @@ MMEvents.registerPorts(event => {
             config.isotope('nr:pu_239')
             config.decay(true)
             config.shielded(true)
+            config.carrier('minecraft:glass_bottle')
+            config.loadPerItem(1e12)
         })
 })
 ```

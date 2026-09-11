@@ -28,9 +28,15 @@ public class NuclearRadiationPortScreen extends AbstractContainerScreen<NuclearR
     protected void renderBg(GuiGraphics gfx, float partialTick, int mouseX, int mouseY) {
         gfx.blit(Ref.UiTextures.PORT_GUI, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
         if (be.isInput()) {
-            gfx.blit(Ref.UiTextures.SLOT_PARTS, this.leftPos + NuclearRadiationPortStorage.SLOT_X,
-                    this.topPos + NuclearRadiationPortStorage.SLOT_Y, 0, 26, 18, 18);
+            slot(gfx, NuclearRadiationPortStorage.INPUT_SLOT_X);
+        } else {
+            slot(gfx, NuclearRadiationPortStorage.CARRIER_SLOT_X);
+            slot(gfx, NuclearRadiationPortStorage.LOADED_SLOT_X);
         }
+    }
+
+    private void slot(GuiGraphics gfx, int x) {
+        gfx.blit(Ref.UiTextures.SLOT_PARTS, this.leftPos + x, this.topPos + NuclearRadiationPortStorage.SLOT_Y, 0, 26, 18, 18);
     }
 
     @Override
@@ -40,6 +46,10 @@ public class NuclearRadiationPortScreen extends AbstractContainerScreen<NuclearR
         for (Component line : be.getRadiationStorage().guiLines()) {
             gfx.drawString(this.font, line, 8, y, 0x404040, false);
             y += 11;
+        }
+        if (!be.isInput()) {
+            gfx.drawString(this.font, "→", NuclearRadiationPortStorage.CARRIER_SLOT_X + 22,
+                    NuclearRadiationPortStorage.SLOT_Y + 5, 0x404040, false);
         }
     }
 
