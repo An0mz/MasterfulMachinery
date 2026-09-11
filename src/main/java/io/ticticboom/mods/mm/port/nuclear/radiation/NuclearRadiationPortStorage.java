@@ -165,29 +165,49 @@ public class NuclearRadiationPortStorage implements IPortStorage {
         if (perItem <= 0 || total < perItem) {
             return;
         }
-        int count = (int) Math.min(carrier.getCount(), Math.floor(total / perItem));
-        if (count <= 0) {
-            return;
-        }
-        double share = perItem / total;
+        var shares = percentShares(total);
         var atoms = new LinkedHashMap<String, Double>();
-        for (var stack : stored.values()) {
-            atoms.put(stack.isotope().id(), stack.atoms() * share);
+        for (var entry : shares.entrySet()) {
+            var stack = entry.getKey();
+            double bq = perItem * entry.getValue() / 100.0;
+            if (stack.currentActivityBq() < bq) {
+                return;
+            }
+            atoms.put(stack.isotope().id(), atomsFor(stack.isotope(), bq));
         }
-        var loaded = carrier.copyWithCount(count);
-        loaded.set(RadiationComponent.TYPE.get(), new RadiationComponent(atoms, clock));
-        int moved = count - items.insertItem(1, loaded, true).getCount();
-        if (moved <= 0) {
+        var loaded = carrier.copyWithCount(1);
+        loaded.set(RadiationComponent.TYPE.get(), new RadiationComponent(atoms, 0L));
+        if (!items.insertItem(1, loaded, true).isEmpty()) {
             return;
         }
-        loaded.setCount(moved);
         items.insertItem(1, loaded, false);
-        items.extractItem(0, moved, false);
-        double taken = perItem * moved;
-        for (var stack : new ArrayList<>(stored.values())) {
-            removeActivity(stack, stack.currentActivityBq() / total * taken);
+        items.extractItem(0, 1, false);
+        for (var entry : shares.entrySet()) {
+            removeActivity(entry.getKey(), perItem * entry.getValue() / 100.0);
         }
         changed.call();
+    }
+
+    private Map<IsotopeStack, Integer> percentShares(double total) {
+        var shares = new LinkedHashMap<IsotopeStack, Integer>();
+        IsotopeStack largest = null;
+        int assigned = 0;
+        for (var stack : stored.values()) {
+            double bq = stack.currentActivityBq();
+            if (largest == null || bq > largest.currentActivityBq()) {
+                largest = stack;
+            }
+            int percent = (int) Math.round(bq / total * 100);
+            if (percent > 0) {
+                shares.put(stack, percent);
+                assigned += percent;
+            }
+        }
+        if (largest != null && assigned != 100) {
+            shares.merge(largest, 100 - assigned, Integer::sum);
+        }
+        shares.values().removeIf(percent -> percent <= 0);
+        return shares;
     }
 
     private double perItemBq(RadiationProfile profile) {

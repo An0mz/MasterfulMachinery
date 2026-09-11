@@ -92,7 +92,8 @@ how radiation travels from one machine to the next.
 - `carriers` limits which items can be loaded — `"carriers": ["minecraft:glass_bottle", "#c:ingots"]`.
   Leave it out to allow any item.
 - Items that are already radioactive are never loaded.
-- The port only loads an item once it holds a full `loadPerItem`.
+- The port only loads an item once it holds a full `loadPerItem`, and loads one item per tick.
+- Items loaded from the same isotopes stack together.
 - Hoppers and pipes insert into the left slot and take from the right one.
 
 ## Decay
