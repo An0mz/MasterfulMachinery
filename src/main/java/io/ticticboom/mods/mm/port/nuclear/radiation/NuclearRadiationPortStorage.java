@@ -66,6 +66,11 @@ public class NuclearRadiationPortStorage implements IPortStorage {
             }
 
             @Override
+            protected int getStackLimit(int index, ItemStack stack) {
+                return Math.min(super.getStackLimit(index, stack), absorbableCount(stack));
+            }
+
+            @Override
             protected void onContentsChanged(int index) {
                 changed.call();
             }
@@ -147,11 +152,18 @@ public class NuclearRadiationPortStorage implements IPortStorage {
     }
 
     public boolean canAbsorb(ItemStack stack) {
+        return absorbableCount(stack) > 0;
+    }
+
+    public int absorbableCount(ItemStack stack) {
         if (stack.isEmpty()) {
-            return false;
+            return 0;
         }
         double perItem = perItemBq(RadiationBindings.of(stack));
-        return perItem > 0 && perItem <= model.capacity() - totalBq();
+        if (perItem <= 0) {
+            return 0;
+        }
+        return (int) Math.min(Integer.MAX_VALUE, Math.floor((model.capacity() - totalBq()) / perItem));
     }
 
     private IsotopeStack stackFor(Isotope isotope) {
