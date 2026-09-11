@@ -160,31 +160,49 @@ public class NuclearRadiationPortStorage implements IPortStorage {
         if (carrier.isEmpty() || !canLoad(carrier)) {
             return;
         }
-        double perItem = model.loadPerItem();
-        double total = totalBq();
-        if (perItem <= 0 || total < perItem) {
-            return;
-        }
-        var shares = percentShares(total);
-        var atoms = new LinkedHashMap<String, Double>();
-        for (var entry : shares.entrySet()) {
-            var stack = entry.getKey();
-            double bq = perItem * entry.getValue() / 100.0;
-            if (stack.currentActivityBq() < bq) {
+        var existing = items.getStackInSlot(1);
+        var existingComponent = existing.isEmpty() ? null : existing.get(RadiationComponent.TYPE.get());
+        RadiationComponent component;
+        var take = new LinkedHashMap<IsotopeStack, Double>();
+        if (existingComponent != null && ItemStack.isSameItem(existing, carrier)) {
+            component = existingComponent;
+            for (var source : existingComponent.toProfile(clock).stacks()) {
+                var stack = stored.get(source.isotope().id());
+                double bq = source.currentActivityBq();
+                if (stack == null || stack.currentActivityBq() < bq) {
+                    return;
+                }
+                take.put(stack, bq);
+            }
+        } else {
+            double perItem = model.loadPerItem();
+            double total = totalBq();
+            if (perItem <= 0 || total < perItem) {
                 return;
             }
-            atoms.put(stack.isotope().id(), atomsFor(stack.isotope(), bq));
+            var atoms = new LinkedHashMap<String, Double>();
+            for (var entry : percentShares(total).entrySet()) {
+                var stack = entry.getKey();
+                double bq = perItem * entry.getValue() / 100.0;
+                if (stack.currentActivityBq() < bq) {
+                    return;
+                }
+                atoms.put(stack.isotope().id(), atomsFor(stack.isotope(), bq));
+                take.put(stack, bq);
+            }
+            component = new RadiationComponent(atoms, clock);
+        }
+        if (take.isEmpty()) {
+            return;
         }
         var loaded = carrier.copyWithCount(1);
-        loaded.set(RadiationComponent.TYPE.get(), new RadiationComponent(atoms, 0L));
+        loaded.set(RadiationComponent.TYPE.get(), component);
         if (!items.insertItem(1, loaded, true).isEmpty()) {
             return;
         }
         items.insertItem(1, loaded, false);
         items.extractItem(0, 1, false);
-        for (var entry : shares.entrySet()) {
-            removeActivity(entry.getKey(), perItem * entry.getValue() / 100.0);
-        }
+        take.forEach(this::removeActivity);
         changed.call();
     }
 

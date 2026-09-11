@@ -93,7 +93,8 @@ how radiation travels from one machine to the next.
   Leave it out to allow any item.
 - Items that are already radioactive are never loaded.
 - The port only loads an item once it holds a full `loadPerItem`, and loads one item per tick.
-- Items loaded from the same isotopes stack together.
+- Loaded items collect into one stack in the port. Once taken out they decay like any other
+  radioactive item, so stacks loaded at different times may not combine.
 - Hoppers and pipes insert into the left slot and take from the right one.
 
 ## Decay
