@@ -214,6 +214,7 @@ player builds it.
 | `{ "portType": "mm:energy" }` | Any port of that type |
 | `{ "portType": "mm:energy", "minTier": 2, "maxTier": 3 }` | Only ports whose `tierRank` is in range |
 | `{ "stateList": "casing" }` | Any option from a named state list |
+| `{ "anyOf": [ { ... }, { ... } ] }` | Any one of the listed keys — ports, blocks, tags, each with their own settings |
 
 `port` and `portType` also accept `"anywhere": true`. The port then does not have to sit in that
 exact position — any of the port positions in the structure will do, as long as every port still

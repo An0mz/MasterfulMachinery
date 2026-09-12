@@ -273,6 +273,31 @@ Mark the port spots in the layout, then let the player choose which port goes wh
 
 Any item port fits either `P`.
 
+### Flexible hatch spots
+
+Let one spot take any of several ports, each with its own tiers, or plain casing:
+
+```json
+"F": { "anyOf": [
+  { "portType": "mm:item",   "input": true, "maxTier": 8 },
+  { "portType": "mm:fluid",  "input": true, "maxTier": 8 },
+  { "portType": "mm:energy", "input": true, "maxTier": 4 },
+  { "block": "minecraft:iron_block" }
+] }
+```
+
+```js
+layout.key('F', { anyOf: [
+    { portType: 'mm:item', input: true, maxTier: 8 },
+    { portType: 'mm:fluid', input: true, maxTier: 8 },
+    { portType: 'mm:energy', input: true, maxTier: 4 },
+    { block: 'minecraft:iron_block' }
+] })
+```
+
+Every `F` can be any one of those. The machine uses whatever ports end up in it, so a player who
+needs no fluids just builds casing there instead.
+
 ### Tiered parts
 
 Give ports a `tierRank` in their config:

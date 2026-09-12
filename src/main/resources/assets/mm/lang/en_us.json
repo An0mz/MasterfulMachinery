@@ -73,6 +73,7 @@
   "piece.mm.port_anywhere.description": "Port (anywhere): %s",
   "piece.mm.port_type.description": "Port Type: %s",
   "piece.mm.port_type_anywhere.description": "Port Type (anywhere): %s",
+  "piece.mm.any_of.description": "One of %s options",
 
   "gui.mm.structure.controller": "Controller",
   "gui.mm.controller.formed_as": "Formed As:",
