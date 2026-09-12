@@ -109,7 +109,7 @@ This structure's id is `mypack:alloy_kiln`, from the folder and file name.
   "ticks": 100,
   "inputs": [
     { "type": "mm:input/consume", "ingredient": { "type": "mm:item", "item": "minecraft:copper_ingot", "count": 9 } },
-    { "type": "mm:input/consume", "per_tick": true, "ingredient": { "type": "mm:energy", "amount": 40 } }
+    { "type": "mm:input/consume", "per_tick": true, "ingredient": { "type": "mm:energy", "amount": 4000 } }
   ],
   "outputs": [
     { "type": "mm:output/simple", "ingredient": { "type": "mm:item", "item": "minecraft:copper_block", "count": 1 } }
@@ -117,7 +117,7 @@ This structure's id is `mypack:alloy_kiln`, from the folder and file name.
 }
 ```
 
-9 copper ingots and 40 FE every tick for 5 seconds make one copper block.
+9 copper ingots and 4,000 FE, drawn evenly over 5 seconds, make one copper block.
 
 ### Trying it
 
@@ -181,7 +181,7 @@ MMEvents.createProcesses(event => {
         .structureId('kubejs:kjs_kiln')
         .ticks(100)
         .input({ type: 'mm:input/consume', ingredient: { type: 'mm:item', item: 'minecraft:copper_ingot', count: 9 } })
-        .input({ type: 'mm:input/consume', per_tick: true, ingredient: { type: 'mm:energy', amount: 40 } })
+        .input({ type: 'mm:input/consume', per_tick: true, ingredient: { type: 'mm:energy', amount: 4000 } })
         .output({ type: 'mm:output/simple', ingredient: { type: 'mm:item', item: 'minecraft:copper_block', count: 1 } })
 })
 ```

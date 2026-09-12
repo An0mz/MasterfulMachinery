@@ -4,6 +4,7 @@ import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.port.IPortStorage;
 import io.ticticboom.mods.mm.port.energy.EnergyPortStorage;
 import io.ticticboom.mods.mm.port.energy.EnergyPortStorageModel;
+import io.ticticboom.mods.mm.util.NumberText;
 import io.ticticboom.mods.mm.util.WidgetUtils;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -51,7 +52,7 @@ public class EnergyPortScreen extends AbstractContainerScreen<EnergyPortMenu> {
         gfx.blit(Ref.UiTextures.SLOT_PARTS, this.leftPos + 8, this.topPos + start, 90, 0, 160, filledHeight);
         if (WidgetUtils.isPointerWithinSized(mouseX, mouseY, this.leftPos + 7, this.topPos + 50, 162, 80)) {
             var tooltip = new ArrayList<Component>();
-            tooltip.add(Component.translatable("gui.mm.port.energy.storage", storage.getStoredEnergy(), storageModel.capacity()));
+            tooltip.add(Component.translatable("gui.mm.port.energy.storage", NumberText.grouped(storage.getStoredEnergy()), NumberText.grouped(storageModel.capacity())));
             gfx.renderComponentTooltip(this.font, tooltip, mouseX, mouseY);
         }
     }

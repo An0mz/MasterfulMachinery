@@ -43,14 +43,14 @@ public class EnergyPortStorage implements IPortStorage {
 
     @Override
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
-        tag.put("handler", handler.serializeNBT(registries));
+        tag.put("handler", handler.serialize());
         tag.putInt("Priority", this.priority);
         return tag;
     }
 
     @Override
     public void load(CompoundTag tag, HolderLookup.Provider registries) {
-        handler.deserializeNBT(registries, tag.get("handler"));
+        handler.deserialize(tag.get("handler"));
         if (tag.contains("Priority")) {
             this.priority = Math.max(0, Math.min(10, tag.getInt("Priority")));
         } else {
@@ -72,7 +72,7 @@ public class EnergyPortStorage implements IPortStorage {
     public JsonObject debugDump() {
         JsonObject dump = new JsonObject();
         dump.addProperty("uid", uid.toString());
-        dump.addProperty("stored", handler.getEnergyStored());
+        dump.addProperty("stored", handler.getStored());
         dump.addProperty("maxReceive", model.maxReceive());
         dump.addProperty("maxExtract", model.maxExtract());
         dump.addProperty("capacity", model.capacity());
@@ -80,16 +80,16 @@ public class EnergyPortStorage implements IPortStorage {
         return dump;
     }
 
-    public int internalExtract(int amount, boolean simulate) {
-        return handler.unboundedExtractEnergy(amount, simulate);
+    public long internalExtract(long amount, boolean simulate) {
+        return handler.extract(amount, simulate);
     }
 
-    public int internalInsert(int amount, boolean simulate) {
-        return handler.unboundedReceiveEnergy(amount, simulate);
+    public long internalInsert(long amount, boolean simulate) {
+        return handler.insert(amount, simulate);
     }
 
-    public int getStoredEnergy()  {
-        return handler.getEnergyStored();
+    public long getStoredEnergy() {
+        return handler.getStored();
     }
 
     // Priority accessors

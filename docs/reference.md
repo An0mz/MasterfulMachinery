@@ -125,6 +125,9 @@ Notes on the config keys:
   normal stack size. On fluid ports it is required and is the mB each tank holds.
 - **`autoPush`** — the port pushes its contents into neighbouring blocks on its own. Off by default;
   the default can be changed in the config.
+- **Energy above 2.1 billion** — `capacity`, `maxReceive`, `maxExtract` and recipe amounts can go
+  past 2,147,483,647 FE. Other mods still move at most 2,147,483,647 FE per transfer, and their
+  displays stop at that number.
 - **`tierRank`** — any port can have a `tierRank` number in its `config`. Structures can then ask for
   "any energy port of tier 2 or higher" — see [Structure keys](#structure-keys).
 
@@ -285,7 +288,7 @@ structure.
   "inputs": [
     { "type": "mm:input/consume", "ingredient": { "type": "mm:item", "item": "minecraft:copper_ingot", "count": 3 } },
     { "type": "mm:input/consume", "ingredient": { "type": "mm:item", "tag": "c:ingots/tin", "count": 1 } },
-    { "type": "mm:input/consume", "per_tick": true, "ingredient": { "type": "mm:energy", "amount": 40 } }
+    { "type": "mm:input/consume", "per_tick": true, "ingredient": { "type": "mm:energy", "amount": 4000 } }
   ],
   "outputs": [
     { "type": "mm:output/simple", "ingredient": { "type": "mm:item", "item": "minecraft:copper_block", "count": 1 } }
@@ -310,7 +313,7 @@ Inputs use `mm:input/consume` and outputs use `mm:output/simple`. Both take:
 |---|---|
 | `ingredient` | What is taken or made. The `type` is the port type |
 | `chance` | `0`–`1`. `0.25` means a 25% chance each craft. Default `1` |
-| `per_tick` | Take or make the amount every tick instead of once. Useful for energy |
+| `per_tick` | Spread the ingredient over the recipe instead of taking it at the start. For energy, `amount` is the total for the whole recipe; for heat, matter and radiation it is taken every tick |
 
 An item ingredient can also be written as just a string: `"ingredient": "minecraft:diamond"`.
 
@@ -362,7 +365,7 @@ MMEvents.createProcesses(event => {
         .ticks(100)
         .parallelProcessing(true)
         .input({ type: 'mm:input/consume', ingredient: { type: 'mm:item', item: 'minecraft:copper_ingot', count: 3 } })
-        .input({ type: 'mm:input/consume', per_tick: true, ingredient: { type: 'mm:energy', amount: 40 } })
+        .input({ type: 'mm:input/consume', per_tick: true, ingredient: { type: 'mm:energy', amount: 4000 } })
         .output({ type: 'mm:output/simple', chance: 0.5, ingredient: { type: 'mm:item', item: 'minecraft:copper_block', count: 1 } })
 })
 ```

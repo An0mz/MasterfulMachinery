@@ -1,51 +1,92 @@
 package io.ticticboom.mods.mm.port.energy;
 
 import io.ticticboom.mods.mm.port.common.INotifyChangeFunction;
-import net.minecraft.nbt.CompoundTag;
-import net.neoforged.neoforge.energy.EnergyStorage;
+import net.minecraft.nbt.LongTag;
+import net.minecraft.nbt.NumericTag;
+import net.minecraft.nbt.Tag;
+import net.neoforged.neoforge.energy.IEnergyStorage;
 
-public class EnergyPortHandler extends EnergyStorage {
+public class EnergyPortHandler implements IEnergyStorage {
+    private final long capacity;
+    private final long maxReceive;
+    private final long maxExtract;
     private final INotifyChangeFunction changed;
+    private long energy;
 
-    public EnergyPortHandler(int capacity, int maxReceive, int maxExtract, INotifyChangeFunction changed) {
-        super(capacity, maxReceive, maxExtract);
+    public EnergyPortHandler(long capacity, long maxReceive, long maxExtract, INotifyChangeFunction changed) {
+        this.capacity = capacity;
+        this.maxReceive = maxReceive;
+        this.maxExtract = maxExtract;
         this.changed = changed;
     }
 
-    public int unboundedReceiveEnergy(int maxReceive, boolean simulate) {
-        var originalReceive = this.maxReceive;
-        this.maxReceive = maxReceive;
-        var resp = receiveEnergy(maxReceive, simulate);
-        this.maxReceive = originalReceive;
-        return resp;
+    public long getStored() {
+        return energy;
     }
 
-    public int unboundedExtractEnergy(int maxExtract, boolean simulate) {
-        var originalReceive = this.maxExtract;
-        this.maxExtract = maxExtract;
+    public long getCapacity() {
+        return capacity;
+    }
 
-        var resp = extractEnergy(maxExtract, simulate);
+    public long insert(long amount, boolean simulate) {
+        long accepted = Math.max(0, Math.min(amount, capacity - energy));
+        if (!simulate && accepted > 0) {
+            energy += accepted;
+            changed.call();
+        }
+        return accepted;
+    }
 
-        this.maxExtract = originalReceive;
-        return resp;
+    public long extract(long amount, boolean simulate) {
+        long taken = Math.max(0, Math.min(amount, energy));
+        if (!simulate && taken > 0) {
+            energy -= taken;
+            changed.call();
+        }
+        return taken;
     }
 
     @Override
-    public int receiveEnergy(int maxReceive, boolean simulate) {
-        int result = super.receiveEnergy(maxReceive, simulate);
-        if (result > 0 && !simulate) {
-            changed.call();
+    public int receiveEnergy(int toReceive, boolean simulate) {
+        if (!canReceive() || toReceive <= 0) {
+            return 0;
         }
-        return result;
+        return (int) insert(Math.min(toReceive, maxReceive), simulate);
     }
 
     @Override
-    public int extractEnergy(int maxExtract, boolean simulate) {
-        int result = super.extractEnergy(maxExtract, simulate);
-        if (result > 0 && !simulate) {
-            changed.call();
+    public int extractEnergy(int toExtract, boolean simulate) {
+        if (!canExtract() || toExtract <= 0) {
+            return 0;
         }
-        return result;
+        return (int) extract(Math.min(toExtract, maxExtract), simulate);
     }
 
+    @Override
+    public int getEnergyStored() {
+        return (int) Math.min(energy, Integer.MAX_VALUE);
+    }
+
+    @Override
+    public int getMaxEnergyStored() {
+        return (int) Math.min(capacity, Integer.MAX_VALUE);
+    }
+
+    @Override
+    public boolean canExtract() {
+        return maxExtract > 0;
+    }
+
+    @Override
+    public boolean canReceive() {
+        return maxReceive > 0;
+    }
+
+    public Tag serialize() {
+        return LongTag.valueOf(energy);
+    }
+
+    public void deserialize(Tag tag) {
+        energy = tag instanceof NumericTag number ? Math.max(0, Math.min(capacity, number.getAsLong())) : 0;
+    }
 }

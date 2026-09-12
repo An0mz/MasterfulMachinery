@@ -48,7 +48,7 @@ public class EnergyPortAutoPushFeature extends AbstractPortAutoPushFeature<Energ
         var sourceStorage = sourcePbe.getStorage();
         if (!(sourceStorage instanceof io.ticticboom.mods.mm.port.energy.EnergyPortStorage source)) return;
 
-        int available = source.getStoredEnergy();
+        long available = source.getStoredEnergy();
         if (available > 0) {
             EnergyPortRouting.distributeFillThrough(available, source, candidates);
         }

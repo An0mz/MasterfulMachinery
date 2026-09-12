@@ -1,6 +1,7 @@
 package io.ticticboom.mods.mm.compat.jei.ingredient.energy;
 
 import io.ticticboom.mods.mm.Ref;
+import io.ticticboom.mods.mm.util.NumberText;
 import mezz.jei.api.ingredients.IIngredientRenderer;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -21,7 +22,10 @@ public class EnergyIngredientRenderer implements IIngredientRenderer<EnergyStack
     @Override
     public @NotNull List<Component> getTooltip(EnergyStack ingredient, @NotNull TooltipFlag tooltipFlag) {
         var result = new ArrayList<Component>();
-        result.add(Component.translatable("jei.mm.ingredient.energy.amount", ingredient.amount()));
+        String amount = ingredient.max() > ingredient.min()
+                ? NumberText.grouped(ingredient.min()) + " – " + NumberText.grouped(ingredient.max())
+                : NumberText.grouped(ingredient.max());
+        result.add(Component.translatable("jei.mm.ingredient.energy.amount", amount));
         return result;
     }
 }

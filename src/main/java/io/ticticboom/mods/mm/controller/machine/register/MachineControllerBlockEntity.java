@@ -886,14 +886,14 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                                 if (inputEntry instanceof ConsumeRecipeIngredientEntry cre) {
                                     var ingr = cre.getIngredient();
                                     if (cre.isPerTick() && ingr instanceof EnergyPortIngredient epi) {
-                                        int total = epi.resolveAmount(state);
+                                        long total = epi.resolveAmount(state);
                                         int ticks = Math.max(1, recipe.ticks());
-                                        int base = total / ticks;
-                                        int rem = total % ticks;
+                                        long base = total / ticks;
+                                        long rem = total % ticks;
                                         int tickIndex = state.getTickProgress();
-                                        int toExtract = base + ((tickIndex == ticks - 1) ? rem : 0);
+                                        long toExtract = base + ((tickIndex == ticks - 1) ? rem : 0);
                                         if (toExtract > 0 && portStorages != null) {
-                                            int remaining = toExtract;
+                                            long remaining = toExtract;
                                             var inputStorages = portStorages.getInputStorages(EnergyPortStorage.class);
                                             for (EnergyPortStorage storage : inputStorages) {
                                                 var extracted = storage.internalExtract(remaining, false);

@@ -32,7 +32,7 @@ public class EnergyIngredientHelper implements IIngredientHelper<EnergyStack> {
 
     @Override
     public @NotNull EnergyStack copyIngredient(EnergyStack ingredient) {
-        return new EnergyStack(ingredient.amount());
+        return new EnergyStack(ingredient.min(), ingredient.max());
     }
 
     @Override
