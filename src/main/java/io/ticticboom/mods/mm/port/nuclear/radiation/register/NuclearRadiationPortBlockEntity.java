@@ -19,6 +19,7 @@ import org.jetbrains.annotations.Nullable;
 public class NuclearRadiationPortBlockEntity extends AbstractPortBlockEntity {
 
     private static final int HAZARD_REFRESH = 100;
+    private static final int HAZARD_MIN_INTERVAL = 20;
 
     private final PortModel model;
     private final RegistryGroupHolder groupHolder;
@@ -26,6 +27,7 @@ public class NuclearRadiationPortBlockEntity extends AbstractPortBlockEntity {
     private final NuclearRadiationPortStorage storage;
     private final NuclearRadiationPortHazard hazard;
     private boolean hazardDirty = true;
+    private long lastHazardUpdate = Long.MIN_VALUE / 2;
 
     public NuclearRadiationPortBlockEntity(PortModel model, RegistryGroupHolder groupHolder, boolean isInput, BlockPos pos, BlockState state) {
         super(groupHolder.getBe().get(), pos, state);
@@ -49,9 +51,12 @@ public class NuclearRadiationPortBlockEntity extends AbstractPortBlockEntity {
         }
         lastTick = level.getGameTime();
         storage.tick(lastTick);
-        if (hazard != null && level instanceof ServerLevel server && (hazardDirty || lastTick % HAZARD_REFRESH == 0)) {
+        long sinceUpdate = lastTick - lastHazardUpdate;
+        if (hazard != null && level instanceof ServerLevel server
+                && ((hazardDirty && sinceUpdate >= HAZARD_MIN_INTERVAL) || sinceUpdate >= HAZARD_REFRESH)) {
             hazard.update(server, getBlockPos(), storage.profile(lastTick));
             hazardDirty = false;
+            lastHazardUpdate = lastTick;
         }
     }
 
