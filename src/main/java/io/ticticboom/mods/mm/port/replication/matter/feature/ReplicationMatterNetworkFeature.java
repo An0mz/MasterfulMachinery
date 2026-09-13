@@ -7,19 +7,32 @@ import com.buuz135.replication.api.network.IMatterTanksSupplier;
 import com.buuz135.replication.network.DefaultMatterNetworkElement;
 import com.buuz135.replication.network.MatterNetwork;
 import com.hrznstudio.titanium.block_network.NetworkManager;
+import io.ticticboom.mods.mm.port.replication.matter.MatterTypes;
+import io.ticticboom.mods.mm.port.replication.matter.ReplicationMatterPortIngredient;
 import io.ticticboom.mods.mm.port.replication.matter.ReplicationMatterPortStorage;
 import io.ticticboom.mods.mm.port.replication.matter.ReplicationMatterPortTank;
 import io.ticticboom.mods.mm.port.replication.matter.register.ReplicationMatterPortBlockEntity;
+import io.ticticboom.mods.mm.recipe.MachineRecipeManager;
+import io.ticticboom.mods.mm.recipe.input.consume.ConsumeRecipeIngredientEntry;
+import io.ticticboom.mods.mm.structure.StructureManager;
 import net.minecraft.server.level.ServerLevel;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 public class ReplicationMatterNetworkFeature {
 
     private static final int PULL_INTERVAL = 5;
+    private static final int RECIPE_SCAN_INTERVAL = 100;
 
     private final ReplicationMatterPortBlockEntity portBlockEntity;
     private boolean joined = false;
     private boolean unloaded = false;
+    private List<IMatterType> recipeTypes = List.of();
+    private long lastRecipeScan = Long.MIN_VALUE / 2;
 
     public ReplicationMatterNetworkFeature(ReplicationMatterPortBlockEntity portBlockEntity) {
         this.portBlockEntity = portBlockEntity;
@@ -68,7 +81,8 @@ public class ReplicationMatterNetworkFeature {
         if (!(portBlockEntity.getLevel() instanceof ServerLevel level)) {
             return;
         }
-        if (level.getGameTime() % PULL_INTERVAL != 0) {
+        long now = level.getGameTime();
+        if (now % PULL_INTERVAL != 0) {
             return;
         }
         if (!(portBlockEntity.getStorage() instanceof ReplicationMatterPortStorage storage)) {
@@ -78,10 +92,16 @@ public class ReplicationMatterNetworkFeature {
         if (network == null) {
             return;
         }
-        for (ReplicationMatterPortTank tank : storage.getHandler().tanks()) {
+        var tanks = storage.getHandler().tanks();
+        var covered = coveredTypes(tanks);
+        for (ReplicationMatterPortTank tank : tanks) {
             var type = tank.getRequestedType();
             if (type == null) {
-                continue;
+                type = nextWantedType(now, covered);
+                if (type == null) {
+                    continue;
+                }
+                covered.add(type);
             }
             double wanted = tank.getCapacity() - tank.getMatterAmount();
             if (wanted <= 0) {
@@ -89,6 +109,50 @@ public class ReplicationMatterNetworkFeature {
             }
             pull(level, network, tank, type, wanted);
         }
+    }
+
+    private Set<IMatterType> coveredTypes(List<ReplicationMatterPortTank> tanks) {
+        var covered = new HashSet<IMatterType>();
+        for (ReplicationMatterPortTank tank : tanks) {
+            var type = tank.getRequestedType();
+            if (type != null) {
+                covered.add(type);
+            }
+        }
+        return covered;
+    }
+
+    private IMatterType nextWantedType(long now, Set<IMatterType> covered) {
+        if (now - lastRecipeScan >= RECIPE_SCAN_INTERVAL) {
+            lastRecipeScan = now;
+            recipeTypes = scanRecipeTypes();
+        }
+        for (IMatterType type : recipeTypes) {
+            if (!covered.contains(type)) {
+                return type;
+            }
+        }
+        return null;
+    }
+
+    private List<IMatterType> scanRecipeTypes() {
+        var result = new LinkedHashSet<IMatterType>();
+        for (var controllerId : portBlockEntity.getModel().controllerIds().getIds()) {
+            for (var structure : StructureManager.getStructuresForController(controllerId)) {
+                for (var recipe : MachineRecipeManager.getRecipesByStrucutreId(structure.id())) {
+                    for (var entry : recipe.inputs().inputs()) {
+                        if (entry instanceof ConsumeRecipeIngredientEntry consume
+                                && consume.getIngredient() instanceof ReplicationMatterPortIngredient matter) {
+                            var type = MatterTypes.get(matter.getMatterId());
+                            if (type != null) {
+                                result.add(type);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return List.copyOf(result);
     }
 
     private void pull(ServerLevel level, MatterNetwork network, ReplicationMatterPortTank tank, IMatterType type, double wanted) {

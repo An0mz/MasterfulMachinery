@@ -33,7 +33,7 @@ empties itself into your matter tanks the way a Disintegrator does. Matter pipes
 |---|---|---|
 | `capacity` | `1000` | How much each tank holds |
 | `matter` | none | Type each tank is reserved for. One string, or a list for several tanks |
-| `tanks` | as many as `matter` | Unreserved tanks, which lock to whatever arrives first |
+| `tanks` | as many as `matter` | Unreserved tanks. Each holds one type at a time, and on an input port they pull the matter types the machine's recipes use |
 | `priority` | `0` | MM's own output ordering, clamped to 0–10 |
 | `network` | `true` | Set false to keep the port off the matter network entirely |
 
