@@ -25,6 +25,9 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   Works the same from KubeJS.
 
 ### Fixed
+- **Free matter tanks now fill.** Matter input ports set up with `tanks` and no `matter` never took
+  anything from the network. Each free tank now pulls one of the matter types the machine's recipes
+  use.
 - The docs said a `per_tick` energy amount is taken every tick. It is the total for the whole
   recipe, spread across it. The docs and examples now say so.
 
