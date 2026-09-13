@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.7.0] - 2026-09-12
+
+### Added
+- **Nuclear Radiation port.** With [Nuclear Radiation](https://www.curseforge.com/minecraft/mc-mods/nuclear-radiation)
+  installed, `mm:nuclear_radiation/radiation` ports store radioactive isotopes, measured in Bq.
+  - Put radioactive items in an input port and it absorbs their radiation.
+  - Recipes can use a specific isotope (`"isotope": "nr:u_235"`) or any radiation, and can make
+    radiation as an output.
+  - Output ports load radiation onto items, so it can travel from one machine to the next.
+  - Stored radiation decays at its real half-life unless `"decay": false`.
+  - Ports are sealed by default; `"shielded": false` makes a port irradiate the area around it.
+  - `isotopes`, `carriers` and `loadPerItem` limit what a port accepts and loads.
+  - See `docs/radiation.md`.
+- **Energy past 2.1 billion FE.** Energy port `capacity`, `maxReceive` and `maxExtract`, and energy
+  amounts in recipes, can now go above 2,147,483,647 FE. Other mods still move at most that much per
+  transfer.
+- **`anyOf` structure key.** One spot can accept any of several keys, each with its own settings:
+  `{ "anyOf": [ { "portType": "mm:item", "maxTier": 8 }, { "block": "minecraft:iron_block" } ] }`.
+  Works the same from KubeJS.
+
+### Fixed
+- The docs said a `per_tick` energy amount is taken every tick. It is the total for the whole
+  recipe, spread across it. The docs and examples now say so.
+
 ## [1.21.1-0.6.2] - 2026-09-10
 
 ### Added
