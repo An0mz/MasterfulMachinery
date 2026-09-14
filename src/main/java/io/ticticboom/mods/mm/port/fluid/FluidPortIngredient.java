@@ -183,4 +183,10 @@ public class FluidPortIngredient implements IPortIngredient {
         json.add("searchedStorages", searchedStorages);
         return json;
     }
+
+    @Override
+    public net.minecraft.network.chat.Component displayName() {
+        return new net.neoforged.neoforge.fluids.FluidStack(
+                net.minecraft.core.registries.BuiltInRegistries.FLUID.get(getFluidId()), 1).getHoverName();
+    }
 }

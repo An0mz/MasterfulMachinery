@@ -6,7 +6,10 @@ import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.cap.ReplicationCapabilities;
 import io.ticticboom.mods.mm.port.IPortStorage;
 import io.ticticboom.mods.mm.port.IPortStorageModel;
+import io.ticticboom.mods.mm.port.IRecipeDemandListener;
 import io.ticticboom.mods.mm.port.common.INotifyChangeFunction;
+import io.ticticboom.mods.mm.recipe.RecipeModel;
+import io.ticticboom.mods.mm.recipe.input.consume.ConsumeRecipeIngredientEntry;
 import lombok.Getter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -16,9 +19,13 @@ import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
-public class ReplicationMatterPortStorage implements IPortStorage {
+public class ReplicationMatterPortStorage implements IPortStorage, IRecipeDemandListener {
+
+    private static final long DEMAND_TIMEOUT = 40;
 
     private final ReplicationMatterPortStorageModel model;
     @Getter
@@ -26,6 +33,8 @@ public class ReplicationMatterPortStorage implements IPortStorage {
     private final UUID uid = UUID.randomUUID();
 
     private int priority;
+    private RecipeModel demandRecipe;
+    private long demandTick = Long.MIN_VALUE / 2;
 
     public ReplicationMatterPortStorage(ReplicationMatterPortStorageModel model, INotifyChangeFunction changed) {
         this.model = model;
@@ -110,6 +119,33 @@ public class ReplicationMatterPortStorage implements IPortStorage {
             }
         }
         return lines;
+    }
+
+    @Override
+    public void setRecipeDemand(long gameTime, @Nullable RecipeModel recipe) {
+        demandRecipe = recipe;
+        demandTick = gameTime;
+    }
+
+    public boolean hasFreshDemand(long gameTime) {
+        return gameTime - demandTick <= DEMAND_TIMEOUT;
+    }
+
+    public List<IMatterType> demandedMatterTypes() {
+        if (demandRecipe == null) {
+            return List.of();
+        }
+        var types = new ArrayList<IMatterType>();
+        for (var entry : demandRecipe.inputs().inputs()) {
+            if (entry instanceof ConsumeRecipeIngredientEntry consume
+                    && consume.getIngredient() instanceof ReplicationMatterPortIngredient matter) {
+                var type = MatterTypes.get(matter.getMatterId());
+                if (type != null && !types.contains(type)) {
+                    types.add(type);
+                }
+            }
+        }
+        return types;
     }
 
     public int internalExtract(IMatterType type, int amount, boolean simulate) {

@@ -23,6 +23,10 @@ public interface IPortIngredient {
     default void ditchRecipe(Level level, RecipeStorages storages, RecipeStateModel state) {
     }
 
+    default net.minecraft.network.chat.Component displayName() {
+        return null;
+    }
+
     default AmountRange getAmountRange() {
         return null;
     }

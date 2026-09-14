@@ -121,6 +121,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     // track last-start sequence per recipe to break ties when multiple recipes
     // compete for the same input item key during round-robin selection
     private final Map<ResourceLocation, Long> recipeLastStartedSequence = new HashMap<>();
+    @Getter
+    private ResourceLocation selectedRecipeId = null;
 
     public void tick() {
         if (level == null || level.isClientSide() || isRemoved()) {
@@ -202,6 +204,14 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         }
         detectExternalStorageChanges();
         long gameTime = (level == null) ? 0L : level.getGameTime();
+        if (isManualSelection() && portStorages != null) {
+            var selected = selectedRecipeId == null ? null : MachineRecipeManager.RECIPES.get(selectedRecipeId);
+            for (var storage : portStorages.inputStorages()) {
+                if (storage instanceof io.ticticboom.mods.mm.port.IRecipeDemandListener listener) {
+                    listener.setRecipeDemand(gameTime, selected);
+                }
+            }
+        }
         if (!storageContentCacheValid) rebuildStorageCacheIfNeeded(gameTime);
         boolean allowed = isAllowedByRedstone();
         if (allowed) processActiveRecipeOutputs();
@@ -457,6 +467,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             performed++;
 
             if (activeRecipes.containsKey(recipe.id())) continue;
+            if (isManualSelection() && !recipe.id().equals(selectedRecipeId)) continue;
             if (recipeNextCheckTime.getOrDefault(recipe.id(), 0L) > gameTime) continue;
 
             // lightweight capability pre-check: compute required port types from recipe inputs
@@ -1020,6 +1031,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             }
             tag.put("inputItemLastStartedSequence", inputHistoryTag);
         }
+        if (selectedRecipeId != null) tag.putString("selectedRecipe", selectedRecipeId.toString());
         tag.putBoolean("filler", true);
         // persist redstone mode
         try {
@@ -1056,6 +1068,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         }
         lastStartedRecipeId = tag.contains("lastStartedRecipeId") ? ResourceLocation.tryParse(tag.getString("lastStartedRecipeId")) : null;
         lastStartedInputItemId = tag.contains("lastStartedInputItemId") ? ResourceLocation.tryParse(tag.getString("lastStartedInputItemId")) : null;
+        selectedRecipeId = tag.contains("selectedRecipe") ? ResourceLocation.tryParse(tag.getString("selectedRecipe")) : null;
         recipeSelectionSequence = tag.contains("recipeSelectionSequence") ? tag.getLong("recipeSelectionSequence") : 0L;
         inputItemLastStartedSequence.clear();
         if (tag.contains("inputItemLastStartedSequence")) {
@@ -1129,6 +1142,23 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
 
     public String getRedstoneModeName() {
         try { return redstoneMode.name(); } catch (Throwable ignored) { return "IGNORED"; }
+    }
+
+    public boolean isManualSelection() {
+        return controllerModel.recipeSelectionMode() == RecipeSelectionMode.MANUAL;
+    }
+
+    public void selectRecipe(@Nullable ResourceLocation recipeId) {
+        if (recipeId != null) {
+            var recipe = MachineRecipeManager.RECIPES.get(recipeId);
+            if (recipe == null || structure == null || !recipe.structureId().equals(structure.id())) {
+                return;
+            }
+        }
+        selectedRecipeId = recipeId;
+        recipeNextCheckTime.clear();
+        setChanged();
+        if (level != null) level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
     }
 
     @Override

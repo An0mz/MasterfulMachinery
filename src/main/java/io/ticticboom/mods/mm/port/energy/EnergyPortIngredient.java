@@ -126,4 +126,9 @@ public class EnergyPortIngredient implements IPortIngredient {
         json.add("searchedStorages", searchedStoragesJson);
         return json;
     }
+
+    @Override
+    public net.minecraft.network.chat.Component displayName() {
+        return net.minecraft.network.chat.Component.translatable("port.mm.energy.name");
+    }
 }

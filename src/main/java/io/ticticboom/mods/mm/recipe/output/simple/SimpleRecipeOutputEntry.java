@@ -33,6 +33,10 @@ public class SimpleRecipeOutputEntry implements IRecipeOutputEntry {
         this.chanceRollKey = "c" + AmountRange.nextRollKey();
     }
 
+    public IPortIngredient getIngredient() {
+        return ingredient;
+    }
+
     private boolean shouldRun(RecipeStateModel state) {
         if (chance >= 1) {
             return true;

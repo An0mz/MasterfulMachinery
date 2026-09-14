@@ -122,4 +122,9 @@ public class NuclearRadiationPortIngredient implements IPortIngredient {
         json.addProperty("canRun", canOutput(level, storages, null));
         return json;
     }
+
+    @Override
+    public net.minecraft.network.chat.Component displayName() {
+        return io.ticticboom.mods.mm.util.RadiationText.isotopeName(isotope);
+    }
 }

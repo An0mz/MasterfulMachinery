@@ -154,4 +154,10 @@ public class ReplicationMatterPortIngredient implements IPortIngredient {
         json.add("searchedStorages", searchedStoragesJson);
         return json;
     }
+
+    @Override
+    public net.minecraft.network.chat.Component displayName() {
+        return net.minecraft.network.chat.Component.translatable("gui.mm.controller.recipe_output.matter",
+                io.ticticboom.mods.mm.compat.jei.ingredient.matter.MatterIngredientNames.displayName(matterId));
+    }
 }

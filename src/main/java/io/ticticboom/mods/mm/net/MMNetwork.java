@@ -2,6 +2,7 @@ package io.ticticboom.mods.mm.net;
 
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.net.packet.ProcessesSyncPkt;
+import io.ticticboom.mods.mm.net.packet.SelectRecipePkt;
 import io.ticticboom.mods.mm.net.packet.StructureSyncPkt;
 import io.ticticboom.mods.mm.net.packet.ToggleRedstoneModePkt;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -25,5 +26,6 @@ public class MMNetwork {
         registrar.playToClient(StructureSyncPkt.TYPE, StructureSyncPkt.STREAM_CODEC, StructureSyncPkt::handle);
         registrar.playToClient(ProcessesSyncPkt.TYPE, ProcessesSyncPkt.STREAM_CODEC, ProcessesSyncPkt::handle);
         registrar.playToServer(ToggleRedstoneModePkt.TYPE, ToggleRedstoneModePkt.STREAM_CODEC, ToggleRedstoneModePkt::handle);
+        registrar.playToServer(SelectRecipePkt.TYPE, SelectRecipePkt.STREAM_CODEC, SelectRecipePkt::handle);
     }
 }

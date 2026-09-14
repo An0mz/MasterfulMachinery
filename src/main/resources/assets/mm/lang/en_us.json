@@ -81,6 +81,9 @@
   "gui.mm.controller.max_parallel": "Max Parallel Processing: %s",
   "gui.mm.controller.progress": "Progress: %s%%",
   "gui.mm.controller.redstone": "Redstone: %s",
+  "gui.mm.controller.recipe": "Recipe: %s",
+  "gui.mm.controller.recipe_none": "None",
+  "gui.mm.controller.recipe_output.matter": "%s Matter",
   "gui.mm.port.energy.storage": "Storage Energy: %sFE / %sFE",
   "gui.mm.port.mekanism_chemical.amount": "%s amB",
   "gui.mm.port.mekanism_heat.storage": "Stored Heat: %s / %s",
@@ -144,6 +147,7 @@
   "jade.mm.controller.redstone.other": "Redstone: %s",
   "config.jade.plugin_mm.controller_progress": "Progress",
   "config.jade.plugin_mm.port_priority": "Port Priority",
+  "config.jade.plugin_mm.port_contents": "Port Contents",
 
   "tooltip.mm.port_priority": "Port priority: %s",
 

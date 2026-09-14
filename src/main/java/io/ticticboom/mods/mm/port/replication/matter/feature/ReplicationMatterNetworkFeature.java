@@ -94,14 +94,17 @@ public class ReplicationMatterNetworkFeature {
         }
         var tanks = storage.getHandler().tanks();
         var covered = coveredTypes(tanks);
+        var demanded = storage.hasFreshDemand(now) ? storage.demandedMatterTypes() : null;
         for (ReplicationMatterPortTank tank : tanks) {
             var type = tank.getRequestedType();
             if (type == null) {
-                type = nextWantedType(now, covered);
+                type = nextWantedType(now, covered, storage);
                 if (type == null) {
                     continue;
                 }
                 covered.add(type);
+            } else if (demanded != null && tank.getFilter() == null && !demanded.contains(type)) {
+                continue;
             }
             double wanted = tank.getCapacity() - tank.getMatterAmount();
             if (wanted <= 0) {
@@ -122,12 +125,18 @@ public class ReplicationMatterNetworkFeature {
         return covered;
     }
 
-    private IMatterType nextWantedType(long now, Set<IMatterType> covered) {
-        if (now - lastRecipeScan >= RECIPE_SCAN_INTERVAL) {
-            lastRecipeScan = now;
-            recipeTypes = scanRecipeTypes();
+    private IMatterType nextWantedType(long now, Set<IMatterType> covered, ReplicationMatterPortStorage storage) {
+        List<IMatterType> candidates;
+        if (storage.hasFreshDemand(now)) {
+            candidates = storage.demandedMatterTypes();
+        } else {
+            if (now - lastRecipeScan >= RECIPE_SCAN_INTERVAL) {
+                lastRecipeScan = now;
+                recipeTypes = scanRecipeTypes();
+            }
+            candidates = recipeTypes;
         }
-        for (IMatterType type : recipeTypes) {
+        for (IMatterType type : candidates) {
             if (!covered.contains(type)) {
                 return type;
             }

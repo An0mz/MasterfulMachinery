@@ -2,6 +2,16 @@ package io.ticticboom.mods.mm.controller.machine.register;
 
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.client.util.TextRenderUtil;
+import io.ticticboom.mods.mm.net.packet.SelectRecipePkt;
+import io.ticticboom.mods.mm.port.item.SingleItemPortIngredient;
+import io.ticticboom.mods.mm.recipe.MachineRecipeManager;
+import io.ticticboom.mods.mm.recipe.RecipeModel;
+import io.ticticboom.mods.mm.recipe.output.simple.SimpleRecipeOutputEntry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.network.PacketDistributor;
+import java.util.Comparator;
+import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -17,6 +27,12 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
     private final FormattedText header;
     private final int redstoneBtnX = 10;
     private final int redstoneBtnY = 80;
+    private static final int RECIPE_ROW_Y = 93;
+    private static final int PREV_X = 10;
+    private static final int NEXT_X = 158;
+    private static final int ICON_X = 22;
+    private static final int NAME_X = 42;
+    private static final float MIN_TEXT_SCALE = 0.6f;
 
     public MachineControllerScreen(MachineControllerMenu menu, Inventory inv, Component p_96550_) {
         super(menu, inv, p_96550_);
@@ -84,6 +100,101 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         // redstone mode toggle label (clickable)
         Component rs = Component.translatable("gui.mm.controller.redstone", be.getRedstoneModeName());
         gfx.drawString(this.font, rs, redstoneBtnX, redstoneBtnY, 0xacacac, false);
+
+        if (be.isManualSelection()) {
+            renderRecipePicker(gfx);
+        }
+    }
+
+    private List<RecipeModel> selectableRecipes() {
+        if (be.getStructure() == null) {
+            return List.of();
+        }
+        return MachineRecipeManager.getRecipesByStrucutreId(be.getStructure().id()).stream()
+                .sorted(Comparator.comparing(recipe -> recipe.id().toString()))
+                .toList();
+    }
+
+    private RecipeModel selectedRecipe() {
+        for (RecipeModel recipe : selectableRecipes()) {
+            if (recipe.id().equals(be.getSelectedRecipeId())) {
+                return recipe;
+            }
+        }
+        return null;
+    }
+
+    private static Component recipeName(RecipeModel recipe) {
+        if (recipe == null) {
+            return Component.translatable("gui.mm.controller.recipe_none");
+        }
+        var icon = displayStack(recipe);
+        return icon.isEmpty() ? outputName(recipe) : icon.getHoverName();
+    }
+
+    private void renderRecipePicker(GuiGraphics gfx) {
+        var selected = selectedRecipe();
+        gfx.drawString(this.font, "\u25C0", PREV_X, RECIPE_ROW_Y + 4, 0xacacac, false);
+        gfx.drawString(this.font, "\u25B6", NEXT_X, RECIPE_ROW_Y + 4, 0xacacac, false);
+        int nameX = ICON_X;
+        if (selected != null) {
+            var icon = displayStack(selected);
+            if (!icon.isEmpty()) {
+                gfx.renderItem(icon, ICON_X, RECIPE_ROW_Y);
+                gfx.renderItemDecorations(this.font, icon, ICON_X, RECIPE_ROW_Y);
+                nameX = NAME_X;
+            }
+        }
+        drawFitted(gfx, recipeName(selected).getString(), nameX, RECIPE_ROW_Y + 4, NEXT_X - nameX - 4);
+    }
+
+    private void drawFitted(GuiGraphics gfx, String text, int x, int y, int maxWidth) {
+        int width = this.font.width(text);
+        if (width <= maxWidth) {
+            gfx.drawString(this.font, text, x, y, 0xacacac, false);
+            return;
+        }
+        float scale = Math.max(MIN_TEXT_SCALE, (float) maxWidth / width);
+        String shown = this.font.plainSubstrByWidth(text, (int) (maxWidth / scale));
+        gfx.pose().pushPose();
+        gfx.pose().translate(x, y + (1 - scale) * this.font.lineHeight / 2f, 0);
+        gfx.pose().scale(scale, scale, 1f);
+        gfx.drawString(this.font, shown, 0, 0, 0xacacac, false);
+        gfx.pose().popPose();
+    }
+
+    private static Component outputName(RecipeModel recipe) {
+        for (var output : recipe.outputs().outputs()) {
+            if (output instanceof SimpleRecipeOutputEntry simple) {
+                var name = simple.getIngredient().displayName();
+                if (name != null) {
+                    return name;
+                }
+            }
+        }
+        return Component.literal(recipe.id().getPath());
+    }
+
+    private static ItemStack displayStack(RecipeModel recipe) {
+        for (var output : recipe.outputs().outputs()) {
+            if (output instanceof SimpleRecipeOutputEntry simple && simple.getIngredient() instanceof SingleItemPortIngredient item) {
+                return new ItemStack(BuiltInRegistries.ITEM.get(item.getItemId()), Math.max(1, item.getCount()));
+            }
+        }
+        return ItemStack.EMPTY;
+    }
+
+    private void cycleRecipe(int step) {
+        var recipes = selectableRecipes();
+        int index = -1;
+        for (int i = 0; i < recipes.size(); i++) {
+            if (recipes.get(i).id().equals(be.getSelectedRecipeId())) {
+                index = i;
+            }
+        }
+        int next = Math.floorMod(index + 1 + step, recipes.size() + 1) - 1;
+        String id = next < 0 ? "" : recipes.get(next).id().toString();
+        PacketDistributor.sendToServer(new SelectRecipePkt(be.getBlockPos(), id));
     }
 
     @Override
@@ -91,6 +202,13 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         renderBackground(gfx, mouseX, mouseY, partial);
         super.render(gfx, mouseX, mouseY, partial);
         renderTooltip(gfx, mouseX, mouseY);
+        if (be.isManualSelection()) {
+            double mx = mouseX - this.leftPos;
+            double my = mouseY - this.topPos;
+            if (mx >= ICON_X && mx <= NEXT_X - 2 && my >= RECIPE_ROW_Y && my <= RECIPE_ROW_Y + 16) {
+                gfx.renderTooltip(this.font, Component.translatable("gui.mm.controller.recipe", recipeName(selectedRecipe())), mouseX, mouseY);
+            }
+        }
     }
 
     @Override
@@ -107,6 +225,16 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
                 net.neoforged.neoforge.network.PacketDistributor.sendToServer(new io.ticticboom.mods.mm.net.packet.ToggleRedstoneModePkt(pos, next));
             } catch (Throwable ignored) { }
             return true;
+        }
+        if (be.isManualSelection() && my >= RECIPE_ROW_Y && my <= RECIPE_ROW_Y + 16) {
+            if (mx >= PREV_X - 2 && mx <= PREV_X + 8) {
+                cycleRecipe(-1);
+                return true;
+            }
+            if (mx >= NEXT_X - 2 && mx <= NEXT_X + 8) {
+                cycleRecipe(1);
+                return true;
+            }
         }
         return super.mouseClicked(mouseX, mouseY, button);
     }

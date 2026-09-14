@@ -54,7 +54,7 @@ An event in the wrong folder silently never runs.
 | `model` | no | A full block model to use instead |
 | `parallelProcessingDefault` | no | Whether recipes on this controller run in parallel when the recipe does not say |
 | `maxParallelRecipes` | no | How many recipes can run at once, `0`–`100`. Falls back to the global config |
-| `recipeSelectionMode` | no | `default`, `avoid_same_recipe` or `round_robin_input_item` |
+| `recipeSelectionMode` | no | `default`, `avoid_same_recipe`, `round_robin_input_item` or `manual` |
 
 Recipe selection modes:
 
@@ -63,6 +63,10 @@ Recipe selection modes:
   with several recipes alternates between them.
 - **`round_robin_input_item`** — takes turns between the different input items, so one item cannot
   hog the machine.
+- **`manual`** — players pick the recipe in the controller's screen with the arrows, and the machine
+  only runs that one. With nothing picked it waits. Useful when recipes share inputs, like a machine
+  that only takes matter. Matter input ports with free tanks then pull only what the picked recipe
+  uses.
 
 KubeJS:
 
