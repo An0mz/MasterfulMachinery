@@ -34,6 +34,7 @@ public class MachineRecipeManager extends SimpleJsonResourceReloadListener {
 
     public static final Map<ResourceLocation, RecipeModel> RECIPES = new HashMap<>();
     public static final Map<String, Map<ResourceLocation, RecipeModel>> RECIPES_BY_STRUCTURE = new HashMap<>();
+    public static int RECIPE_VERSION = 0;
     public static final Map<ResourceLocation, IRecipeIngredientEntryParser> ENTRY_INGREDIENT_PARSERS = new HashMap<>();
     public static final Map<ResourceLocation, IRecipeOutputEntryParser> ENTRY_OUTPUT_PARSERS = new HashMap<>();
     public static final Map<ResourceLocation, IRecipeConditionParser> CONDITION_PARSERS = new HashMap<>();
@@ -125,5 +126,6 @@ public class MachineRecipeManager extends SimpleJsonResourceReloadListener {
         for (RecipeModel model : RECIPES.values()) {
             RECIPES_BY_STRUCTURE.computeIfAbsent(model.structureId().toString(), x -> new HashMap<>()).put(model.id(), model);
         }
+        RECIPE_VERSION++;
     }
 }

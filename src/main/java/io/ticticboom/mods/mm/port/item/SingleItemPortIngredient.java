@@ -49,6 +49,10 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
         }
     }
 
+    public ItemStack outputStack() {
+        return stack.copyWithCount(1);
+    }
+
     private static Predicate<ItemStack> createPredicate(ResourceLocation id) {
         var item = BuiltInRegistries.ITEM.get(id);
         if (item == null) {
