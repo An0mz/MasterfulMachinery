@@ -34,9 +34,12 @@ public class Ref {
         public static final ResourceLocation MEK_HEAT = id("mekanism/heat");
         public static final ResourceLocation CREATE_KINETIC = id("create/kinetic");
         public static final ResourceLocation BOTANIA_MANA = id("botania/mana");
+        public static final ResourceLocation ARS_SOURCE = id("ars_nouveau/source");
+        public static final ResourceLocation AE2_PATTERN = id("ae2/pattern");
         public static final ResourceLocation NUCLEAR_RADIATION = id("nuclear_radiation/radiation");
 
         public static final ResourceLocation REPLICATION_MATTER = id("replication/matter");
+        public static final ResourceLocation REPLICATION_LINK = id("replication/link");
 
         public static final ResourceLocation PNEUMATIC_AIR = id("pneumaticcraft/air");
         public static final ResourceLocation PNEUMATIC_TEMPERATURE = id("pneumaticcraft/temperature");
@@ -105,8 +108,17 @@ public class Ref {
         public static final ResourceLocation INPUT_REPLICATION_MATTER_PORT_OVERLAY = id("block/compat_ports/replication_matter_input_cutout");
         public static final ResourceLocation OUTPUT_REPLICATION_MATTER_PORT_OVERLAY = id("block/compat_ports/replication_matter_output_cutout");
 
+        public static final ResourceLocation INPUT_REPLICATION_LINK_PORT_OVERLAY = id("block/compat_ports/replication_link_input_cutout");
+        public static final ResourceLocation OUTPUT_REPLICATION_LINK_PORT_OVERLAY = id("block/compat_ports/replication_link_output_cutout");
+
         public static final ResourceLocation INPUT_BOTANIA_MANA_PORT_OVERLAY = id("block/compat_ports/botania_mana_input_cutout");
         public static final ResourceLocation OUTPUT_BOTANIA_MANA_PORT_OVERLAY = id("block/compat_ports/botania_mana_output_cutout");
+
+        public static final ResourceLocation INPUT_AE2_PATTERN_PORT_OVERLAY = id("block/compat_ports/ae2_pattern_input_cutout");
+        public static final ResourceLocation OUTPUT_AE2_PATTERN_PORT_OVERLAY = id("block/compat_ports/ae2_pattern_output_cutout");
+
+        public static final ResourceLocation INPUT_ARS_SOURCE_PORT_OVERLAY = id("block/compat_ports/ars_source_input_cutout");
+        public static final ResourceLocation OUTPUT_ARS_SOURCE_PORT_OVERLAY = id("block/compat_ports/ars_source_output_cutout");
 
         public static final ResourceLocation INPUT_NUCLEAR_RADIATION_PORT_OVERLAY = id("block/compat_ports/nuclear_radiation_input_cutout");
         public static final ResourceLocation OUTPUT_NUCLEAR_RADIATION_PORT_OVERLAY = id("block/compat_ports/nuclear_radiation_output_cutout");
