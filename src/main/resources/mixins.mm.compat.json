@@ -1,0 +1,12 @@
+{
+  "required": false,
+  "package": "io.ticticboom.mods.mm.compat.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ReplicationTaskMixin"
+  ],
+  "client": [
+    "MatterPatternButtonMixin"
+  ],
+  "minVersion": "0.8"
+}

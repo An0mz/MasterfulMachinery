@@ -32,6 +32,9 @@ It lets modpack developers define custom multiblock machines entirely through da
 [[mixins]]
 config="mixins.mm.json"
 
+[[mixins]]
+config="mixins.mm.compat.json"
+
 # A dependency - use the . to indicate dependency for a specific modid. Dependencies are optional.
 [[dependencies.mm]] #optional
     # the modid of the dependency
