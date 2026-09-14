@@ -123,6 +123,10 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private final Map<ResourceLocation, Long> recipeLastStartedSequence = new HashMap<>();
     @Getter
     private ResourceLocation selectedRecipeId = null;
+    private static final long REQUEST_TIMEOUT = 40;
+    private ResourceLocation requestedRecipeId = null;
+    private long requestExpiresAt = 0L;
+    private int requestedCrafts = 0;
 
     public void tick() {
         if (level == null || level.isClientSide() || isRemoved()) {
@@ -204,11 +208,16 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         }
         detectExternalStorageChanges();
         long gameTime = (level == null) ? 0L : level.getGameTime();
-        if (isManualSelection() && portStorages != null) {
-            var selected = selectedRecipeId == null ? null : MachineRecipeManager.RECIPES.get(selectedRecipeId);
-            for (var storage : portStorages.inputStorages()) {
-                if (storage instanceof io.ticticboom.mods.mm.port.IRecipeDemandListener listener) {
-                    listener.setRecipeDemand(gameTime, selected);
+        if (portStorages != null) {
+            attachStorages(gameTime);
+            var requested = activeRequest(gameTime);
+            if (requested != null || isManualSelection()) {
+                var demandedId = requested != null ? requested : selectedRecipeId;
+                var demanded = demandedId == null ? null : MachineRecipeManager.RECIPES.get(demandedId);
+                for (var storage : portStorages.inputStorages()) {
+                    if (storage instanceof io.ticticboom.mods.mm.port.IRecipeDemandListener listener) {
+                        listener.setRecipeDemand(gameTime, demanded);
+                    }
                 }
             }
         }
@@ -217,6 +226,19 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (allowed) processActiveRecipeOutputs();
         if (structure != null && allowed) scanAndStartRecipes(gameTime);
         performRecipeTick();
+    }
+
+    private void attachStorages(long gameTime) {
+        for (var storage : portStorages.inputStorages()) {
+            if (storage instanceof io.ticticboom.mods.mm.port.IControllerAwareStorage aware) {
+                aware.attachController(this, gameTime);
+            }
+        }
+        for (var storage : portStorages.outputStorages()) {
+            if (storage instanceof io.ticticboom.mods.mm.port.IControllerAwareStorage aware) {
+                aware.attachController(this, gameTime);
+            }
+        }
     }
 
     // Helper split to reduce runRecipe complexity
@@ -461,13 +483,16 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         RecipeStateModel selectedRoundRobinState = null;
         long selectedRoundRobinLastUse = Long.MAX_VALUE;
         boolean startedRecipeThisPass = false;
+        ResourceLocation requested = activeRequest(gameTime);
         while (performed < checks) {
             RecipeModel recipe = cachedStructureRecipes.get(idx);
             idx = (idx + 1) % total;
             performed++;
 
             if (activeRecipes.containsKey(recipe.id())) continue;
-            if (isManualSelection() && !recipe.id().equals(selectedRecipeId)) continue;
+            if (requested != null) {
+                if (!recipe.id().equals(requested) || requestedCrafts <= 0) continue;
+            } else if (isManualSelection() && !recipe.id().equals(selectedRecipeId)) continue;
             if (recipeNextCheckTime.getOrDefault(recipe.id(), 0L) > gameTime) continue;
 
             // lightweight capability pre-check: compute required port types from recipe inputs
@@ -785,6 +810,9 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
 
     private void startRecipe(RecipeModel recipe, long gameTime, @Nullable ResourceLocation primaryInputItemId, RecipeStateModel newState) {
         recipe.inputs().process(level, portStorages, newState);
+        if (recipe.id().equals(requestedRecipeId) && requestedCrafts > 0) {
+            requestedCrafts--;
+        }
         storageContentCacheValid = false;
         newState.setCanProcess(true);
         activeRecipes.put(recipe.id(), newState);
@@ -1159,6 +1187,35 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         recipeNextCheckTime.clear();
         setChanged();
         if (level != null) level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+    }
+
+    public void requestRecipe(ResourceLocation recipeId, long gameTime, int crafts) {
+        if (!recipeId.equals(requestedRecipeId)) {
+            var recipe = MachineRecipeManager.RECIPES.get(recipeId);
+            if (recipe == null || structure == null || !recipe.structureId().equals(structure.id())) {
+                return;
+            }
+            requestedRecipeId = recipeId;
+            recipeNextCheckTime.remove(recipeId);
+        }
+        requestedCrafts = Math.max(0, crafts);
+        requestExpiresAt = gameTime + REQUEST_TIMEOUT;
+    }
+
+    public boolean isRecipeRunning(ResourceLocation recipeId) {
+        return activeRecipes.containsKey(recipeId);
+    }
+
+    private @Nullable ResourceLocation activeRequest(long gameTime) {
+        if (requestedRecipeId != null && gameTime > requestExpiresAt) {
+            requestedRecipeId = null;
+            requestedCrafts = 0;
+        }
+        return requestedRecipeId;
+    }
+
+    public @Nullable RecipeStorages getPortStorages() {
+        return portStorages;
     }
 
     @Override
