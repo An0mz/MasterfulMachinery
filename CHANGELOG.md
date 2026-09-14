@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.7.1] - 2026-09-14
+
+### Added
+- **Pick the recipe from the controller.** Set `"recipeSelectionMode": "manual"` on a controller
+  (`.recipeSelectionMode('manual')` in KubeJS) and its screen gets arrows to choose which recipe
+  runs. The machine only runs that recipe, and waits when none is picked. Matter input ports with
+  free tanks only pull what the picked recipe uses.
+
+### Fixed
+- Jade's settings screen was missing a name for MM's port contents option.
+
 ## [1.21.1-0.7.0] - 2026-09-12
 
 ### Added
