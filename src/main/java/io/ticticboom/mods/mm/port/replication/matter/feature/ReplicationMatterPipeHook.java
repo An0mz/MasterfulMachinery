@@ -1,6 +1,7 @@
 package io.ticticboom.mods.mm.port.replication.matter.feature;
 
 import com.buuz135.replication.block.MatterPipeBlock;
+import io.ticticboom.mods.mm.port.replication.link.register.ReplicationLinkPortBlock;
 import io.ticticboom.mods.mm.port.replication.matter.register.ReplicationMatterPortBlock;
 
 /**
@@ -11,6 +12,6 @@ import io.ticticboom.mods.mm.port.replication.matter.register.ReplicationMatterP
 public class ReplicationMatterPipeHook {
 
     public static void register() {
-        MatterPipeBlock.ALLOWED_CONNECTION_BLOCKS.add(block -> block instanceof ReplicationMatterPortBlock);
+        MatterPipeBlock.ALLOWED_CONNECTION_BLOCKS.add(block -> block instanceof ReplicationMatterPortBlock || block instanceof ReplicationLinkPortBlock);
     }
 }

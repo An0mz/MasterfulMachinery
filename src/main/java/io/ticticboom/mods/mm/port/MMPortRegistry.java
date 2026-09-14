@@ -4,6 +4,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.model.PortModel;
+import io.ticticboom.mods.mm.port.ae2.pattern.Ae2PatternPortType;
+import io.ticticboom.mods.mm.port.ars.source.ArsSourcePortType;
 import io.ticticboom.mods.mm.port.botania.mana.BotaniaManaPortType;
 import io.ticticboom.mods.mm.port.energy.EnergyPortType;
 import io.ticticboom.mods.mm.port.entity.EntityPortType;
@@ -14,6 +16,7 @@ import io.ticticboom.mods.mm.port.mekanism.chemical.MekanismChemicalPortType;
 import io.ticticboom.mods.mm.port.mekanism.heat.MekanismHeatPortType;
 import io.ticticboom.mods.mm.port.nuclear.radiation.NuclearRadiationPortType;
 import io.ticticboom.mods.mm.port.pneumaticcraft.air.PneumaticAirPortType;
+import io.ticticboom.mods.mm.port.replication.link.ReplicationLinkPortType;
 import io.ticticboom.mods.mm.port.replication.matter.ReplicationMatterPortType;
 import io.ticticboom.mods.mm.port.replication.matter.feature.ReplicationMatterPipeHook;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
@@ -49,11 +52,20 @@ public class MMPortRegistry {
 
         if (ModList.get().isLoaded("replication")) {
             register(Ref.Ports.REPLICATION_MATTER, new ReplicationMatterPortType());
+            register(Ref.Ports.REPLICATION_LINK, new ReplicationLinkPortType());
             ReplicationMatterPipeHook.register();
         }
 
         if (ModList.get().isLoaded("botania")) {
             register(Ref.Ports.BOTANIA_MANA, new BotaniaManaPortType());
+        }
+
+        if (ModList.get().isLoaded("ae2")) {
+            register(Ref.Ports.AE2_PATTERN, new Ae2PatternPortType());
+        }
+
+        if (ModList.get().isLoaded("ars_nouveau")) {
+            register(Ref.Ports.ARS_SOURCE, new ArsSourcePortType());
         }
 
         if (ModList.get().isLoaded("nuclear_radiation")) {
