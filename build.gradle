@@ -137,6 +137,14 @@ repositories {
         }
     } // Replication
 
+    // Unfiltered, this mirror also answers for org.projectlombok and wins over Maven Central,
+    // which silently costs every Lombok-generated accessor in the mod.
+    maven {
+        url = "https://maven.blamejared.com"
+        content {
+            includeGroup 'com.hollingsworth.ars_nouveau'
+        }
+    } // Ars Nouveau
     maven { url = "https://maven.createmod.net" } // Create, Ponder, Flywheel
     maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // ForgeConfigAPIPort
 
@@ -192,6 +200,18 @@ dependencies {
     // Create's GeneratingKineticBlockEntity, whose supertype chain reaches
     // net.createmod.ponder.api.VirtualBlockEntity, and javac must resolve it.
     compileOnly "net.createmod.ponder:ponder-neoforge:${ponder_version}"
+
+    //ARS NOUVEAU
+    // Only the source API is compiled against, so the rest of Ars Nouveau's dependency graph
+    // (TerraBlender, Lucene, Infiniverse) stays off the compile classpath.
+    compileOnly("com.hollingsworth.ars_nouveau:ars_nouveau-${mc_version}:${ars_nouveau_version}") { transitive = false }
+
+    //AE2
+    // The bridge is what gives Replication matter an AE2 key, so MM compiles against it to accept
+    // that key rather than building its own link between the two mods.
+    compileOnly "maven.modrinth:ae2:${ae2_version}"
+    compileOnly "maven.modrinth:replication-ae2-bridge:${replication_ae2_bridge_version}"
+    runtimeOnly("curse.maven:geckolib-388172:8893490")
 
     //MYSTICAL AGRICULTURE
     compileOnly "curse.maven:mystical-agriculture-246640:8344249"
@@ -251,6 +271,17 @@ dependencies {
     // REPLICATION
     runtimeOnly "maven.modrinth:replication:${replication_version}"
     runtimeOnly "com.hrznstudio:titanium:${titanium_version}"
+
+    // ARS NOUVEAU
+    // Ars Nouveau's pom pulls in build-time extras (TerraBlender, Lucene) that are not published
+    // where the rest of the runtime comes from. Its own mods.toml only requires GeckoLib and
+    // Curios, and Curios is already declared above.
+    runtimeOnly("com.hollingsworth.ars_nouveau:ars_nouveau-${mc_version}:${ars_nouveau_version}") { transitive = false }
+
+    // AE2
+    // GuideME is AE2's own dependency and is already declared further down.
+    runtimeOnly "maven.modrinth:ae2:${ae2_version}"
+    runtimeOnly "maven.modrinth:replication-ae2-bridge:${replication_ae2_bridge_version}"
 
     // KUBEJS
     runtimeOnly "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
