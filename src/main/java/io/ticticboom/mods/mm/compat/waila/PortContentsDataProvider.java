@@ -13,10 +13,13 @@ import snownee.jade.api.IBlockComponentProvider;
 import snownee.jade.api.IServerDataProvider;
 import snownee.jade.api.ITooltip;
 import snownee.jade.api.config.IPluginConfig;
+import snownee.jade.api.ui.BoxStyle;
+import snownee.jade.api.ui.IElementHelper;
 
 public class PortContentsDataProvider implements IServerDataProvider<BlockAccessor>, IBlockComponentProvider {
     public static final ResourceLocation UID = Ref.id("port_contents");
     public static final String KEY = "PortContents";
+    public static final String FILL_KEY = "PortFill";
 
     public static final PortContentsDataProvider INSTANCE = new PortContentsDataProvider();
 
@@ -28,6 +31,10 @@ public class PortContentsDataProvider implements IServerDataProvider<BlockAccess
         var lines = port.getStorage().describeContents();
         if (lines.isEmpty()) {
             return;
+        }
+        var fill = port.getStorage().fillRatio();
+        if (fill >= 0) {
+            data.putFloat(FILL_KEY, (float) fill);
         }
         var registries = accessor.getLevel().registryAccess();
         var list = new ListTag();
@@ -45,9 +52,17 @@ public class PortContentsDataProvider implements IServerDataProvider<BlockAccess
         }
         var registries = accessor.getLevel().registryAccess();
         var list = data.getList(KEY, Tag.TAG_STRING);
+        var fill = data.contains(FILL_KEY) ? data.getFloat(FILL_KEY) : -1;
         for (int i = 0; i < list.size(); i++) {
             var line = Component.Serializer.fromJson(list.getString(i), registries);
-            if (line != null) {
+            if (line == null) {
+                continue;
+            }
+            if (i == 0 && fill >= 0) {
+                var helper = IElementHelper.get();
+                var style = helper.progressStyle().color(0xFF35C9E6, 0xFF14657A).textColor(0xFFFFFFFF);
+                tooltip.add(helper.progress(fill, line, style, BoxStyle.getNestedBox(), true));
+            } else {
                 tooltip.add(line);
             }
         }

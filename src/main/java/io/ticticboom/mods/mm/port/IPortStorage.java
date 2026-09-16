@@ -47,6 +47,10 @@ public interface IPortStorage {
         return List.of();
     }
 
+    default double fillRatio() {
+        return -1;
+    }
+
     default void setPriority(int priority) {
         // default no-op for storage implementations that don't track priority
     }
