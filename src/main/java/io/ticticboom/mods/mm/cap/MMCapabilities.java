@@ -51,6 +51,9 @@ public class MMCapabilities {
             for (var capability : capabilities) {
                 registerPortCapability(event, beType, capability);
             }
+            if (ModList.get().isLoaded("ae2")) {
+                Ae2Capabilities.registerNodeHost(event, beType);
+            }
         }
     }
 
@@ -73,6 +76,9 @@ public class MMCapabilities {
         }
         if (ModList.get().isLoaded("replication")) {
             result.add(ReplicationCapabilities.MATTER_HANDLER);
+        }
+        if (ModList.get().isLoaded("ars_nouveau")) {
+            result.add(ArsCapabilities.SOURCE);
         }
         return result;
     }
