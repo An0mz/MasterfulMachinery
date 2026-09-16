@@ -6,6 +6,9 @@ import io.ticticboom.mods.mm.port.IPortBlock;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.state.properties.IntegerProperty;
+import net.neoforged.neoforge.client.model.generators.ConfiguredModel;
+import net.neoforged.neoforge.client.model.generators.ModelFile;
 
 import java.util.Objects;
 
@@ -48,5 +51,37 @@ public class PortUtils {
         }
         provider.dynamicBlock(groupHolder.getBlock().getId(), base, overlay);
         provider.simpleBlock(block);
+    }
+
+    public static void fillStageGenerateModel(MMBlockstateProvider provider, RegistryGroupHolder groupHolder,
+            boolean isInput, ResourceLocation inputOverlay, ResourceLocation outputOverlay,
+            IntegerProperty fill, int maxFill) {
+        var block = groupHolder.getBlock().get();
+        var packOverridesTextures = block instanceof IPortBlock portBlock
+                && (portBlock.getModel().overlayTexture() != null || portBlock.getModel().customModel() != null);
+        if (packOverridesTextures) {
+            commonGenerateModel(provider, groupHolder, isInput, inputOverlay, outputOverlay);
+            return;
+        }
+        var base = Ref.Textures.BASE_BLOCK;
+        if (block instanceof IPortBlock portBlock) {
+            base = Objects.requireNonNullElse(portBlock.getModel().baseTexture(), base);
+        }
+        var overlay = isInput ? inputOverlay : outputOverlay;
+        var id = groupHolder.getBlock().getId();
+
+        var models = new ModelFile[maxFill + 1];
+        models[maxFill] = provider.dynamicBlock(id, base, stageTexture(overlay, maxFill));
+        for (int stage = 0; stage < maxFill; stage++) {
+            var stageId = ResourceLocation.fromNamespaceAndPath(id.getNamespace(), id.getPath() + "_fill" + stage);
+            models[stage] = provider.dynamicBlock(stageId, base, stageTexture(overlay, stage));
+        }
+        provider.getVariantBuilder(block).forAllStates(state -> ConfiguredModel.builder()
+                .modelFile(models[state.getValue(fill)])
+                .build());
+    }
+
+    private static ResourceLocation stageTexture(ResourceLocation overlay, int stage) {
+        return ResourceLocation.fromNamespaceAndPath(overlay.getNamespace(), overlay.getPath() + "_fill" + stage);
     }
 }
