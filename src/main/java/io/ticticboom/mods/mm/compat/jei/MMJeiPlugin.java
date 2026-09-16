@@ -112,6 +112,7 @@ public class MMJeiPlugin implements IModPlugin {
         registration.register(MMJeiIngredients.REPLICATION_MATTER, ImmutableList.of(), new MatterIngredientHelper(), new MatterIngredientRenderer());
         registration.register(MMJeiIngredients.NUCLEAR_RADIATION, ImmutableList.of(), new io.ticticboom.mods.mm.compat.jei.ingredient.radiation.RadiationIngredientHelper(), new io.ticticboom.mods.mm.compat.jei.ingredient.radiation.RadiationIngredientRenderer());
         registration.register(MMJeiIngredients.ENTITY, ImmutableList.of(), new EntityIngredientHelper(), new EntityIngredientRenderer());
+        registration.register(MMJeiIngredients.ARS_SOURCE, ImmutableList.of(), new io.ticticboom.mods.mm.compat.jei.ingredient.source.ArsSourceIngredientHelper(), new io.ticticboom.mods.mm.compat.jei.ingredient.source.ArsSourceIngredientRenderer());
     }
 
     @Override
