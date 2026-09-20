@@ -11,6 +11,7 @@ public class ExtraBlockBuilderJS {
     private final String id;
     private ResourceLocation type;
     private String name;
+    private String connectGroup;
 
     public ExtraBlockBuilderJS(String id) {
         this.id = id;
@@ -26,7 +27,12 @@ public class ExtraBlockBuilderJS {
         return this;
     }
 
+    public ExtraBlockBuilderJS connectGroup(String connectGroup) {
+        this.connectGroup = connectGroup;
+        return this;
+    }
+
     public ExtraBlockModel build() {
-        return new ExtraBlockModel(id, name, Component.literal(name), type);
+        return new ExtraBlockModel(id, name, Component.literal(name), type, connectGroup);
     }
 }

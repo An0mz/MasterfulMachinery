@@ -22,7 +22,7 @@ public class VentBlock extends Block implements IExtraBlock {
 
     @Override
     public void generateModel(MMBlockstateProvider provider) {
-        var mdl = provider.dynamicBlock(groupHolder.getBlock().getId(), Ref.Textures.BASE_BLOCK, Ref.Textures.VENT_OVERLAY);
+        var mdl = provider.connectedBlock(groupHolder.getBlock().getId(), Ref.Textures.VENT_OVERLAY);
         provider.simpleBlock(groupHolder.getBlock().get(), mdl);
     }
 

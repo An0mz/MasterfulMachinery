@@ -109,6 +109,29 @@ public class MMBlockstateProvider extends BlockStateProvider {
                 .end();
     }
 
+    public BlockModelBuilder connectedBlock(ResourceLocation loc, ResourceLocation overlayTexture) {
+        var builder = models().getBuilder(loc.toString()).parent(new ModelFile.UncheckedModelFile(mcLoc("block/block")))
+                .texture("particle", Ref.id("block/base_block_ctm0"))
+                .texture("overlay", overlayTexture);
+        for (int i = 0; i < 5; i++) {
+            builder.texture("tile" + i, Ref.id("block/base_block_ctm" + i));
+        }
+        return builder.transforms()
+                .transform(ItemDisplayContext.THIRD_PERSON_LEFT_HAND)
+                .rotation(75F, 45F, 0F)
+                .translation(0F, 2.5F, 0)
+                .scale(0.375F, 0.375F, 0.375F)
+                .end()
+                .transform(ItemDisplayContext.THIRD_PERSON_RIGHT_HAND)
+                .rotation(75F, 45F, 0F)
+                .translation(0F, 2.5F, 0)
+                .scale(0.375F, 0.375F, 0.375F)
+                .end()
+                .end()
+                .customLoader(ConnectedModelBuilder::begin)
+                .end();
+    }
+
     public BlockModelBuilder customBlock(ResourceLocation loc, ResourceLocation model) {
         return models().getBuilder(loc.toString()).parent(new ModelFile.UncheckedModelFile(model));
     }

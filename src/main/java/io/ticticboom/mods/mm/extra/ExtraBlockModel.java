@@ -9,7 +9,8 @@ public record ExtraBlockModel(
         String id,
         String name,
         Component displayName,
-        ResourceLocation type
+        ResourceLocation type,
+        String connectGroup
 ) {
     public static ExtraBlockModel parse(JsonObject json) {
         String id = json.get("id").getAsString();
@@ -18,6 +19,11 @@ public record ExtraBlockModel(
         String name = ParserUtils.parseComponentKey(json.get("name"));
         Component displayName = ParserUtils.parseComponent(json.get("name"));
         ResourceLocation type = ParserUtils.parseId(json, "type");
-        return new ExtraBlockModel(id, name, displayName, type);
+        String connectGroup = json.has("connectGroup") ? json.get("connectGroup").getAsString() : null;
+        return new ExtraBlockModel(id, name, displayName, type, connectGroup);
+    }
+
+    public String resolvedConnectGroup() {
+        return connectGroup != null ? connectGroup : id;
     }
 }

@@ -23,7 +23,7 @@ public class GearboxBlock extends Block implements IExtraBlock {
 
     @Override
     public void generateModel(MMBlockstateProvider provider) {
-        var mdl = provider.dynamicBlock(groupHolder.getBlock().getId(), Ref.Textures.BASE_BLOCK, Ref.Textures.GEARBOX_OVERLAY);
+        var mdl = provider.connectedBlock(groupHolder.getBlock().getId(), Ref.Textures.GEARBOX_OVERLAY);
         provider.simpleBlock(groupHolder.getBlock().get(), mdl);
     }
 
