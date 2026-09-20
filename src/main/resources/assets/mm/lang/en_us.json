@@ -70,6 +70,8 @@
   "port.mm.ars_source.name": "Source",
   "port.mm.ars_source.title": "Source Port",
   "gui.mm.port.ars_source.storage": "Stored Source: %s / %s",
+  "message.mm.structure_problems": "Masterful Machinery: %s structure(s) use ports that do not exist. Check the log.",
+  "jei.mm.structure.missing_port": "Missing port: %s",
   "port.mm.ae2_pattern.name": "ME Pattern",
   "port.mm.ae2_pattern.title": "ME Pattern Port",
   "port.mm.replication_link.name": "Replication Link",

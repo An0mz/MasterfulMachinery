@@ -153,6 +153,7 @@ public class StructureModel {
         json.addProperty("name", name);
         json.add("controllerIds", controllerIds.serialize());
         json.add("layout", debugLayout);
+        addMissingPorts(json);
         return json;
     }
 
@@ -161,8 +162,20 @@ public class StructureModel {
         json.addProperty("structureId", id.toString());
         json.addProperty("name", name);
         json.add("controllerIds", controllerIds.serialize());
-
+        addMissingPorts(json);
         return json;
+    }
+
+    private void addMissingPorts(JsonObject json) {
+        var missing = StructureProblems.missingPorts(id);
+        if (missing.isEmpty()) {
+            return;
+        }
+        var array = new com.google.gson.JsonArray();
+        for (var portId : missing) {
+            array.add(portId.toString());
+        }
+        json.add("missingPorts", array);
     }
 
     /**

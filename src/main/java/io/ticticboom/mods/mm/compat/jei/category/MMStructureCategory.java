@@ -181,6 +181,25 @@ public class MMStructureCategory implements IRecipeCategory<StructureModel> {
         } else {
             TextRenderUtil.renderWordWrapLimit(guiGraphics, recipe.displayName(), 5, 5, RENDER_SIZE.x - 5, 2, 0xFFFFFFFF);
         }
+        drawMissingPorts(recipe, guiGraphics);
+    }
+
+    private void drawMissingPorts(StructureModel recipe, GuiGraphics guiGraphics) {
+        var missing = io.ticticboom.mods.mm.structure.StructureProblems.missingPorts(recipe.id());
+        if (missing.isEmpty()) {
+            return;
+        }
+        int lineHeight = Minecraft.getInstance().font.lineHeight;
+        int warnY = io.ticticboom.mods.mm.config.MMConfigSetup.COMMON.showJeiMaxParallel.get()
+                ? 5 + lineHeight + 7
+                : 5 + lineHeight;
+        String warn = Component.translatable("jei.mm.structure.missing_port", missing.get(0).toString()).getString();
+        float scale = 0.65f;
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(5f, (float) warnY, 0f);
+        guiGraphics.pose().scale(scale, scale, 1f);
+        TextRenderUtil.renderWordWrapLimit(guiGraphics, warn, 0, 0, (int) ((RENDER_SIZE.x - 5) / scale), 2, 0xFFFF5555);
+        guiGraphics.pose().popPose();
     }
 
     private void renderStructure(StructureModel recipe, GuiGraphics guiGraphics, double mouseX, double mouseY) {

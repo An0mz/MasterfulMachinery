@@ -37,8 +37,14 @@ public class StructureManager extends SimpleJsonResourceReloadListener {
     }
 
     public static void validateAllPieces() {
+        StructureProblems.clear();
         for (StructureModel value : STRUCTURES.values()) {
             value.validate();
+        }
+        if (!StructureProblems.isEmpty()) {
+            Ref.LOG.error("Masterful Machinery: {} structure(s) use ports that do not exist, so those machines "
+                    + "will never form. Add the missing port configs or correct the names: {}",
+                    StructureProblems.structureCount(), StructureProblems.summary());
         }
     }
 
