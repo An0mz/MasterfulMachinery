@@ -913,6 +913,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             }
             if (recipe != null) {
                 int prevProgress = state.getTickProgress();
+                boolean starved = false;
                 // First process per-tick inputs (e.g. energy consumed per tick)
                 if (!state.isCanFinish()) {
                     try {
@@ -932,8 +933,17 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                                         int tickIndex = state.getTickProgress();
                                         long toExtract = base + ((tickIndex == ticks - 1) ? rem : 0);
                                         if (toExtract > 0 && portStorages != null) {
-                                            long remaining = toExtract;
                                             var inputStorages = portStorages.getInputStorages(EnergyPortStorage.class);
+                                            long available = 0;
+                                            for (EnergyPortStorage storage : inputStorages) {
+                                                available += storage.internalExtract(toExtract - available, true);
+                                                if (available >= toExtract) break;
+                                            }
+                                            if (available < toExtract) {
+                                                starved = true;
+                                                break;
+                                            }
+                                            long remaining = toExtract;
                                             for (EnergyPortStorage storage : inputStorages) {
                                                 var extracted = storage.internalExtract(remaining, false);
                                                 remaining -= extracted;
@@ -942,6 +952,10 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                                             }
                                         }
                                         continue;
+                                    }
+                                    if (cre.isPerTick() && !ingr.canProcess(level, portStorages, state)) {
+                                        starved = true;
+                                        break;
                                     }
                                 }
                                 // default processing for other ingredient types
@@ -952,12 +966,14 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                         storageContentCacheValid = false;
                     } catch (Throwable ignored) { }
 
-                    // Then process per-tick outputs
-                    recipe.outputs().processTick(level, portStorages, state);
-                    // outputs tick may have modified storages; invalidate cached view so next tick rebuilds
-                    storageContentCacheValid = false;
+                    if (!starved) {
+                        // Then process per-tick outputs
+                        recipe.outputs().processTick(level, portStorages, state);
+                        // outputs tick may have modified storages; invalidate cached view so next tick rebuilds
+                        storageContentCacheValid = false;
+                    }
                 }
-                if (!state.isCanFinish()) state.proceedTick(recipeSpeedMultiplier());
+                if (!state.isCanFinish() && !starved) state.proceedTick(recipeSpeedMultiplier());
                 state.setTickPercentage(((double) state.getTickProgress() / recipe.ticks()) * 100);
                 boolean progressed = state.getTickProgress() != prevProgress;
                 if (state.getTickProgress() >= recipe.ticks()) {
