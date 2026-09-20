@@ -51,6 +51,7 @@ public class MMJeiPlugin implements IModPlugin {
 
     @Override
     public void registerCategories(@NotNull IRecipeCategoryRegistration registration) {
+        recipeCategories.clear();
         if (MMConfig.JEI_RECIPE_SPLIT) {
             for (StructureModel parentStructure : StructureManager.STRUCTURES.values()) {
                 registerProcessRecipe(registration, parentStructure);
