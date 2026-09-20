@@ -10,6 +10,7 @@ import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public abstract class AbstractConfigLoader<TModel> {
@@ -17,6 +18,8 @@ public abstract class AbstractConfigLoader<TModel> {
     protected abstract String getConfigPath();
 
     protected abstract List<TModel> parseModels(JsonObject json);
+
+    protected abstract String getModelId(TModel model);
 
     protected abstract void registerModels(List<TModel> models);
 
@@ -27,13 +30,23 @@ public abstract class AbstractConfigLoader<TModel> {
      */
     public void load() {
         var models = new ArrayList<TModel>();
+        var sources = new HashMap<String, Path>();
         for (Path path : findConfigFiles()) {
             JsonObject json = parseJson(path);
+            List<TModel> parsed;
             try {
-                models.addAll(parseModels(json));
+                parsed = parseModels(json);
             } catch (Exception e) {
                 throw describe(path, e);
             }
+            for (TModel model : parsed) {
+                String id = getModelId(model);
+                Path previous = sources.put(id, path);
+                if (previous != null) {
+                    throw duplicate(id, previous, path);
+                }
+            }
+            models.addAll(parsed);
         }
         registerModels(models);
     }
@@ -60,6 +73,13 @@ public abstract class AbstractConfigLoader<TModel> {
         } catch (Exception e) {
             throw describe(path, e);
         }
+    }
+
+    private static RuntimeException duplicate(String id, Path first, Path second) {
+        var message = "Two Masterful Machinery config files both define '" + id + "'. Remove one of them, "
+                + "or give it an id of its own: " + first + " and " + second;
+        Ref.LOG.fatal(message);
+        return new RuntimeException(message);
     }
 
     private static RuntimeException describe(Path path, Exception cause) {

@@ -36,6 +36,11 @@ public class PortLoader extends AbstractConfigLoader<PortModel> {
     }
 
     @Override
+    protected String getModelId(PortModel model) {
+        return model.id();
+    }
+
+    @Override
     protected void registerModels(List<PortModel> portModels) {
         for (PortModel portModel : portModels) {
             PortType portType = MMPortRegistry.requirePortType(portModel.type());

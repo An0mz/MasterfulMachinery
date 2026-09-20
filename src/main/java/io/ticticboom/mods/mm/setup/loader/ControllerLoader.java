@@ -36,6 +36,11 @@ public class ControllerLoader extends AbstractConfigLoader<ControllerModel> {
     }
 
     @Override
+    protected String getModelId(ControllerModel model) {
+        return model.id();
+    }
+
+    @Override
     protected List<ControllerModel> parseModels(JsonObject json) {
         return List.of(ControllerModel.parse(json));
     }

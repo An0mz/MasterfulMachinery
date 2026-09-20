@@ -24,6 +24,11 @@ public class ExtraBlockLoader extends AbstractConfigLoader<ExtraBlockModel> {
     }
 
     @Override
+    protected String getModelId(ExtraBlockModel model) {
+        return model.id();
+    }
+
+    @Override
     protected void registerModels(List<ExtraBlockModel> models) {
         for (ExtraBlockModel model : models) {
             var type = MMExtraBlockRegistry.get(model.type());
