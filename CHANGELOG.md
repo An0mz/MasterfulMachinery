@@ -4,6 +4,47 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.8.0] - 2026-09-20
+
+### Added
+- **Order MM items from the Replication Terminal.** A `mm:replication/link` port puts a machine's
+  recipes in the Terminal next to everything else. Ask for an item and the machine makes it, and it
+  lands in the Terminal. Items Replication has no matter value for can be ordered too. Needs
+  [Replication](https://www.curseforge.com/minecraft/mc-mods/replication).
+- **Ars Nouveau Source port.** With [Ars Nouveau](https://www.curseforge.com/minecraft/mc-mods/ars-nouveau)
+  installed, `mm:ars_nouveau/source` ports hold Source, set with `capacity` and `range`.
+  - Input ports pull from nearby source jars, and sourcelinks can fill them directly.
+  - Output ports feed nearby jars and Ars machines such as the imbuement chamber.
+  - Source relays cannot be pointed at a port; use jars or sourcelinks.
+- **Autocraft MM recipes from AE2.** With [Applied Energistics 2](https://www.curseforge.com/minecraft/mc-mods/applied-energistics-2)
+  installed, a `mm:ae2/pattern` port joins an ME network and offers the machine's recipes in the
+  crafting terminal. Order one and the ingredients are taken from storage, the machine runs, and the
+  result comes back. `patternPriority` picks which machine wins when several can make the same item.
+  - Matter can be an ingredient when [Replication AE2 Bridge](https://www.curseforge.com/minecraft/mc-mods/replication-ae2-bridge)
+    is installed.
+  - Only recipes with an item or fluid on both sides can be ordered, since AE2 cannot carry energy,
+    Source or radiation.
+- **See how full a Source port is** three ways: the block itself brightens as it fills, its screen
+  has a bar, and Jade shows a bar when you look at it.
+- **Extra blocks join up.** Place them side by side and their frames merge into one panel, with each
+  block keeping its own face. `connectGroup` decides what merges with what; without it a block only
+  joins copies of itself.
+
+### Fixed
+- **Machines no longer craft for free.** A recipe with a `per_tick` input kept running when the port
+  it draws from was empty. It now waits until there is enough, and carries on by itself. Affects
+  energy, fluid, matter, Source and radiation.
+- **Machines that stopped noticing their ports.** Filling a machine sometimes did nothing until a
+  block was broken next to it. Idle machines now find their ports again on their own.
+- **JEI no longer stacks copies** of a machine and its recipes every time resources are reloaded.
+- **Two config files claiming the same `id`.** Giving two ports, controllers or extra blocks the
+  same `id` has always stopped the game, but it never said where the clash was. It now names both
+  files. Using one block in as many structures as you like is unaffected.
+- **A missing port is reported.** A structure that uses a port no config defines now says so in
+  four places: a summary when the world loads, a message to operators joining the world, a red line
+  on the structure's JEI page, and the debug tool's dump. Before, the machine quietly never formed
+  and nothing said why.
+
 ## [1.21.1-0.7.1] - 2026-09-14
 
 ### Added
