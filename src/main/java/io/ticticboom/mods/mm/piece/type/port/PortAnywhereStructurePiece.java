@@ -54,6 +54,10 @@ public class PortAnywhereStructurePiece extends StructurePiece {
                 blocks.add(port.getBlock().get());
             }
         }
+        if (blocks.isEmpty()) {
+            Ref.LOG.error("Structure {} uses the port '{}', but no port config defines it. Machines built "
+                    + "from this structure will never form until that port is added.", meta.structureId(), portId);
+        }
     }
 
     @Override
