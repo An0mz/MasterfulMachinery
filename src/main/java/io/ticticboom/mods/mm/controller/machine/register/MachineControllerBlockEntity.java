@@ -124,6 +124,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     @Getter
     private ResourceLocation selectedRecipeId = null;
     private static final long REQUEST_TIMEOUT = 40;
+    private static final long STORAGE_REFRESH_INTERVAL = 100;
+    private long lastStorageResolve = Long.MIN_VALUE / 2;
     private ResourceLocation requestedRecipeId = null;
     private long requestExpiresAt = 0L;
     private int requestedCrafts = 0;
@@ -202,12 +204,16 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     private void runRecipe() {
+        long gameTime = (level == null) ? 0L : level.getGameTime();
+        if (portStorages != null && activeRecipes.isEmpty() && gameTime - lastStorageResolve >= STORAGE_REFRESH_INTERVAL) {
+            portStorages = null;
+        }
         if (portStorages == null) {
             portStorages = (structure == null) ? null : structure.getStorages(level, getBlockPos());
             speedStorages = resolveSpeedStorages();
+            lastStorageResolve = gameTime;
         }
         detectExternalStorageChanges();
-        long gameTime = (level == null) ? 0L : level.getGameTime();
         if (portStorages != null) {
             attachStorages(gameTime);
             var requested = activeRequest(gameTime);
