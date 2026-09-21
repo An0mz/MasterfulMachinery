@@ -72,10 +72,10 @@
   "gui.mm.port.ars_source.storage": "Stored Source: %s / %s",
   "message.mm.structure_problems": "Masterful Machinery: %s structure(s) use ports that do not exist. Check the log.",
   "jei.mm.structure.missing_port": "Missing port: %s",
-  "port.mm.ae2_pattern.name": "ME Pattern",
-  "port.mm.ae2_pattern.title": "ME Pattern Port",
+  "port.mm.ae2_pattern.name": "ME Pattern Connector",
+  "port.mm.ae2_pattern.title": "ME Pattern Connector",
   "port.mm.replication_link.name": "Replication Link",
-  "port.mm.replication_link.title": "Replication Link Port",
+  "port.mm.replication_link.title": "Replication Link",
   "port.mm.nuclear_radiation.name": "Nuclear Radiation",
   "port.mm.nuclear_radiation.title": "Radiation Port",
 

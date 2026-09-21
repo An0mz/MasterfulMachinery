@@ -45,7 +45,7 @@ public class PortAnywhereStructurePiece extends StructurePiece {
         for (RegistryGroupHolder port : MMPortRegistry.PORTS) {
             if (port.getBlock().get() instanceof IPortBlock pb) {
                 PortModel model = pb.getModel();
-                if (!model.id().equals(PortUtils.id(portId.getPath(), model.input()))) {
+                if (!PortUtils.matchesId(model.id(), model.input(), portId.getPath())) {
                     continue;
                 }
                 if (input.isPresent() && !input.get().equals(model.input())) {

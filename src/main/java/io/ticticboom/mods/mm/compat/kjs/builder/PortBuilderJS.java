@@ -127,6 +127,12 @@ public class PortBuilderJS {
         var storageFactory = portType.createStorageFactory(builder);
         IdList controllerIds = new IdList(controllers);
         var built = new ArrayList<PortModel>(2);
+        if (!io.ticticboom.mods.mm.util.PortUtils.sided(type)) {
+            var spec = outputNameSpec != null ? outputNameSpec : inputNameSpec;
+            built.add(PortModel.createStyled(id, nameSpec, spec, controllerIds, type, storageFactory, false));
+            built.forEach(port -> textures.forEach((key, value) -> port.jsonConfig().addProperty(key, value)));
+            return built;
+        }
         if (sides.hasInput()) {
             built.add(PortModel.createStyled(id, nameSpec, inputNameSpec, controllerIds, type, storageFactory, true));
         }

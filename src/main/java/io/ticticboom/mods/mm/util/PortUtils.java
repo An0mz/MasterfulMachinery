@@ -3,6 +3,7 @@ package io.ticticboom.mods.mm.util;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.datagen.provider.MMBlockstateProvider;
 import io.ticticboom.mods.mm.port.IPortBlock;
+import io.ticticboom.mods.mm.port.MMPortRegistry;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -17,6 +18,19 @@ public class PortUtils {
     public static String id(String id, boolean input) {
         var res = id + "_" + (input ? "input" : "output");
         return res;
+    }
+
+    public static String id(String id, boolean input, boolean sided) {
+        return sided ? id(id, input) : id;
+    }
+
+    public static boolean sided(ResourceLocation type) {
+        var portType = MMPortRegistry.get(type);
+        return portType == null || portType.hasSides();
+    }
+
+    public static boolean matchesId(String modelId, boolean modelInput, String rawId) {
+        return modelId.equals(rawId) || modelId.equals(id(rawId, modelInput));
     }
 
     public static String name(String name, boolean input) {

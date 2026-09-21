@@ -16,7 +16,7 @@ port type only exists when AE2 is installed.
 {
   "id": "me_port",
   "controllerIds": "mm:pulverizer",
-  "name": "ME Pattern Port",
+  "name": "ME Pattern Connector",
   "type": "mm:ae2/pattern",
   "config": {
     "patternPriority": 0
@@ -27,6 +27,9 @@ port type only exists when AE2 is installed.
 | Option | Default | Meaning |
 |---|---|---|
 | `patternPriority` | `0` | Which machine AE2 prefers when several can make the same item |
+
+This port has no input or output side, so one file makes one block: `mm:<id>`, not
+`mm:<id>_input` and `mm:<id>_output`.
 
 ## Setting one up
 
@@ -74,7 +77,7 @@ terminal first — if it is not there, the bridge is not set up, and nothing MM 
 // kubejs/startup_scripts/
 MMEvents.registerPorts(event => {
     event.create('me_port')
-        .name('ME Pattern Port')
+        .name('ME Pattern Connector')
         .controllerId('mm:pulverizer')
         .config('mm:ae2/pattern', config => {
             config.patternPriority(0)

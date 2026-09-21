@@ -22,6 +22,11 @@ import java.util.function.Consumer;
 public class ReplicationLinkPortType extends PortType {
 
     @Override
+    public boolean hasSides() {
+        return false;
+    }
+
+    @Override
     public IPortParser getParser() {
         return new ReplicationLinkPortParser();
     }

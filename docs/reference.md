@@ -19,6 +19,9 @@ in `kubejs/data/mypack/mm/structures/`.
 A structure at `data/mypack/mm/structures/alloy_kiln.json` has the id `mypack:alloy_kiln`.
 Processes work the same way.
 
+Ports that have no input or output side — `mm:ae2/pattern` and `mm:replication/link` — make a
+single block named `mm:<id>`, with no suffix on the name.
+
 Controllers, ports and extra blocks register as `mm:<id>`. A port makes two blocks, `mm:<id>_input`
 and `mm:<id>_output`, unless `only` limits it to one side.
 

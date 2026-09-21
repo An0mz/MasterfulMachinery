@@ -245,7 +245,7 @@ public class StructureLayout {
             var pm = pbe.getModel();
             String expectedPath = pa != null ? pa.getPortId().getPath() : normalP.getPortId().getPath();
             Optional<Boolean> expectedInputOpt = pa != null ? pa.getInput() : normalP.getInput();
-            if (!pm.id().equals(io.ticticboom.mods.mm.util.PortUtils.id(expectedPath, pm.input()))) {
+            if (!io.ticticboom.mods.mm.util.PortUtils.matchesId(pm.id(), pm.input(), expectedPath)) {
                 return false;
             }
             if (expectedInputOpt.isPresent() && !expectedInputOpt.get().equals(pm.input())) return false;

@@ -24,6 +24,9 @@ public class PortLoader extends AbstractConfigLoader<PortModel> {
     protected List<PortModel> parseModels(JsonObject json) {
         // One file declares a port; MM registers it twice, once as the input side and once as the
         // output side.
+        if (!io.ticticboom.mods.mm.util.PortUtils.sided(io.ticticboom.mods.mm.util.ParserUtils.parseId(json, "type"))) {
+            return List.of(PortModel.parse(json, false));
+        }
         var sides = PortSides.parse(json.get("only"));
         var models = new java.util.ArrayList<PortModel>(2);
         if (sides.hasInput()) {

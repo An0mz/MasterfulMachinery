@@ -173,6 +173,8 @@ way they order anything else Replication can make.
 }
 ```
 
+Like the ME connector, this port has no sides, so one file makes one block: `mm:<id>`.
+
 Setting one up:
 
 1. Put the port block in the machine's structure.

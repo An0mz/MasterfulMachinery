@@ -12,6 +12,11 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import java.util.function.Consumer;
 
 public abstract class PortType {
+
+    public boolean hasSides() {
+        return true;
+    }
+
     public abstract IPortParser getParser();
 
     public abstract DeferredHolder<BlockEntityType<?>, BlockEntityType<?>> registerBlockEntity(PortModel model, RegistryGroupHolder groupHolder);

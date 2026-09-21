@@ -47,7 +47,7 @@ public class PortStructurePiece extends StructurePiece {
         for (RegistryGroupHolder port : MMPortRegistry.PORTS) {
             if (port.getBlock().get() instanceof IPortBlock pb) {
                 PortModel model = pb.getModel();
-                if (!model.id().equals(PortUtils.id(portId.getPath(), model.input()))) {
+                if (!PortUtils.matchesId(model.id(), model.input(), portId.getPath())) {
                     continue;
                 }
                 if (input.isPresent() && !input.get().equals(model.input())) {
@@ -67,7 +67,7 @@ public class PortStructurePiece extends StructurePiece {
     public boolean formed(Level level, BlockPos pos, StructureModel model) {
         var be = WorldUtil.getBlockEntity(pos, (ServerLevel) level);
         if (be instanceof IPortBlockEntity pbe) {
-            if (!pbe.getModel().id().equals(PortUtils.id(portId.getPath(), pbe.getModel().input()))) {
+            if (!PortUtils.matchesId(pbe.getModel().id(), pbe.getModel().input(), portId.getPath())) {
                 return false;
             }
             return input.isEmpty() || input.get().equals(pbe.getModel().input());
