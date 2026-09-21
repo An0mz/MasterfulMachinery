@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.8.1] - 2026-09-21
+
+### Changed
+- **The ME connector and the Replication link are one block each.** Both used to make an "Input"
+  and an "Output" block that did exactly the same thing, because neither has sides. Each config
+  file now makes a single block, `mm:<id>`, and the name is used as written with no "Input" or
+  "Output" added. The AE2 one is called **ME Pattern Connector**.
+  - A structure that names the port the usual way, `{ "port": "mm:my_connector" }`, needs no change.
+  - `"input"` is now ignored for these two, so an existing `"input": true` keeps working.
+  - A structure that names the block directly, `{ "block": "mm:my_connector_output" }`, must drop
+    the `_output`.
+  - Any of these two blocks already placed in a world need placing again.
+
+### Added
+- Docs for everything added in 0.8.0: [`ars-nouveau.md`](docs/ars-nouveau.md) for the Source port,
+  [`ae2.md`](docs/ae2.md) for autocrafting, ordering from the Terminal in
+  [`replication.md`](docs/replication.md), and the new types, `connectGroup` and three more
+  troubleshooting entries in [`reference.md`](docs/reference.md).
+
 ## [1.21.1-0.8.0] - 2026-09-20
 
 ### Added
