@@ -133,8 +133,11 @@ Notes on the config keys:
 - **`autoPush`** — the port pushes its contents into neighbouring blocks on its own. Off by default;
   the default can be changed in the config.
 - **Energy above 2.1 billion** — `capacity`, `maxReceive`, `maxExtract` and recipe amounts can go
-  past 2,147,483,647 FE. Other mods still move at most 2,147,483,647 FE per transfer, and their
-  displays stop at that number.
+  past 2,147,483,647 FE, up to 9,223,372,036,854,775,807. Other mods still move at most
+  2,147,483,647 FE per transfer, and their displays stop at that number.
+  From KubeJS, whole numbers are only exact up to **9,007,199,254,740,991**. Write a bigger number
+  than that in a script and it is rounded before MM ever sees it, so use that number or less for a
+  "creative" hatch. JSON config files take the full range exactly.
 - **`tierRank`** — any port can have a `tierRank` number in its `config`. Structures can then ask for
   "any energy port of tier 2 or higher" — see [Structure keys](#structure-keys).
 
@@ -484,6 +487,10 @@ wheel zooms and shift-drag pans. With Jade, looking at a port shows what is insi
   which key.
 - **KubeJS crashes with `TypeError: Cannot find function`.** A method name is wrong. They are case
   sensitive.
+- **A port written in KubeJS never appears in game.** Check the KubeJS log first. One mistake kills
+  the whole file, so everything after it silently never registers — a misspelled variable is enough.
+  Then check the file is in `kubejs/startup_scripts/`: ports registered from `server_scripts` never
+  run. Port and controller changes need a full restart, not `/reload`.
 - **A block shows a raw name like `block.mm.my_port_input`.** Delete `config/mm/pack/` and
   restart. It is generated again on launch.
 - **The machine will not form.** Use the Debug Tool on the controller. Check that each port's
