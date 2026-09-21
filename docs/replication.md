@@ -154,7 +154,45 @@ If you call a method that does not exist, KubeJS does not log a warning — it k
 startup with `TypeError: Cannot find function ... in object <SomeBuilder>`. The builder named in
 that message tells you which port type you were configuring. Names are case sensitive.
 
+## Ordering from the Replication Terminal
+
+A second port type lets people order the machine's items from the Replication Terminal, the same
+way they order anything else Replication can make.
+
+| Port type | What it does |
+|---|---|
+| `mm:replication/link` | Offers the machine's recipes in the Terminal and delivers what is ordered |
+
+```json
+{
+  "id": "factory_link",
+  "controllerIds": "mm:replication_factory",
+  "name": "Replication Link",
+  "type": "mm:replication/link",
+  "config": {}
+}
+```
+
+Setting one up:
+
+1. Put the port block in the machine's structure.
+2. Give the machine an **item output hatch**. The link takes finished items from there.
+3. Run matter pipes from the link to the same network as the Terminal.
+
+Every recipe in that machine that makes an item then appears in the Terminal. Ask for five and the
+machine runs five times, with the items landing in the Terminal's output slots. Items Replication
+has no matter value of its own for can be ordered too.
+
+Notes:
+
+- The link does not feed the machine. Matter, items and energy still come in through their own
+  ports.
+- Without an item output hatch nothing is ever delivered.
+- It handles one order at a time. A machine can finish one extra item, which waits in the output
+  hatch for the next order.
+
 ## See also
 
 - [`mekanism.md`](mekanism.md) — Mekanism chemicals and heat.
 - [`entity.md`](entity.md) — entity ports, for machines that work with mobs.
+- [`ae2.md`](ae2.md) — autocrafting MM recipes from an ME terminal, matter included.

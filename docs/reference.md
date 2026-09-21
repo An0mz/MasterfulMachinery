@@ -122,6 +122,9 @@ MMEvents.registerControllers(event => {
 | `mm:botania/mana` | Botania | `capacity` | `mana` |
 | `mm:replication/matter` | Replication | see [`replication.md`](replication.md) | `matter`, `amount` |
 | `mm:nuclear_radiation/radiation` | Nuclear Radiation | see [`radiation.md`](radiation.md) | `isotope` (optional), `amount` (Bq) |
+| `mm:ars_nouveau/source` | Ars Nouveau | see [`ars-nouveau.md`](ars-nouveau.md) | `source` |
+| `mm:replication/link` | Replication | none — see [`replication.md`](replication.md) | cannot be used in recipes |
+| `mm:ae2/pattern` | AE2 | see [`ae2.md`](ae2.md) | cannot be used in recipes |
 
 Notes on the config keys:
 
@@ -172,6 +175,8 @@ Config methods per type:
 | `mm:create/kinetic` | `stress` |
 | `mm:pneumaticcraft/air` | `volume`, `danger`, `critical` |
 | `mm:botania/mana` | `capacity` |
+| `mm:ars_nouveau/source` | `capacity`, `range` |
+| `mm:ae2/pattern` | `patternPriority` |
 
 The entity, Mekanism and Replication methods are in their own docs. Call `.controllerId(...)` once
 per controller to attach a port to several machines.
@@ -425,9 +430,19 @@ Decorative blocks for building structures out of:
 
 `type` is `mm:circuit`, `mm:gearbox` or `mm:vent`. The block registers as `mm:<id>`.
 
+Extra blocks placed next to each other join their frames into one panel, each block keeping its own
+face. `connectGroup` decides what joins with what:
+
+```json
+{ "id": "kiln_casing", "name": "Kiln Casing", "type": "mm:vent", "connectGroup": "kiln" }
+```
+
+Blocks sharing a `connectGroup` join each other. Without one, a block only joins copies of itself.
+Using the same block in as many structures as you like changes nothing.
+
 ```js
 MMEvents.registerExtraBlocks(event => {
-    event.create('kiln_casing').name('Kiln Casing').type('mm:vent')
+    event.create('kiln_casing').name('Kiln Casing').type('mm:vent').connectGroup('kiln')
 })
 ```
 
@@ -475,3 +490,13 @@ wheel zooms and shift-drag pans. With Jade, looking at a port shows what is insi
   `controllerIds` includes this controller, and that the layout has exactly one `C`.
 - **The machine forms but the recipe never starts.** Check the recipe's `structureId`, that every
   input is in an input port, and that the output ports have room.
+- **The game stops saying two config files define the same id.** Two files under `config/mm/` gave
+  the same `id`. The message names both files; rename one. Filenames and folders do not matter, only
+  the `id` inside. Using one block in several structures is fine.
+- **Chat says structures use ports that do not exist.** A structure names a port no config defines,
+  so that machine can never form. The log and the structure's JEI page name the missing port. Add
+  the port config, or correct the name in the structure.
+- **A recipe with a `per_tick` input never finishes.** The machine pauses on any tick it cannot pay
+  for in full, and gives up after about ten seconds, returning what it took. Check the port is
+  actually supplied. Note `per_tick` energy is the total spread across the recipe, while other
+  types take the amount every tick.
