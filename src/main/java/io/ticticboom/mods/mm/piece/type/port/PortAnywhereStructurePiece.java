@@ -48,7 +48,7 @@ public class PortAnywhereStructurePiece extends StructurePiece {
                 if (!PortUtils.matchesId(model.id(), model.input(), portId.getPath())) {
                     continue;
                 }
-                if (input.isPresent() && !input.get().equals(model.input())) {
+                if (!PortUtils.sideMatches(model.type(), model.input(), input)) {
                     continue;
                 }
                 blocks.add(port.getBlock().get());

@@ -29,6 +29,13 @@ public class PortUtils {
         return portType == null || portType.hasSides();
     }
 
+    public static boolean sideMatches(ResourceLocation type, boolean modelInput, java.util.Optional<Boolean> wanted) {
+        if (!sided(type)) {
+            return true;
+        }
+        return wanted.isEmpty() || wanted.get() == modelInput;
+    }
+
     public static boolean matchesId(String modelId, boolean modelInput, String rawId) {
         return modelId.equals(rawId) || modelId.equals(id(rawId, modelInput));
     }

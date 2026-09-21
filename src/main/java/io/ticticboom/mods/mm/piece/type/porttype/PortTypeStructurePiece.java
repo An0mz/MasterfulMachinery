@@ -66,7 +66,7 @@ public class PortTypeStructurePiece extends StructurePiece {
                 if (!model.type().equals(portTypeId)) {
                     continue;
                 }
-                if (input.isPresent() && !input.get().equals(model.input())) {
+                if (!io.ticticboom.mods.mm.util.PortUtils.sideMatches(model.type(), model.input(), input)) {
                     continue;
                 }
                 // check tier compatibility
@@ -96,7 +96,7 @@ public class PortTypeStructurePiece extends StructurePiece {
             if (!pbe.getModel().type().equals(portTypeId)) {
                 return false;
             }
-            if (input.isPresent() && !input.get().equals(pbe.getModel().input())) {
+            if (!io.ticticboom.mods.mm.util.PortUtils.sideMatches(pbe.getModel().type(), pbe.getModel().input(), input)) {
                 return false;
             }
             // check tier compatibility

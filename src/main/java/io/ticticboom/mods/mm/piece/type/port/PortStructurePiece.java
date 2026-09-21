@@ -50,7 +50,7 @@ public class PortStructurePiece extends StructurePiece {
                 if (!PortUtils.matchesId(model.id(), model.input(), portId.getPath())) {
                     continue;
                 }
-                if (input.isPresent() && !input.get().equals(model.input())) {
+                if (!PortUtils.sideMatches(model.type(), model.input(), input)) {
                     continue;
                 }
                 blocks.add(port.getBlock().get());
@@ -70,7 +70,7 @@ public class PortStructurePiece extends StructurePiece {
             if (!PortUtils.matchesId(pbe.getModel().id(), pbe.getModel().input(), portId.getPath())) {
                 return false;
             }
-            return input.isEmpty() || input.get().equals(pbe.getModel().input());
+            return PortUtils.sideMatches(pbe.getModel().type(), pbe.getModel().input(), input);
         }
         return false;
     }

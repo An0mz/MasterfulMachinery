@@ -62,7 +62,7 @@ public class PortTypeAnywhereStructurePiece extends StructurePiece {
                 if (!model.type().equals(portTypeId)) {
                     continue;
                 }
-                if (input.isPresent() && !input.get().equals(model.input())) {
+                if (!io.ticticboom.mods.mm.util.PortUtils.sideMatches(model.type(), model.input(), input)) {
                     continue;
                 }
                 // check tier compatibility
