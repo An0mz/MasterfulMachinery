@@ -15,6 +15,8 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.network.PacketDistributor;
+import io.ticticboom.mods.mm.item.MultiblockSaverItem;
+import io.ticticboom.mods.mm.setup.MMRegisters;
 
 @EventBusSubscriber(bus = EventBusSubscriber.Bus.GAME)
 public class ForgeEventsListener {
@@ -50,28 +52,28 @@ public class ForgeEventsListener {
         var inv = player.getInventory();
         // main inventory
         for (var stack : inv.items) {
-            if (stack != null && stack.getItem() == io.ticticboom.mods.mm.setup.MMRegisters.MULTIBLOCK_SAVER.get()) {
+            if (stack != null && stack.getItem() == MMRegisters.MULTIBLOCK_SAVER.get()) {
                 if (ItemNbtUtil.hasTag(stack)) {
-                    ItemNbtUtil.mutate(stack, __t -> __t.remove(io.ticticboom.mods.mm.item.MultiblockSaverItem.NBT_POS1));
-                    ItemNbtUtil.mutate(stack, __t -> __t.remove(io.ticticboom.mods.mm.item.MultiblockSaverItem.NBT_POS2));
+                    ItemNbtUtil.mutate(stack, __t -> __t.remove(MultiblockSaverItem.NBT_POS1));
+                    ItemNbtUtil.mutate(stack, __t -> __t.remove(MultiblockSaverItem.NBT_POS2));
                 }
             }
         }
         // offhand
         for (var stack : inv.offhand) {
-            if (stack != null && stack.getItem() == io.ticticboom.mods.mm.setup.MMRegisters.MULTIBLOCK_SAVER.get()) {
+            if (stack != null && stack.getItem() == MMRegisters.MULTIBLOCK_SAVER.get()) {
                 if (ItemNbtUtil.hasTag(stack)) {
-                    ItemNbtUtil.mutate(stack, __t -> __t.remove(io.ticticboom.mods.mm.item.MultiblockSaverItem.NBT_POS1));
-                    ItemNbtUtil.mutate(stack, __t -> __t.remove(io.ticticboom.mods.mm.item.MultiblockSaverItem.NBT_POS2));
+                    ItemNbtUtil.mutate(stack, __t -> __t.remove(MultiblockSaverItem.NBT_POS1));
+                    ItemNbtUtil.mutate(stack, __t -> __t.remove(MultiblockSaverItem.NBT_POS2));
                 }
             }
         }
         // armour
         for (var stack : inv.armor) {
-            if (stack != null && stack.getItem() == io.ticticboom.mods.mm.setup.MMRegisters.MULTIBLOCK_SAVER.get()) {
+            if (stack != null && stack.getItem() == MMRegisters.MULTIBLOCK_SAVER.get()) {
                 if (ItemNbtUtil.hasTag(stack)) {
-                    ItemNbtUtil.mutate(stack, __t -> __t.remove(io.ticticboom.mods.mm.item.MultiblockSaverItem.NBT_POS1));
-                    ItemNbtUtil.mutate(stack, __t -> __t.remove(io.ticticboom.mods.mm.item.MultiblockSaverItem.NBT_POS2));
+                    ItemNbtUtil.mutate(stack, __t -> __t.remove(MultiblockSaverItem.NBT_POS1));
+                    ItemNbtUtil.mutate(stack, __t -> __t.remove(MultiblockSaverItem.NBT_POS2));
                 }
             }
         }

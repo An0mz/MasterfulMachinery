@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
+import io.ticticboom.mods.mm.util.PortUtils;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class PortTypeAnywhereStructurePiece extends StructurePiece {
@@ -62,7 +63,7 @@ public class PortTypeAnywhereStructurePiece extends StructurePiece {
                 if (!model.type().equals(portTypeId)) {
                     continue;
                 }
-                if (!io.ticticboom.mods.mm.util.PortUtils.sideMatches(model.type(), model.input(), input)) {
+                if (!PortUtils.sideMatches(model.type(), model.input(), input)) {
                     continue;
                 }
                 // check tier compatibility

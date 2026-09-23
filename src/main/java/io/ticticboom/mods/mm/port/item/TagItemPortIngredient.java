@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 import net.minecraft.nbt.CompoundTag;
+import io.ticticboom.mods.mm.util.NbtMatchUtils;
 
 public class TagItemPortIngredient extends BaseItemPortIngredient {
 
@@ -73,7 +74,7 @@ public class TagItemPortIngredient extends BaseItemPortIngredient {
         json.addProperty("WILL_NEVER_WORK", true);
         if (requiredNbt != null) {
             json.addProperty("nbt_match", nbtStrong ? "strong" : "weak");
-            json.add("nbt", io.ticticboom.mods.mm.util.NbtMatchUtils.toJson(requiredNbt));
+            json.add("nbt", NbtMatchUtils.toJson(requiredNbt));
         }
         return json;
     }

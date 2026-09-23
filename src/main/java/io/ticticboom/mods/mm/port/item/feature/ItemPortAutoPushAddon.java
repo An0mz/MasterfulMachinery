@@ -17,6 +17,7 @@ import net.neoforged.neoforge.items.IItemHandler;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import io.ticticboom.mods.mm.port.item.ItemPortStorage;
 
 public class ItemPortAutoPushAddon extends AbstractPortAutoPushFeature<ItemHandlerCoupling> {
 
@@ -76,12 +77,12 @@ public class ItemPortAutoPushAddon extends AbstractPortAutoPushFeature<ItemHandl
         if (level.isClientSide) return;
 
         // Build candidate map of neighboring port storages that are ItemPortStorage
-        Map<BlockPos, io.ticticboom.mods.mm.port.item.ItemPortStorage> candidates = new HashMap<>();
+        Map<BlockPos, ItemPortStorage> candidates = new HashMap<>();
         for (BlockPos pos : autoPushNeighbors.keySet()) {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof IPortBlockEntity pbe) {
                 var storage = pbe.getStorage();
-                if (storage instanceof io.ticticboom.mods.mm.port.item.ItemPortStorage ips) {
+                if (storage instanceof ItemPortStorage ips) {
                     candidates.put(pos, ips);
                 }
             }
@@ -90,7 +91,7 @@ public class ItemPortAutoPushAddon extends AbstractPortAutoPushFeature<ItemHandl
         // Source storage: ensure portBlockEntity is an IPortBlockEntity
         if (!(portBlockEntity instanceof IPortBlockEntity sourcePbe)) return;
         var sourceStorage = sourcePbe.getStorage();
-        if (!(sourceStorage instanceof io.ticticboom.mods.mm.port.item.ItemPortStorage source)) return;
+        if (!(sourceStorage instanceof ItemPortStorage source)) return;
 
         // For each slot in the source handler, attempt to push as much as possible
         for (int slot = 0; slot < source.getHandler().getSlots(); slot++) {

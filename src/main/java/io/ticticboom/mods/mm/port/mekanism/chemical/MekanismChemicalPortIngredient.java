@@ -18,6 +18,7 @@ import mezz.jei.api.recipe.IFocusGroup;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
+import io.ticticboom.mods.mm.Ref;
 
 public class MekanismChemicalPortIngredient implements IPortIngredient {
 
@@ -41,7 +42,7 @@ public class MekanismChemicalPortIngredient implements IPortIngredient {
     }
 
     public ResourceLocation getTypeId() {
-        return io.ticticboom.mods.mm.Ref.Ports.MEK_CHEMICAL;
+        return Ref.Ports.MEK_CHEMICAL;
     }
 
     public MekanismChemicalPortIngredient(ResourceLocation chemical, long amount) {

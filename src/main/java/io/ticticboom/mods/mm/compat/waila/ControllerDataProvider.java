@@ -28,10 +28,7 @@ public class ControllerDataProvider implements IServerDataProvider<BlockAccessor
             } else {
                 data.putString(TICK_KEY, "Idle");
             }
-            try {
-                String mode = cbe.getRedstoneModeName();
-                if (mode != null && !mode.isEmpty()) data.putString(REDSTONE_KEY, mode);
-            } catch (Throwable ignored) { }
+            data.putString(REDSTONE_KEY, cbe.getRedstoneModeName());
         }
     }
 

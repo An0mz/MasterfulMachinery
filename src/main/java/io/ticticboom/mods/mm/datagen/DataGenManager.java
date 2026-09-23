@@ -44,7 +44,7 @@ public class DataGenManager {
                 generator.run();
                 hasGenerated = true;
             } catch (Exception e) {
-                e.printStackTrace();
+                Ref.LOG.error("Data generation failed", e);
             }
         }
     }

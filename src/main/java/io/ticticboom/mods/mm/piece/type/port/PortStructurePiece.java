@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
+import io.ticticboom.mods.mm.structure.StructureProblems;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class PortStructurePiece extends StructurePiece {
@@ -57,7 +58,7 @@ public class PortStructurePiece extends StructurePiece {
             }
         }
         if (blocks.isEmpty()) {
-            io.ticticboom.mods.mm.structure.StructureProblems.missingPort(meta.structureId(), portId);
+            StructureProblems.missingPort(meta.structureId(), portId);
             Ref.LOG.error("Structure {} uses the port '{}', but no port config defines it. Machines built "
                     + "from this structure will never form until that port is added.", meta.structureId(), portId);
         }

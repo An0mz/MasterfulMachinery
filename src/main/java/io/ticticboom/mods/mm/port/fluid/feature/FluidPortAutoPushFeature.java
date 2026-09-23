@@ -14,6 +14,7 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 import java.util.HashMap;
 import java.util.Map;
+import io.ticticboom.mods.mm.port.fluid.FluidPortStorage;
 
 public class FluidPortAutoPushFeature extends AbstractPortAutoPushFeature<FluidHandlerCoupling> {
 
@@ -69,12 +70,12 @@ public class FluidPortAutoPushFeature extends AbstractPortAutoPushFeature<FluidH
         if (level == null) return;
         if (level.isClientSide) return;
 
-        Map<BlockPos, io.ticticboom.mods.mm.port.fluid.FluidPortStorage> candidates = new HashMap<>();
+        Map<BlockPos, FluidPortStorage> candidates = new HashMap<>();
         for (BlockPos pos : autoPushNeighbors.keySet()) {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof IPortBlockEntity pbe) {
                 var storage = pbe.getStorage();
-                if (storage instanceof io.ticticboom.mods.mm.port.fluid.FluidPortStorage fps) {
+                if (storage instanceof FluidPortStorage fps) {
                     candidates.put(pos, fps);
                 }
             }
@@ -82,7 +83,7 @@ public class FluidPortAutoPushFeature extends AbstractPortAutoPushFeature<FluidH
 
         if (!(portBlockEntity instanceof IPortBlockEntity sourcePbe)) return;
         var sourceStorage = sourcePbe.getStorage();
-        if (!(sourceStorage instanceof io.ticticboom.mods.mm.port.fluid.FluidPortStorage source)) return;
+        if (!(sourceStorage instanceof FluidPortStorage source)) return;
 
         // For each tank in the source, attempt to push fluid
         for (int tank = 0; tank < source.getHandler().getTanks(); tank++) {

@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.compat.jei.SlotGrid;
 import io.ticticboom.mods.mm.compat.jei.SlotGridEntry;
 import io.ticticboom.mods.mm.port.IPortIngredient;
+import io.ticticboom.mods.mm.port.item.BaseItemPortIngredient;
 import io.ticticboom.mods.mm.recipe.RecipeModel;
 import io.ticticboom.mods.mm.recipe.RecipeStateModel;
 import io.ticticboom.mods.mm.recipe.RecipeStorages;
@@ -81,11 +82,8 @@ public class SimpleRecipeOutputEntry implements IRecipeOutputEntry {
         slot.setUsed();
         var rSlot = builder.addSlot(RecipeIngredientRole.OUTPUT, slot.getInnerX(), slot.getInnerY());
         // if underlying ingredient is an item, store its intended count on the slot for JEI rendering
-        try {
-            if (ingredient instanceof io.ticticboom.mods.mm.port.item.BaseItemPortIngredient bif) {
-                slot.setBadgeCount(bif.getCount());
-            }
-        } catch (Throwable ignored) {
+        if (ingredient instanceof BaseItemPortIngredient item) {
+            slot.setBadgeCount(item.getCount());
         }
         var range = ingredient.getAmountRange();
         if (range != null && range.isRanged()) {

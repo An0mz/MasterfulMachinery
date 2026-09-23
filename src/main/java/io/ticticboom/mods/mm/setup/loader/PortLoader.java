@@ -8,6 +8,8 @@ import io.ticticboom.mods.mm.port.PortSides;
 import io.ticticboom.mods.mm.port.PortType;
 
 import java.util.List;
+import io.ticticboom.mods.mm.util.ParserUtils;
+import io.ticticboom.mods.mm.util.PortUtils;
 
 public class PortLoader extends AbstractConfigLoader<PortModel> {
 
@@ -24,7 +26,7 @@ public class PortLoader extends AbstractConfigLoader<PortModel> {
     protected List<PortModel> parseModels(JsonObject json) {
         // One file declares a port; MM registers it twice, once as the input side and once as the
         // output side.
-        if (!io.ticticboom.mods.mm.util.PortUtils.sided(io.ticticboom.mods.mm.util.ParserUtils.parseId(json, "type"))) {
+        if (!PortUtils.sided(ParserUtils.parseId(json, "type"))) {
             return List.of(PortModel.parse(json, false));
         }
         var sides = PortSides.parse(json.get("only"));

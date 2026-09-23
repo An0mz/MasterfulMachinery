@@ -30,6 +30,8 @@ import net.minecraft.world.item.Item;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector2i;
 import org.joml.Vector4f;
+import io.ticticboom.mods.mm.config.MMConfigSetup;
+import io.ticticboom.mods.mm.structure.StructureProblems;
 
 public class MMStructureCategory implements IRecipeCategory<StructureModel> {
 
@@ -150,7 +152,7 @@ public class MMStructureCategory implements IRecipeCategory<StructureModel> {
         }
 
         // Render Max Parallel Processing as first entry in JEI (configurable)
-        if (io.ticticboom.mods.mm.config.MMConfigSetup.COMMON.showJeiMaxParallel.get()) {
+        if (MMConfigSetup.COMMON.showJeiMaxParallel.get()) {
         int structVal = recipe.maxParallelRecipes();
         int displayInt = 1; // default when unspecified or zero/negative
         if (structVal > 0) {
@@ -185,12 +187,12 @@ public class MMStructureCategory implements IRecipeCategory<StructureModel> {
     }
 
     private void drawMissingPorts(StructureModel recipe, GuiGraphics guiGraphics) {
-        var missing = io.ticticboom.mods.mm.structure.StructureProblems.missingPorts(recipe.id());
+        var missing = StructureProblems.missingPorts(recipe.id());
         if (missing.isEmpty()) {
             return;
         }
         int lineHeight = Minecraft.getInstance().font.lineHeight;
-        int warnY = io.ticticboom.mods.mm.config.MMConfigSetup.COMMON.showJeiMaxParallel.get()
+        int warnY = MMConfigSetup.COMMON.showJeiMaxParallel.get()
                 ? 5 + lineHeight + 7
                 : 5 + lineHeight;
         String warn = Component.translatable("jei.mm.structure.missing_port", missing.get(0).toString()).getString();

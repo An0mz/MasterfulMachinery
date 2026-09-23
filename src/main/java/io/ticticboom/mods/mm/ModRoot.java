@@ -41,7 +41,7 @@ public class ModRoot {
                         .addPackFinder(new MMRepositorySource(MMRepoType.RESOURCES));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Ref.LOG.error("Could not register the generated resource pack", e);
         }
     }
 }

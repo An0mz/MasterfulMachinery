@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import io.ticticboom.mods.mm.util.PortUtils;
 
 @Getter
 public class PortBuilderJS {
@@ -127,7 +128,7 @@ public class PortBuilderJS {
         var storageFactory = portType.createStorageFactory(builder);
         IdList controllerIds = new IdList(controllers);
         var built = new ArrayList<PortModel>(2);
-        if (!io.ticticboom.mods.mm.util.PortUtils.sided(type)) {
+        if (!PortUtils.sided(type)) {
             var spec = outputNameSpec != null ? outputNameSpec : inputNameSpec;
             built.add(PortModel.createStyled(id, nameSpec, spec, controllerIds, type, storageFactory, false));
             built.forEach(port -> textures.forEach((key, value) -> port.jsonConfig().addProperty(key, value)));

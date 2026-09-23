@@ -106,8 +106,8 @@ public class MMCommands {
                                 }
                             }
                         }
-                    } catch (Throwable t) {
-                        Ref.LOG.error("Error while processing chunk {}:{} - {}", chunkPos.x, chunkPos.z, t.toString());
+                    } catch (RuntimeException e) {
+                        Ref.LOG.error("Error while processing chunk {}:{}", chunkPos.x, chunkPos.z, e);
                     } finally {
                         int processed = processedChunks.incrementAndGet();
                         // Periodically send progress update

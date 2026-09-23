@@ -1,6 +1,7 @@
 package io.ticticboom.mods.mm.controller.machine.register;
 
 import io.ticticboom.mods.mm.Ref;
+import io.ticticboom.mods.mm.net.packet.ToggleRedstoneModePkt;
 import io.ticticboom.mods.mm.client.util.TextRenderUtil;
 import io.ticticboom.mods.mm.net.packet.SelectRecipePkt;
 import io.ticticboom.mods.mm.port.item.SingleItemPortIngredient;
@@ -19,6 +20,7 @@ import net.minecraft.network.chat.FormattedText;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
+import io.ticticboom.mods.mm.setup.loader.ControllerLoader;
 
 public class MachineControllerScreen extends AbstractContainerScreen<MachineControllerMenu> {
 
@@ -69,7 +71,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
             if (structVal > 0) {
                 displayInt = structVal;
             } else {
-                var controllerModel = io.ticticboom.mods.mm.setup.loader.ControllerLoader.CONTROLLER_MODELS.get(menu.getModel().id());
+                var controllerModel = ControllerLoader.CONTROLLER_MODELS.get(menu.getModel().id());
                 if (controllerModel != null && controllerModel.maxParallelRecipes() > 0) {
                     displayInt = controllerModel.maxParallelRecipes();
                 }
@@ -218,12 +220,8 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         int redstoneBtnW = 150;
         int redstoneBtnH = 12;
         if (mx >= redstoneBtnX && mx <= redstoneBtnX + redstoneBtnW && my >= redstoneBtnY && my <= redstoneBtnY + redstoneBtnH) {
-            try {
-                BlockEntity beEntity = menu.getBe().getBlockEntity();
-                var pos = beEntity.getBlockPos();
-                int next = (be.getRedstoneModeOrdinal() + 1) % 3;
-                net.neoforged.neoforge.network.PacketDistributor.sendToServer(new io.ticticboom.mods.mm.net.packet.ToggleRedstoneModePkt(pos, next));
-            } catch (Throwable ignored) { }
+            int next = (be.getRedstoneModeOrdinal() + 1) % 3;
+            PacketDistributor.sendToServer(new ToggleRedstoneModePkt(be.getBlockPos(), next));
             return true;
         }
         if (be.isManualSelection() && my >= RECIPE_ROW_Y && my <= RECIPE_ROW_Y + 16) {

@@ -18,6 +18,7 @@ import mezz.jei.api.helpers.IJeiHelpers;
 import mezz.jei.api.recipe.IFocusGroup;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
+import io.ticticboom.mods.mm.compat.jei.ingredient.matter.MatterIngredientNames;
 
 public class ReplicationMatterPortIngredient implements IPortIngredient {
 
@@ -158,6 +159,6 @@ public class ReplicationMatterPortIngredient implements IPortIngredient {
     @Override
     public net.minecraft.network.chat.Component displayName() {
         return net.minecraft.network.chat.Component.translatable("gui.mm.controller.recipe_output.matter",
-                io.ticticboom.mods.mm.compat.jei.ingredient.matter.MatterIngredientNames.displayName(matterId));
+                MatterIngredientNames.displayName(matterId));
     }
 }

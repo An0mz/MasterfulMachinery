@@ -36,6 +36,11 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import io.ticticboom.mods.mm.compat.jei.ingredient.radiation.RadiationIngredientHelper;
+import io.ticticboom.mods.mm.compat.jei.ingredient.radiation.RadiationIngredientRenderer;
+import io.ticticboom.mods.mm.compat.jei.ingredient.source.ArsSourceIngredientHelper;
+import io.ticticboom.mods.mm.compat.jei.ingredient.source.ArsSourceIngredientRenderer;
+import io.ticticboom.mods.mm.util.ItemNbtUtil;
 
 @SuppressWarnings("unused")
 @JeiPlugin
@@ -111,9 +116,9 @@ public class MMJeiPlugin implements IModPlugin {
         registration.register(MMJeiIngredients.CREATE_ROTATION, ImmutableList.of(), new CreateRotationIngredientHelper(), new CreateRotationIngredientRenderer());
         registration.register(MMJeiIngredients.MEKANISM_HEAT, ImmutableList.of(), new HeatIngredientHelper(), new HeatIngredientRenderer());
         registration.register(MMJeiIngredients.REPLICATION_MATTER, ImmutableList.of(), new MatterIngredientHelper(), new MatterIngredientRenderer());
-        registration.register(MMJeiIngredients.NUCLEAR_RADIATION, ImmutableList.of(), new io.ticticboom.mods.mm.compat.jei.ingredient.radiation.RadiationIngredientHelper(), new io.ticticboom.mods.mm.compat.jei.ingredient.radiation.RadiationIngredientRenderer());
+        registration.register(MMJeiIngredients.NUCLEAR_RADIATION, ImmutableList.of(), new RadiationIngredientHelper(), new RadiationIngredientRenderer());
         registration.register(MMJeiIngredients.ENTITY, ImmutableList.of(), new EntityIngredientHelper(), new EntityIngredientRenderer());
-        registration.register(MMJeiIngredients.ARS_SOURCE, ImmutableList.of(), new io.ticticboom.mods.mm.compat.jei.ingredient.source.ArsSourceIngredientHelper(), new io.ticticboom.mods.mm.compat.jei.ingredient.source.ArsSourceIngredientRenderer());
+        registration.register(MMJeiIngredients.ARS_SOURCE, ImmutableList.of(), new ArsSourceIngredientHelper(), new ArsSourceIngredientRenderer());
     }
 
     @Override
@@ -144,6 +149,6 @@ public class MMJeiPlugin implements IModPlugin {
         // JEI 19 replaced useNbtForSubtypes with component-based subtypes; the blueprint
         // distinguishes itself by its custom_data component.
         registration.registerSubtypeInterpreter(MMRegisters.BLUEPRINT.get(),
-                (stack, ctx) -> String.valueOf(io.ticticboom.mods.mm.util.ItemNbtUtil.getTag(stack)));
+                (stack, ctx) -> String.valueOf(ItemNbtUtil.getTag(stack)));
     }
 }

@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.port.MMPortRegistry;
 import io.ticticboom.mods.mm.recipe.output.IRecipeOutputEntry;
 import io.ticticboom.mods.mm.recipe.output.IRecipeOutputEntryParser;
+import io.ticticboom.mods.mm.Ref;
 
 public class SimpleRecipeOutputEntryParser implements IRecipeOutputEntryParser {
     @Override
@@ -15,7 +16,7 @@ public class SimpleRecipeOutputEntryParser implements IRecipeOutputEntryParser {
             // look for direct item/count/nbt fields and normalize
             if (json.has("item") || json.has("nbt") || json.has("nbt_snbt") || json.has("nbt_match") || json.has("count")) {
                 JsonObject normalized = new JsonObject();
-                normalized.addProperty("type", io.ticticboom.mods.mm.Ref.Ports.ITEM.toString());
+                normalized.addProperty("type", Ref.Ports.ITEM.toString());
                 if (json.has("item")) normalized.add("item", json.get("item"));
                 if (json.has("count")) normalized.add("count", json.get("count"));
                 if (json.has("nbt")) normalized.add("nbt", json.get("nbt"));

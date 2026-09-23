@@ -13,7 +13,7 @@ public class DatapackSyncHandler {
     public static void onDatapackSync(OnDatapackSyncEvent event) {
         try {
             StructureManager.validateAllPieces();
-        } catch (Throwable t) {
+        } catch (RuntimeException t) {
             Ref.LOG.error("Error validating structure pieces on datapack sync", t);
         }
     }

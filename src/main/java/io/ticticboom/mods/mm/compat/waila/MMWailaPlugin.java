@@ -15,6 +15,11 @@ import snownee.jade.api.IWailaClientRegistration;
 import snownee.jade.api.IWailaCommonRegistration;
 import snownee.jade.api.IWailaPlugin;
 import snownee.jade.api.WailaPlugin;
+import io.ticticboom.mods.mm.port.ars.source.register.ArsSourcePortBlock;
+import io.ticticboom.mods.mm.port.entity.register.EntityPortBlock;
+import io.ticticboom.mods.mm.port.mekanism.chemical.register.MekanismChemicalPortBlock;
+import io.ticticboom.mods.mm.port.mekanism.heat.register.MekanismHeatPortBlock;
+import io.ticticboom.mods.mm.port.nuclear.radiation.register.NuclearRadiationPortBlock;
 
 
 @WailaPlugin
@@ -39,10 +44,10 @@ public class MMWailaPlugin implements IWailaPlugin {
         registration.registerBlockComponent(PortPriorityDataProvider.INSTANCE, PneumaticAirPortBlock.class);
         registration.registerBlockComponent(PortPriorityDataProvider.INSTANCE, BotaniaManaPortBlock.class);
 
-        registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, io.ticticboom.mods.mm.port.entity.register.EntityPortBlock.class);
+        registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, EntityPortBlock.class);
         if (ModList.get().isLoaded("mekanism")) {
-            registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, io.ticticboom.mods.mm.port.mekanism.chemical.register.MekanismChemicalPortBlock.class);
-            registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, io.ticticboom.mods.mm.port.mekanism.heat.register.MekanismHeatPortBlock.class);
+            registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, MekanismChemicalPortBlock.class);
+            registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, MekanismHeatPortBlock.class);
         }
         // Unlike the other port blocks this one implements a Titanium interface, so naming the
         // class at all resolves it. Behind the check it stays unloaded when Replication is absent.
@@ -51,10 +56,10 @@ public class MMWailaPlugin implements IWailaPlugin {
             registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, ReplicationMatterPortBlock.class);
         }
         if (ModList.get().isLoaded("ars_nouveau")) {
-            registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, io.ticticboom.mods.mm.port.ars.source.register.ArsSourcePortBlock.class);
+            registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, ArsSourcePortBlock.class);
         }
         if (ModList.get().isLoaded("nuclear_radiation")) {
-            registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, io.ticticboom.mods.mm.port.nuclear.radiation.register.NuclearRadiationPortBlock.class);
+            registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, NuclearRadiationPortBlock.class);
         }
     }
 }

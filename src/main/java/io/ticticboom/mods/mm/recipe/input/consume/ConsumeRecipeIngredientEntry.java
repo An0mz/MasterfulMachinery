@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.compat.jei.SlotGrid;
 import io.ticticboom.mods.mm.compat.jei.SlotGridEntry;
 import io.ticticboom.mods.mm.port.IPortIngredient;
+import io.ticticboom.mods.mm.port.item.BaseItemPortIngredient;
 import io.ticticboom.mods.mm.recipe.RecipeModel;
 import io.ticticboom.mods.mm.recipe.RecipeStateModel;
 import io.ticticboom.mods.mm.recipe.RecipeStorages;
@@ -67,9 +68,7 @@ public class ConsumeRecipeIngredientEntry implements IRecipeIngredientEntry {
         if (!perTick) {
             return;
         }
-        try {
-            ingredient.processTick(level, storages, state);
-        } catch (Throwable ignored) { }
+        ingredient.processTick(level, storages, state);
     }
 
     @Override
@@ -84,11 +83,8 @@ public class ConsumeRecipeIngredientEntry implements IRecipeIngredientEntry {
         var rSlot = builder.addSlot(RecipeIngredientRole.INPUT, slot.getInnerX(), slot.getInnerY());
         slot.setUsed();
         // if underlying ingredient is an item with a count, store that count on the slot for JEI rendering
-        try {
-            if (ingredient instanceof io.ticticboom.mods.mm.port.item.BaseItemPortIngredient bif) {
-                slot.setBadgeCount(bif.getCount());
-            }
-        } catch (Throwable ignored) {
+        if (ingredient instanceof BaseItemPortIngredient item) {
+            slot.setBadgeCount(item.getCount());
         }
         // If chance is zero (or negative), mark the slot so JEI can render a small 'x' badge
         if (chance <= 0.0) {

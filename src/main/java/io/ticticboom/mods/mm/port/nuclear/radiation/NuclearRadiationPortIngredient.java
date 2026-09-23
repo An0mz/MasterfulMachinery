@@ -14,6 +14,7 @@ import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
 import mezz.jei.api.helpers.IJeiHelpers;
 import mezz.jei.api.recipe.IFocusGroup;
 import net.minecraft.world.level.Level;
+import io.ticticboom.mods.mm.util.RadiationText;
 
 public class NuclearRadiationPortIngredient implements IPortIngredient {
 
@@ -125,6 +126,6 @@ public class NuclearRadiationPortIngredient implements IPortIngredient {
 
     @Override
     public net.minecraft.network.chat.Component displayName() {
-        return io.ticticboom.mods.mm.util.RadiationText.isotopeName(isotope);
+        return RadiationText.isotopeName(isotope);
     }
 }

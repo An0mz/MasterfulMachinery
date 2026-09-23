@@ -7,6 +7,7 @@ import io.ticticboom.mods.mm.util.ParserUtils;
 import net.minecraft.resources.ResourceLocation;
 import mekanism.api.chemical.Chemical;
 import mekanism.api.chemical.ChemicalStack;
+import io.ticticboom.mods.mm.port.IPortIngredient;
 
 public class MekanismChemicalPortParser implements IPortParser {
 
@@ -15,7 +16,7 @@ public class MekanismChemicalPortParser implements IPortParser {
     }
 
     @Override
-    public io.ticticboom.mods.mm.port.IPortIngredient parseRecipeIngredient(JsonObject json) {
+    public IPortIngredient parseRecipeIngredient(JsonObject json) {
         var chemical = parseChemicalId(json, "chemical");
         var amount = json.get("amount").getAsLong();
         return new MekanismChemicalPortIngredient(chemical, amount);

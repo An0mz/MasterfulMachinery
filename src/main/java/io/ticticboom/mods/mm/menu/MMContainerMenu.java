@@ -11,6 +11,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.Nullable;
+import io.ticticboom.mods.mm.port.item.ItemPortContainer;
+import io.ticticboom.mods.mm.port.item.ItemPortHandler;
 
 public abstract class MMContainerMenu extends AbstractContainerMenu {
 
@@ -43,7 +45,7 @@ public abstract class MMContainerMenu extends AbstractContainerMenu {
 
             try {
                 // when quick-moving into storage, prefer empty slots to avoid stacking onto existing
-                io.ticticboom.mods.mm.port.item.ItemPortHandler.setThreadPreferEmpty(true);
+                ItemPortHandler.setThreadPreferEmpty(true);
                 if (i >= capSize && i < totalSize) {
                     // moving from player inv to storage: fill partial stacks first, then empty slots
                     boolean movedToStorage = tryTopUpStorageSlots(rawStack, 0, capSize);
@@ -62,17 +64,7 @@ public abstract class MMContainerMenu extends AbstractContainerMenu {
                 } else {
                     // moving from storage to player/hotbar or other: use handler-first approach to avoid dupes
                     try {
-                        // attempt to access underlying container for the source slot
-                        Object contObj = null;
-                        try {
-                            java.lang.reflect.Field contField = quickMovedSlot.getClass().getDeclaredField("container");
-                            contField.setAccessible(true);
-                            contObj = contField.get(quickMovedSlot);
-                        } catch (NoSuchFieldException nsf) {
-                            contObj = quickMovedSlot.container;
-                        }
-
-                        if (contObj instanceof io.ticticboom.mods.mm.port.item.ItemPortContainer ipc) {
+                        if (quickMovedSlot.container instanceof ItemPortContainer ipc) {
                             var handler = ipc.getHandler();
                             int handlerIndex = i; // storage slots are added first in setup
 
@@ -111,7 +103,7 @@ public abstract class MMContainerMenu extends AbstractContainerMenu {
                     }
                  }
             } finally {
-                io.ticticboom.mods.mm.port.item.ItemPortHandler.setThreadPreferEmpty(false);
+                ItemPortHandler.setThreadPreferEmpty(false);
             }
 
             if (rawStack.isEmpty()) {

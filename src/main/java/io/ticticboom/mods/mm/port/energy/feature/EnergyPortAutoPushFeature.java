@@ -15,6 +15,7 @@ import net.neoforged.neoforge.energy.IEnergyStorage;
 
 import java.util.HashMap;
 import java.util.Map;
+import io.ticticboom.mods.mm.port.energy.EnergyPortStorage;
 
 public class EnergyPortAutoPushFeature extends AbstractPortAutoPushFeature<EnergyHandlerCoupling> {
 
@@ -33,12 +34,12 @@ public class EnergyPortAutoPushFeature extends AbstractPortAutoPushFeature<Energ
         }
 
         // Build candidates
-        Map<BlockPos, io.ticticboom.mods.mm.port.energy.EnergyPortStorage> candidates = new HashMap<>();
+        Map<BlockPos, EnergyPortStorage> candidates = new HashMap<>();
         for (BlockPos pos : autoPushNeighbors.keySet()) {
             BlockEntity be = portBlockEntity.getLevel().getBlockEntity(pos);
             if (be instanceof IPortBlockEntity pbe) {
                 var storage = pbe.getStorage();
-                if (storage instanceof io.ticticboom.mods.mm.port.energy.EnergyPortStorage eps) {
+                if (storage instanceof EnergyPortStorage eps) {
                     candidates.put(pos, eps);
                 }
             }
@@ -46,7 +47,7 @@ public class EnergyPortAutoPushFeature extends AbstractPortAutoPushFeature<Energ
 
         if (!(portBlockEntity instanceof IPortBlockEntity sourcePbe)) return;
         var sourceStorage = sourcePbe.getStorage();
-        if (!(sourceStorage instanceof io.ticticboom.mods.mm.port.energy.EnergyPortStorage source)) return;
+        if (!(sourceStorage instanceof EnergyPortStorage source)) return;
 
         long available = source.getStoredEnergy();
         if (available > 0) {
@@ -55,7 +56,7 @@ public class EnergyPortAutoPushFeature extends AbstractPortAutoPushFeature<Energ
         pushToExternalNeighbours(candidates);
     }
 
-    private void pushToExternalNeighbours(Map<BlockPos, io.ticticboom.mods.mm.port.energy.EnergyPortStorage> handledByRouting) {
+    private void pushToExternalNeighbours(Map<BlockPos, EnergyPortStorage> handledByRouting) {
         for (var entry : autoPushNeighbors.entrySet()) {
             if (handledByRouting.containsKey(entry.getKey())) {
                 continue;

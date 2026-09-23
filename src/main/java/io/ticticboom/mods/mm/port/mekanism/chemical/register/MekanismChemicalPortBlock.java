@@ -37,10 +37,10 @@ public class MekanismChemicalPortBlock extends Block implements EntityBlock, IPo
     }
 
     @Override
-    public void generateModel(io.ticticboom.mods.mm.datagen.provider.MMBlockstateProvider provider) {
-        io.ticticboom.mods.mm.util.PortUtils.commonGenerateModel(provider, groupHolder, isInput,
-                io.ticticboom.mods.mm.Ref.Textures.INPUT_CHEMICAL_PORT_OVERLAY,
-                io.ticticboom.mods.mm.Ref.Textures.OUTPUT_CHEMICAL_PORT_OVERLAY);
+    public void generateModel(MMBlockstateProvider provider) {
+        PortUtils.commonGenerateModel(provider, groupHolder, isInput,
+                Ref.Textures.INPUT_CHEMICAL_PORT_OVERLAY,
+                Ref.Textures.OUTPUT_CHEMICAL_PORT_OVERLAY);
     }
 
     @Override
