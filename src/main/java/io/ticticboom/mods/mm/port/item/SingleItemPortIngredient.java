@@ -22,10 +22,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.core.registries.BuiltInRegistries;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
 import net.minecraft.nbt.CompoundTag;
+import io.ticticboom.mods.mm.util.NbtMatchUtils;
 
 public class SingleItemPortIngredient extends BaseItemPortIngredient {
 
@@ -99,7 +101,7 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
 
     @Override
     public JsonObject debugOutput(Level level, RecipeStorages storages, JsonObject json) {
-        List<ItemPortStorage> itemStorages = storages.getOutputStorages(ItemPortStorage.class);
+        List<ItemPortStorage> itemStorages = new ArrayList<>(storages.getOutputStorages(ItemPortStorage.class));
         itemStorages.sort(Comparator.comparingInt(ItemPortStorage::getPriority).reversed()
                 .thenComparing(s -> s.getStorageUid().toString()));
         var searchedStorages = new JsonArray();
@@ -109,7 +111,7 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
 
         if (requiredNbt != null) {
             json.addProperty("nbt_match", nbtStrong ? "strong" : "weak");
-            json.add("nbt", io.ticticboom.mods.mm.util.NbtMatchUtils.toJson(requiredNbt));
+            json.add("nbt", NbtMatchUtils.toJson(requiredNbt));
         }
 
         int remainingToInsert = count.max();

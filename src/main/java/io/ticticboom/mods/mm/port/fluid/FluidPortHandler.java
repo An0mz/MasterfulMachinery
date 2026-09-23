@@ -169,7 +169,9 @@ public class FluidPortHandler implements IFluidHandler {
     public void deserializeNBT(Tag nbt) {
         var dataResult = NbtOps.INSTANCE.withDecoder(STACKS_CODEC).apply(nbt);
         var result = dataResult.getOrThrow(__msg -> { Ref.LOG.error(__msg); return new IllegalStateException(__msg); });
-        stacks.clear();
-        stacks.addAll(result.getFirst());
+        var saved = result.getFirst();
+        for (int i = 0; i < tanks; i++) {
+            stacks.set(i, i < saved.size() ? saved.get(i) : FluidStack.EMPTY);
+        }
     }
 }

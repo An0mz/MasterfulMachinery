@@ -29,8 +29,7 @@ import java.util.*;
 public class MMPortRegistry {
     private static final Map<ResourceLocation, PortType> PORT_TYPES = new HashMap<>();
     public static List<RegistryGroupHolder> PORTS = new ArrayList<>();
-    public static final Map<ResourceLocation, List<io.ticticboom.mods.mm.model.PortModel>> PORT_MODELS_BY_CONTROLLER = new HashMap<>();
-    public static final Map<ResourceLocation, java.util.Set<ResourceLocation>> PORT_TYPES_BY_CONTROLLER = new HashMap<>();
+    public static final Map<ResourceLocation, List<PortModel>> PORT_MODELS_BY_CONTROLLER = new HashMap<>();
 
     public static void init() {
         register(Ref.Ports.ITEM, new ItemPortType());
@@ -100,14 +99,12 @@ public class MMPortRegistry {
 
     public static void rebuildPortCache() {
         PORT_MODELS_BY_CONTROLLER.clear();
-        PORT_TYPES_BY_CONTROLLER.clear();
         for (RegistryGroupHolder holder : PORTS) {
             try {
                 if (holder.getBlock().get() instanceof IPortBlock bp) {
                     var model = bp.getModel();
                     for (ResourceLocation controllerId : model.controllerIds().getIds()) {
                         PORT_MODELS_BY_CONTROLLER.computeIfAbsent(controllerId, x -> new ArrayList<>()).add(model);
-                        PORT_TYPES_BY_CONTROLLER.computeIfAbsent(controllerId, x -> new java.util.HashSet<>()).add(model.type());
                     }
                 }
             } catch (Exception ignored) { }

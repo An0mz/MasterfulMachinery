@@ -5,7 +5,6 @@ import io.ticticboom.mods.mm.port.IPortBlockEntity;
 import io.ticticboom.mods.mm.port.IPortPart;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -19,9 +18,15 @@ import org.jetbrains.annotations.Nullable;
 
 public abstract class AbstractPortBlockEntity extends BlockEntity implements IPortBlockEntity, IPortPart {
 
+    static final int SYNC_INTERVAL = 10;
+
     protected long lastTick = 0;
-    public AbstractPortBlockEntity(BlockEntityType<?> p_155228_, BlockPos p_155229_, BlockState p_155230_) {
-        super(p_155228_, p_155229_, p_155230_);
+    private long changeCount = 0;
+    private long lastSync = Long.MIN_VALUE / 2;
+    private boolean syncPending = false;
+
+    public AbstractPortBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
+        super(type, pos, state);
     }
 
     @Override
@@ -31,7 +36,6 @@ public abstract class AbstractPortBlockEntity extends BlockEntity implements IPo
     }
 
     @Override
-    // load(CompoundTag) became loadAdditional(CompoundTag, Provider) in 1.21.1.
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         getStorage().load(tag.getCompound(Ref.NBT_STORAGE_KEY), registries);
         super.loadAdditional(tag, registries);
@@ -51,11 +55,42 @@ public abstract class AbstractPortBlockEntity extends BlockEntity implements IPo
     }
 
     @Override
+    public long changeCount() {
+        return changeCount;
+    }
+
+    @Override
     public void setChanged() {
-        if (level == null || level.isClientSide()){
+        if (level == null || level.isClientSide()) {
             return;
         }
         super.setChanged();
-        level.sendBlockUpdated(getBlockPos(), this.getBlockState(), this.getBlockState(), Block.UPDATE_CLIENTS);
+        changeCount++;
+        if (syncPending) {
+            return;
+        }
+        if (level.getGameTime() - lastSync >= SYNC_INTERVAL) {
+            sendSync();
+        } else {
+            syncPending = true;
+            PortSyncQueue.add(this);
+        }
+    }
+
+    boolean flushSync() {
+        if (level == null || isRemoved()) {
+            return true;
+        }
+        if (level.getGameTime() - lastSync < SYNC_INTERVAL) {
+            return false;
+        }
+        syncPending = false;
+        sendSync();
+        return true;
+    }
+
+    private void sendSync() {
+        lastSync = level.getGameTime();
+        level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
     }
 }

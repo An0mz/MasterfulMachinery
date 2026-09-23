@@ -75,16 +75,8 @@ public class MekanismHeatPortBlock extends Block implements IPortBlock, EntityBl
 
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moving) {
-        if (!level.isClientSide() && level instanceof ServerLevel sl) {
-            var controllers = WorldUtil.findControllerBlockEntitiesInRadius(pos, sl, 6);
-            for (var cbe : controllers) {
-                try {
-                    if (cbe instanceof io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity mc) {
-                        mc.invalidateProgress();
-                    }
-                } catch (Throwable ignored) {
-                }
-            }
+        if (!state.is(newState.getBlock()) && level instanceof ServerLevel sl) {
+            WorldUtil.scheduleNearbyValidation(sl, pos);
         }
         super.onRemove(state, level, pos, newState, moving);
     }

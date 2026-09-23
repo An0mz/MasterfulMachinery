@@ -6,7 +6,6 @@ public class MMCommonConfig {
     public final ModConfigSpec.BooleanValue debugTool;
     public final ModConfigSpec.BooleanValue splitRecipesJei;
     public final ModConfigSpec.BooleanValue portsAutoExtractByDefault;
-    public final ModConfigSpec.BooleanValue asyncStructureValidation;
     public final ModConfigSpec.IntValue structureValidationRate;
     public final ModConfigSpec.BooleanValue previewBlueprintScreen;
     public final ModConfigSpec.BooleanValue parallelProcessingDefault;
@@ -14,8 +13,6 @@ public class MMCommonConfig {
     public final ModConfigSpec.BooleanValue showJeiMaxParallel;
 
     public MMCommonConfig(ModConfigSpec.Builder builder) {
-        asyncStructureValidation = builder.comment("Enables async structure validation to improve TPS. Disable in case of issues. Default: true")
-                .define("asyncValidation", true);
         structureValidationRate = builder.comment("How often controller will check structure. 1 means every tick, 20 means every second. Default: 10")
                 .defineInRange("structureValidationRate", 10, 1, 100);
         debugTool = builder.comment("Enables the Debug Tool Item's functionality (Disable when on server). Default: true")

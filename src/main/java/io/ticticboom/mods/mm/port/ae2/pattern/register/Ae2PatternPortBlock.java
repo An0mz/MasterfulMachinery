@@ -58,12 +58,8 @@ public class Ae2PatternPortBlock extends Block implements IPortBlock, EntityBloc
 
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moving) {
-        if (!level.isClientSide() && level instanceof ServerLevel sl) {
-            for (var cbe : WorldUtil.findControllerBlockEntitiesInRadius(pos, sl, 6)) {
-                if (cbe instanceof MachineControllerBlockEntity mc) {
-                    mc.invalidateProgress();
-                }
-            }
+        if (!state.is(newState.getBlock()) && level instanceof ServerLevel sl) {
+            WorldUtil.scheduleNearbyValidation(sl, pos);
         }
         super.onRemove(state, level, pos, newState, moving);
     }

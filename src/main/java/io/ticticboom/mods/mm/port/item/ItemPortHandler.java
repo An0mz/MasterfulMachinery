@@ -81,8 +81,11 @@ public class ItemPortHandler extends ItemStackHandler {
             var pair = res.getOrThrow(__msg -> { Ref.LOG.error(__msg); return new IllegalStateException(__msg); });
             this.stacks.clear();
             List<ItemStack> list = pair.getFirst();
-            for (int i = 0; i < list.size(); i++) {
+            for (int i = 0; i < Math.min(list.size(), stacks.size()); i++) {
                 stacks.set(i, list.get(i));
+            }
+            if (list.size() > stacks.size()) {
+                Ref.LOG.warn("A port lost {} slots after its config was made smaller; items in them were removed", list.size() - stacks.size());
             }
         }
         // read counts

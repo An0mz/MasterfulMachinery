@@ -22,6 +22,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Rotation;
+import org.jetbrains.annotations.Nullable;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -146,6 +148,14 @@ public class StructureModel {
         return layout.getRecipeStorages(level, controllerPos, this);
     }
 
+    public @Nullable Rotation formedRotation(Level level, BlockPos controllerPos, @Nullable Rotation preferred) {
+        return layout.formedRotation(level, controllerPos, this, preferred);
+    }
+
+    public RecipeStorages getStorages(Level level, BlockPos controllerPos, Rotation rotation) {
+        return layout.getRecipeStorages(level, controllerPos, rotation);
+    }
+
     public JsonObject debugFormed(Level level, BlockPos controllerPos) {
         var json = new JsonObject();
         var debugLayout = layout.debugFormed(level, controllerPos, this);
@@ -191,7 +201,7 @@ public class StructureModel {
                 if (v < 0) return -1;
                 return Math.min(v, 100);
             }
-        } catch (Throwable ignored) { }
+        } catch (RuntimeException ignored) { }
         return -1;
     }
 

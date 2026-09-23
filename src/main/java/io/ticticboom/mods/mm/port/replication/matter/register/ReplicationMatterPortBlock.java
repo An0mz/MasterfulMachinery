@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.replication.matter.register;
 
+import io.ticticboom.mods.mm.util.WorldUtil;
 import com.hrznstudio.titanium.block_network.INetworkDirectionalConnection;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.datagen.provider.MMBlockstateProvider;
@@ -65,16 +66,8 @@ public class ReplicationMatterPortBlock extends Block implements IPortBlock, Ent
 
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moving) {
-        if (!level.isClientSide() && level instanceof ServerLevel sl) {
-            var controllers = io.ticticboom.mods.mm.util.WorldUtil.findControllerBlockEntitiesInRadius(pos, sl, 6);
-            for (var cbe : controllers) {
-                try {
-                    if (cbe instanceof io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity mc) {
-                        mc.invalidateProgress();
-                    }
-                } catch (Throwable ignored) {
-                }
-            }
+        if (!state.is(newState.getBlock()) && level instanceof ServerLevel sl) {
+            WorldUtil.scheduleNearbyValidation(sl, pos);
         }
         super.onRemove(state, level, pos, newState, moving);
     }
