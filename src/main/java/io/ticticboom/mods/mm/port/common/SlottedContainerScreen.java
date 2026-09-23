@@ -1,10 +1,10 @@
 package io.ticticboom.mods.mm.port.common;
 
 import io.ticticboom.mods.mm.Ref;
-import io.ticticboom.mods.mm.port.IPortBlockEntity;
 import io.ticticboom.mods.mm.port.IPortMenu;
 import io.ticticboom.mods.mm.util.BlockUtils;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
@@ -14,11 +14,18 @@ import net.minecraft.world.phys.Vec2;
 
 import java.util.ArrayList;
 
-public class SlottedContainerScreen<T extends AbstractContainerMenu & IPortMenu> extends AbstractContainerScreen<T> {
+public class SlottedContainerScreen<T extends AbstractContainerMenu & IPortMenu & IPagedPortMenu> extends AbstractContainerScreen<T> {
+
+    private static final int PAGE_BAR_TOP = 112;
+    private static final int PAGE_BUTTON_SIZE = 20;
 
     protected final T menu;
     protected final FormattedText header;
+    protected final PortPager pager;
+    protected final PortGrid grid;
     protected ArrayList<Vec2> slots = new ArrayList<>();
+    private Button previousPage;
+    private Button nextPage;
 
     public SlottedContainerScreen(T menu, Inventory inv, Component displayName) {
         super(menu, inv, displayName);
@@ -28,28 +35,72 @@ public class SlottedContainerScreen<T extends AbstractContainerMenu & IPortMenu>
         String name = menu.getModel().displayName().getString();
         int subStrLength = Math.min(55, name.length());
         header = FormattedText.of(name.substring(0, subStrLength) + (subStrLength < 55 ? "" : "..."));
+        pager = menu.getPager();
+        grid = pager.grid();
         setupSlots();
     }
 
-    private void setupSlots() {
-        IPortBlockEntity blockEntity = menu.getBlockEntity();
-        var storage = blockEntity.getStorage();
-        var model = (ISlottedPortStorageModel) storage.getStorageModel();
+    protected int page() {
+        return pager.page();
+    }
 
-        var columns = model.columns();
-        var rows = model.rows();
+    protected int firstSlotOnPage() {
+        return grid.firstSlot(page());
+    }
+
+    private void setPage(int page) {
+        pager.setPage(page);
+        setupSlots();
+        updatePageButtons();
+    }
+
+    private void setupSlots() {
+        int count = grid.slotsOnPage(page());
+        slots.clear();
+        slots.ensureCapacity(count);
 
         // The 18x18 slot background has a 1px border around the 16x16 content area, so it is drawn
         // one pixel up and left of where the menu places the Slot itself.
-        int offsetX = BlockUtils.slotGridOriginX(columns) - 1;
-        int offsetY = BlockUtils.slotGridOriginY(rows) - 1;
-        slots.ensureCapacity(columns * rows);
-
-        for (int y = 0; y < rows; y++) {
-            for (int x = 0; x < columns; x++) {
-                slots.add(new Vec2(x * 18 + offsetX, y * 18 + offsetY));
-            }
+        for (int i = 0; i < count; i++) {
+            slots.add(new Vec2(grid.slotX(i) - 1, grid.slotY(i) - 1));
         }
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+        if (grid.pages() <= 1) {
+            return;
+        }
+        int top = this.topPos + PAGE_BAR_TOP;
+        previousPage = addRenderableWidget(Button.builder(Component.literal("<"), b -> setPage(page() - 1))
+                .bounds(this.leftPos + 8, top, PAGE_BUTTON_SIZE, PAGE_BUTTON_SIZE).build());
+        nextPage = addRenderableWidget(Button.builder(Component.literal(">"), b -> setPage(page() + 1))
+                .bounds(this.leftPos + this.imageWidth - 8 - PAGE_BUTTON_SIZE, top, PAGE_BUTTON_SIZE, PAGE_BUTTON_SIZE).build());
+        updatePageButtons();
+    }
+
+    private void updatePageButtons() {
+        if (previousPage == null || nextPage == null) {
+            return;
+        }
+        previousPage.active = page() > 0;
+        nextPage.active = page() < grid.pages() - 1;
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (grid.pages() > 1 && scrollY != 0 && overPortArea(mouseX, mouseY)) {
+            setPage(page() + (scrollY < 0 ? 1 : -1));
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    private boolean overPortArea(double mouseX, double mouseY) {
+        double x = mouseX - this.leftPos;
+        double y = mouseY - this.topPos;
+        return x >= 0 && x < this.imageWidth && y >= 0 && y < BlockUtils.PLAYER_INVENTORY_TOP;
     }
 
     @Override
@@ -67,6 +118,11 @@ public class SlottedContainerScreen<T extends AbstractContainerMenu & IPortMenu>
         var lines = this.font.split(header, 150);
         if (!lines.isEmpty()) {
             gfx.drawString(this.font, lines.get(0), 8, 8, 0x404040, false);
+        }
+        if (grid.pages() > 1) {
+            var label = Component.literal((page() + 1) + " / " + grid.pages());
+            gfx.drawString(this.font, label, (this.imageWidth - this.font.width(label)) / 2,
+                    PAGE_BAR_TOP + (PAGE_BUTTON_SIZE - 8) / 2, 0x404040, false);
         }
     }
 

@@ -5,6 +5,9 @@ import io.ticticboom.mods.mm.model.PortModel;
 import io.ticticboom.mods.mm.port.IPortBlockEntity;
 import io.ticticboom.mods.mm.port.IPortMenu;
 import io.ticticboom.mods.mm.port.IPortStorage;
+import io.ticticboom.mods.mm.port.common.IPagedPortMenu;
+import io.ticticboom.mods.mm.port.common.PortGrid;
+import io.ticticboom.mods.mm.port.common.PortPager;
 import io.ticticboom.mods.mm.port.item.ItemPortStorageModel;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
 import io.ticticboom.mods.mm.util.MenuUtils;
@@ -12,13 +15,15 @@ import lombok.Getter;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 
-public class ItemPortMenu extends MMContainerMenu implements IPortMenu {
+public class ItemPortMenu extends MMContainerMenu implements IPortMenu, IPagedPortMenu {
     @Getter
     private final PortModel model;
     private final RegistryGroupHolder groupHolder;
     private final boolean isInput;
     private final Inventory inv;
     private final IPortBlockEntity be;
+    @Getter
+    private final PortPager pager;
 
     private static int calcExtraSlots(IPortStorage storage) {
         ItemPortStorageModel storageModel = (ItemPortStorageModel) storage.getStorageModel();
@@ -33,6 +38,7 @@ public class ItemPortMenu extends MMContainerMenu implements IPortMenu {
         this.inv = inv;
         this.be = be;
         IPortStorage storage = be.getStorage();
+        this.pager = new PortPager(PortGrid.of((ItemPortStorageModel) storage.getStorageModel()));
         storage.setupContainer(this, inv, model);
     }
 

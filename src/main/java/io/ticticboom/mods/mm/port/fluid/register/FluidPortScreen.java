@@ -20,7 +20,7 @@ public class FluidPortScreen extends SlottedContainerScreen<FluidPortMenu> {
     public void renderFluids(GuiGraphics gfx, int mouseX, int mouseY) {
         FluidPortBlockEntity be = menu.getBlockEntity();
         FluidPortStorageModel storageModel = (FluidPortStorageModel) be.getStorage().getStorageModel();
-        int i = 0;
+        int i = firstSlotOnPage();
         for (Vec2 slot : slots) {
             int slotX = (int) slot.x + 1;
             int slotY = (int) slot.y + 1;

@@ -8,7 +8,9 @@ import io.ticticboom.mods.mm.model.PortModel;
 import io.ticticboom.mods.mm.port.IPortStorage;
 import io.ticticboom.mods.mm.port.IPortStorageModel;
 import io.ticticboom.mods.mm.port.common.INotifyChangeFunction;
-import io.ticticboom.mods.mm.util.BlockUtils;
+import io.ticticboom.mods.mm.port.common.IPagedPortMenu;
+import io.ticticboom.mods.mm.port.common.PortGrid;
+import io.ticticboom.mods.mm.port.common.PortPager;
 import lombok.Getter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -106,18 +108,14 @@ public class ItemPortStorage implements IPortStorage {
 
     @Override
     public void setupContainer(AbstractContainerMenu container, Inventory inv, PortModel portModel) {
-        var columns = model.columns();
-        var rows = model.rows();
-
-        int offsetX = BlockUtils.slotGridOriginX(columns);
-        int offsetY = BlockUtils.slotGridOriginY(rows);
-
+        var pager = container instanceof IPagedPortMenu paged ? paged.getPager() : new PortPager(PortGrid.of(model));
+        var grid = pager.grid();
         var portInv = new ItemPortContainer(this.handler);
 
-        for (int y = 0; y < rows; y++) {
-            for (int x = 0; x < columns; x++) {
-                container.addSlot(new ItemPortSlot(portInv, (y * columns) + x, x * 18 + offsetX, y * 18 + offsetY));
-            }
+        for (int slot = 0; slot < handler.getSlots(); slot++) {
+            int page = grid.pageOf(slot);
+            int indexOnPage = slot - grid.firstSlot(page);
+            container.addSlot(new ItemPortSlot(portInv, slot, grid.slotX(indexOnPage), grid.slotY(indexOnPage), pager, page));
         }
 
         IPortStorage.super.setupContainer(container, inv, portModel);
