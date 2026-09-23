@@ -22,6 +22,7 @@ public record RecipeModel(
         List<SlotGridEntry> outputSlots,
         RecipeConditions conditions,
         boolean parallelProcessing,
+        boolean requestOnly,
         JsonObject config
 ) {
     public static RecipeModel parse(JsonObject json, ResourceLocation id) {
@@ -35,7 +36,8 @@ public record RecipeModel(
                 () -> new RecipeConditions(List.of()),
                 (j) -> RecipeConditions.parse(j.getAsJsonArray("conditions")));
         var parallelProcessing = json.has("parallelProcessing") && json.get("parallelProcessing").isJsonPrimitive() ? json.get("parallelProcessing").getAsBoolean() : MMConfig.PARALLEL_PROCESSING_DEFAULT;
-        return new RecipeModel(id, structrueId, ticks, inputs, outputs, new ArrayList<>(), new ArrayList<>(), conditions, parallelProcessing, json);
+        var requestOnly = json.has("requestOnly") && json.get("requestOnly").isJsonPrimitive() && json.get("requestOnly").getAsBoolean();
+        return new RecipeModel(id, structrueId, ticks, inputs, outputs, new ArrayList<>(), new ArrayList<>(), conditions, parallelProcessing, requestOnly, json);
     }
 
     public String debugPath() {

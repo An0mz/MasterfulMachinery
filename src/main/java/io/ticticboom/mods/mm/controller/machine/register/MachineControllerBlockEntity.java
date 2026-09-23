@@ -127,6 +127,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private static final long STORAGE_REFRESH_INTERVAL = 100;
     private long lastStorageResolve = Long.MIN_VALUE / 2;
     private ResourceLocation requestedRecipeId = null;
+    private Object requestOwner = null;
     private long requestExpiresAt = 0L;
     private int requestedCrafts = 0;
 
@@ -498,7 +499,11 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             if (activeRecipes.containsKey(recipe.id())) continue;
             if (requested != null) {
                 if (!recipe.id().equals(requested) || requestedCrafts <= 0) continue;
-            } else if (isManualSelection() && !recipe.id().equals(selectedRecipeId)) continue;
+            } else {
+                boolean picked = isManualSelection() && recipe.id().equals(selectedRecipeId);
+                if (isManualSelection() && !picked) continue;
+                if (recipe.requestOnly() && !picked) continue;
+            }
             if (recipeNextCheckTime.getOrDefault(recipe.id(), 0L) > gameTime) continue;
 
             // lightweight capability pre-check: compute required port types from recipe inputs
@@ -1211,7 +1216,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (level != null) level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
     }
 
-    public void requestRecipe(ResourceLocation recipeId, long gameTime, int crafts) {
+    public void requestRecipe(Object owner, ResourceLocation recipeId, long gameTime, int crafts) {
         if (!recipeId.equals(requestedRecipeId)) {
             var recipe = MachineRecipeManager.RECIPES.get(recipeId);
             if (recipe == null || structure == null || !recipe.structureId().equals(structure.id())) {
@@ -1220,8 +1225,17 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             requestedRecipeId = recipeId;
             recipeNextCheckTime.remove(recipeId);
         }
+        requestOwner = owner;
         requestedCrafts = Math.max(0, crafts);
         requestExpiresAt = gameTime + REQUEST_TIMEOUT;
+    }
+
+    public void clearRequest(Object owner, ResourceLocation recipeId) {
+        if (owner == requestOwner && recipeId.equals(requestedRecipeId)) {
+            requestedRecipeId = null;
+            requestOwner = null;
+            requestedCrafts = 0;
+        }
     }
 
     public boolean isRecipeRunning(ResourceLocation recipeId) {
@@ -1231,6 +1245,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private @Nullable ResourceLocation activeRequest(long gameTime) {
         if (requestedRecipeId != null && gameTime > requestExpiresAt) {
             requestedRecipeId = null;
+            requestOwner = null;
             requestedCrafts = 0;
         }
         return requestedRecipeId;

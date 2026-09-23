@@ -15,6 +15,7 @@ public class RecipeBuilderJS {
     private int ticks;
     private ResourceLocation structureId;
     private boolean parallelProcessing = false;
+    private boolean requestOnly = false;
     @Getter
     private final ResourceLocation id;
 
@@ -50,12 +51,19 @@ public class RecipeBuilderJS {
         return this;
     }
 
+    @SuppressWarnings("unused")
+    public RecipeBuilderJS requestOnly(boolean requestOnly) {
+        this.requestOnly = requestOnly;
+        return this;
+    }
+
     public RecipeModel build() {
         JsonObject json = new JsonObject();
         json.addProperty("id", id.toString());
         json.addProperty("ticks", ticks);
         json.addProperty("structureId", structureId.toString());
         json.addProperty("parallelProcessing", parallelProcessing);
+        json.addProperty("requestOnly", requestOnly);
         var inputArr = new JsonArray();
         for (JsonObject input : inputs) {
             inputArr.add(input);

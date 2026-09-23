@@ -33,6 +33,7 @@ public class ReplicationLinkFeature {
     private ResourceLocation patternStructure = null;
     private int patternRecipeVersion = -1;
     private String taskId = null;
+    private ResourceLocation requestedRecipe = null;
 
     public ReplicationLinkFeature(ReplicationLinkPortBlockEntity port) {
         this.port = port;
@@ -86,25 +87,41 @@ public class ReplicationLinkFeature {
         refreshPatterns(network, controller);
         if (controller == null || network == null) {
             taskId = null;
+            requestedRecipe = null;
             return;
         }
         var task = currentTask(level, network, controller);
         if (task == null) {
+            releaseRequest(controller);
             return;
         }
         var recipe = ReplicationLinkRecipes.recipeFor(controller.getStructure(), task.getReplicatingStack());
         if (recipe == null) {
             taskId = null;
+            releaseRequest(controller);
             return;
+        }
+        if (requestedRecipe != null && !requestedRecipe.equals(recipe.id())) {
+            releaseRequest(controller);
         }
         deliver(level, network, controller, task);
         if (taskId == null) {
+            releaseRequest(controller);
             return;
         }
         int remaining = task.getTotalAmount() - task.getCurrentAmount();
         int waiting = countWaiting(controller, task.getReplicatingStack());
         int inFlight = controller.isRecipeRunning(recipe.id()) ? 1 : 0;
-        controller.requestRecipe(recipe.id(), now, remaining - waiting - inFlight);
+        requestedRecipe = recipe.id();
+        controller.requestRecipe(this, recipe.id(), now, remaining - waiting - inFlight);
+    }
+
+    private void releaseRequest(MachineControllerBlockEntity controller) {
+        if (requestedRecipe == null) {
+            return;
+        }
+        controller.clearRequest(this, requestedRecipe);
+        requestedRecipe = null;
     }
 
     private int countWaiting(MachineControllerBlockEntity controller, ItemStack wanted) {

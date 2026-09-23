@@ -219,7 +219,7 @@ public class Ae2PatternFeature implements ICraftingProvider {
             return false;
         }
         insertInputs(storages, inputHolder, false);
-        controller.requestRecipe(recipeId, now, 1);
+        controller.requestRecipe(this, recipeId, now, 1);
         pushedRecipe = recipeId;
         pushedAt = now;
         return true;
