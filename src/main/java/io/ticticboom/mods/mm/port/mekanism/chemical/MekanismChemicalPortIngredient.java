@@ -11,6 +11,7 @@ import mekanism.api.Action;
 import mekanism.api.MekanismAPI;
 import mekanism.api.chemical.Chemical;
 import mekanism.api.chemical.ChemicalStack;
+import mekanism.client.recipe_viewer.jei.MekanismJEI;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
 import mezz.jei.api.helpers.IJeiHelpers;
@@ -49,6 +50,9 @@ public class MekanismChemicalPortIngredient implements IPortIngredient {
         this.id = chemical;
         this.amount = amount;
         this.chemical = findChemical(id);
+        if (this.chemical.isEmptyType()) {
+            Ref.LOG.error("Unknown Mekanism chemical '{}' in a recipe. Check the id, or that the mod adding it is installed.", id);
+        }
         stack = createStack(this.chemical, amount);
     }
 
@@ -162,6 +166,9 @@ public class MekanismChemicalPortIngredient implements IPortIngredient {
     @SuppressWarnings("removal")
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, RecipeModel model, IFocusGroup focus, IJeiHelpers helpers, SlotGrid grid, IRecipeSlotBuilder recipeSlot) {
+        if (!stack.isEmpty()) {
+            recipeSlot.addIngredient(MekanismJEI.TYPE_CHEMICAL, stack);
+        }
         recipeSlot.addTooltipCallback((a, c) -> c.add(1, Component.translatable("jei.mm.ingredient.mekanism_chemical.amount", amount)));
     }
 }
