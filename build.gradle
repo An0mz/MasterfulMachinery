@@ -211,6 +211,10 @@ dependencies {
     // that key rather than building its own link between the two mods.
     compileOnly "maven.modrinth:ae2:${ae2_version}"
     compileOnly "maven.modrinth:replication-ae2-bridge:${replication_ae2_bridge_version}"
+    compileOnly "curse.maven:applied-flux-965012:${appflux_id}"
+    compileOnly "curse.maven:applied-mekanistics-574300:${appmek_id}"
+    compileOnly "curse.maven:ars-energistique-905641:${arseng_id}"
+    compileOnly "curse.maven:applied-pneumatics-1355087:${appliedpneumatics_id}"
     runtimeOnly("curse.maven:geckolib-388172:8893490")
 
     //MYSTICAL AGRICULTURE
@@ -282,6 +286,11 @@ dependencies {
     // GuideME is AE2's own dependency and is already declared further down.
     runtimeOnly "maven.modrinth:ae2:${ae2_version}"
     runtimeOnly "maven.modrinth:replication-ae2-bridge:${replication_ae2_bridge_version}"
+    runtimeOnly "curse.maven:applied-flux-965012:${appflux_id}"
+    runtimeOnly "curse.maven:glodium-957920:${glodium_id}"
+    runtimeOnly "curse.maven:applied-mekanistics-574300:${appmek_id}"
+    runtimeOnly "curse.maven:ars-energistique-905641:${arseng_id}"
+    runtimeOnly "curse.maven:applied-pneumatics-1355087:${appliedpneumatics_id}"
 
     // KUBEJS
     runtimeOnly "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"

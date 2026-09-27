@@ -64,6 +64,14 @@ public class MekanismChemicalPortIngredient implements IPortIngredient {
         return this.id;
     }
 
+    public Chemical getChemical() {
+        return chemical;
+    }
+
+    public long getAmount() {
+        return amount;
+    }
+
     @Override
     public boolean canProcess(Level level, RecipeStorages storages, RecipeStateModel state) {
         if (storages == null) return false;

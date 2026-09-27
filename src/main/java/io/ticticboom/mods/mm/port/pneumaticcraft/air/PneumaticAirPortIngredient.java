@@ -21,6 +21,15 @@ public class PneumaticAirPortIngredient implements IPortIngredient {
         this.bar = bar;
         this.air = air;
     }
+
+    public float getBar() {
+        return bar;
+    }
+
+    public int getAir() {
+        return air;
+    }
+
     @Override
     public boolean canProcess(Level level, RecipeStorages storages, RecipeStateModel state) {
         if(storages == null) return false;

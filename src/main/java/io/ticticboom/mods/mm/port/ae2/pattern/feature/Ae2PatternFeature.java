@@ -15,16 +15,17 @@ import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
-import io.ticticboom.mods.mm.compat.ae2.MatterKeys;
+import appeng.api.storage.MEStorage;
+import io.ticticboom.mods.mm.compat.ae2.Ae2KeyBridge;
+import io.ticticboom.mods.mm.compat.ae2.Ae2KeyBridges;
+import io.ticticboom.mods.mm.compat.ae2.Ae2PushContext;
 import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
 import io.ticticboom.mods.mm.port.ae2.pattern.register.Ae2PatternPortBlockEntity;
 import io.ticticboom.mods.mm.port.fluid.FluidPortIngredient;
+import io.ticticboom.mods.mm.port.IPortIngredient;
 import io.ticticboom.mods.mm.port.fluid.FluidPortStorage;
 import io.ticticboom.mods.mm.port.item.ItemPortStorage;
 import io.ticticboom.mods.mm.port.item.SingleItemPortIngredient;
-import io.ticticboom.mods.mm.port.replication.matter.MatterTypes;
-import io.ticticboom.mods.mm.port.replication.matter.ReplicationMatterPortIngredient;
-import io.ticticboom.mods.mm.port.replication.matter.ReplicationMatterPortStorage;
 import io.ticticboom.mods.mm.recipe.MachineRecipeManager;
 import io.ticticboom.mods.mm.recipe.RecipeModel;
 import io.ticticboom.mods.mm.recipe.RecipeStorages;
@@ -35,7 +36,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
@@ -49,7 +49,6 @@ public class Ae2PatternFeature implements ICraftingProvider {
 
     private static final int OUTPUT_INTERVAL = 5;
     private static final long PUSH_GRACE = 40;
-    private static final boolean BRIDGE_LOADED = ModList.get().isLoaded("rep_ae2_bridge");
 
     private final Ae2PatternPortBlockEntity port;
     private final IManagedGridNode node;
@@ -60,6 +59,7 @@ public class Ae2PatternFeature implements ICraftingProvider {
     private int patternRecipeVersion = -1;
     private ResourceLocation pushedRecipe = null;
     private long pushedAt = 0;
+    private List<Ae2KeyBridge> bridges;
 
     public Ae2PatternFeature(Ae2PatternPortBlockEntity port) {
         this.port = port;
@@ -141,13 +141,20 @@ public class Ae2PatternFeature implements ICraftingProvider {
         return List.copyOf(result);
     }
 
+    private List<Ae2KeyBridge> bridges() {
+        if (bridges == null) {
+            bridges = Ae2KeyBridges.enabled(port.getPatternStorage().getExcluded());
+        }
+        return bridges;
+    }
+
     private List<GenericStack> patternInputs(RecipeModel recipe) {
         var result = new ArrayList<GenericStack>();
         for (var entry : recipe.inputs().inputs()) {
             if (!(entry instanceof ConsumeRecipeIngredientEntry consume)) {
                 continue;
             }
-            var stack = asStack(consume.getIngredient());
+            var stack = inputStack(consume.getIngredient(), consume.isPerTick(), recipe.ticks());
             if (stack != null) {
                 result.add(stack);
             }
@@ -161,7 +168,7 @@ public class Ae2PatternFeature implements ICraftingProvider {
             if (!(entry instanceof SimpleRecipeOutputEntry simple)) {
                 continue;
             }
-            var stack = asStack(simple.getIngredient());
+            var stack = outputStack(simple.getIngredient());
             if (stack != null) {
                 result.add(stack);
             }
@@ -169,18 +176,41 @@ public class Ae2PatternFeature implements ICraftingProvider {
         return result;
     }
 
-    private GenericStack asStack(Object ingredient) {
+    private GenericStack inputStack(IPortIngredient ingredient, boolean perTick, int ticks) {
+        var stack = builtInStack(ingredient);
+        if (stack != null) {
+            return stack;
+        }
+        for (Ae2KeyBridge bridge : bridges()) {
+            stack = bridge.input(ingredient, perTick, ticks);
+            if (stack != null) {
+                return stack;
+            }
+        }
+        return null;
+    }
+
+    private GenericStack outputStack(IPortIngredient ingredient) {
+        var stack = builtInStack(ingredient);
+        if (stack != null) {
+            return stack;
+        }
+        for (Ae2KeyBridge bridge : bridges()) {
+            stack = bridge.output(ingredient);
+            if (stack != null) {
+                return stack;
+            }
+        }
+        return null;
+    }
+
+    private GenericStack builtInStack(IPortIngredient ingredient) {
         if (ingredient instanceof SingleItemPortIngredient item) {
             return new GenericStack(AEItemKey.of(item.outputStack()), item.getCount());
         }
         if (ingredient instanceof FluidPortIngredient fluid) {
             var found = BuiltInRegistries.FLUID.get(fluid.getFluidId());
             return found == null ? null : new GenericStack(AEFluidKey.of(found), fluid.getAmountRange().max());
-        }
-        if (BRIDGE_LOADED && ingredient instanceof ReplicationMatterPortIngredient matter) {
-            var type = MatterTypes.get(matter.getMatterId());
-            var key = type == null ? null : MatterKeys.of(type);
-            return key == null ? null : new GenericStack(key, matter.getAmountRange().max());
         }
         return null;
     }
@@ -211,24 +241,28 @@ public class Ae2PatternFeature implements ICraftingProvider {
             return false;
         }
         var recipeId = recipesByPattern.get(details.getDefinition());
+        var recipe = recipeId == null ? null : MachineRecipeManager.RECIPES.get(recipeId);
         var storages = controller.getPortStorages();
-        if (recipeId == null || storages == null) {
+        if (recipe == null || storages == null) {
             return false;
         }
-        if (!insertInputs(storages, inputHolder, true)) {
+        var grid = node.getGrid();
+        MEStorage me = grid == null ? null : grid.getStorageService().getInventory();
+        var source = IActionSource.ofMachine(port);
+        if (!insertInputs(new Ae2PushContext(recipe, storages, me, source, true), inputHolder)) {
             return false;
         }
-        insertInputs(storages, inputHolder, false);
+        insertInputs(new Ae2PushContext(recipe, storages, me, source, false), inputHolder);
         controller.requestRecipe(this, recipeId, now, 1);
         pushedRecipe = recipeId;
         pushedAt = now;
         return true;
     }
 
-    private boolean insertInputs(RecipeStorages storages, KeyCounter[] inputHolder, boolean simulate) {
+    private boolean insertInputs(Ae2PushContext context, KeyCounter[] inputHolder) {
         for (KeyCounter counter : inputHolder) {
             for (var entry : counter) {
-                if (!insertKey(storages, entry.getKey(), entry.getLongValue(), simulate)) {
+                if (!insertKey(context, entry.getKey(), entry.getLongValue())) {
                     return false;
                 }
             }
@@ -236,23 +270,17 @@ public class Ae2PatternFeature implements ICraftingProvider {
         return true;
     }
 
-    private boolean insertKey(RecipeStorages storages, AEKey key, long amount, boolean simulate) {
+    private boolean insertKey(Ae2PushContext context, AEKey key, long amount) {
         if (amount <= 0) {
             return true;
         }
-        if (BRIDGE_LOADED) {
-            var type = MatterKeys.typeOf(key);
-            if (type != null) {
-                int remaining = (int) amount;
-                for (ReplicationMatterPortStorage storage : storages.getInputStorages(ReplicationMatterPortStorage.class)) {
-                    remaining -= storage.internalInsert(type, remaining, simulate);
-                    if (remaining <= 0) {
-                        return true;
-                    }
-                }
-                return false;
+        for (Ae2KeyBridge bridge : bridges()) {
+            if (bridge.handles(key)) {
+                return bridge.insert(context, key, amount);
             }
         }
+        var storages = context.storages();
+        boolean simulate = context.simulate();
         if (key instanceof AEItemKey item) {
             int remaining = (int) amount;
             for (ItemPortStorage storage : storages.getInputStorages(ItemPortStorage.class)) {
@@ -311,6 +339,9 @@ public class Ae2PatternFeature implements ICraftingProvider {
                     handler.drain(new FluidStack(stack.getFluid(), (int) inserted), IFluidHandler.FluidAction.EXECUTE);
                 }
             }
+        }
+        for (Ae2KeyBridge bridge : bridges()) {
+            bridge.pushOutputs(storages, me, source);
         }
     }
 

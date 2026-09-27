@@ -37,6 +37,10 @@ public class ArsSourcePortStorage implements IPortStorage {
         this.capacity = model.capacity();
     }
 
+    public int getStored() {
+        return stored;
+    }
+
     public int getRange() {
         return model.range();
     }

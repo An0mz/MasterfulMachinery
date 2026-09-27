@@ -11,6 +11,7 @@ import net.neoforged.neoforge.capabilities.BlockCapability;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.util.Set;
 import java.util.UUID;
 
 public class Ae2PatternPortStorage implements IPortStorage, IControllerAwareStorage {
@@ -44,6 +45,10 @@ public class Ae2PatternPortStorage implements IPortStorage, IControllerAwareStor
 
     public int getPatternPriority() {
         return model.patternPriority();
+    }
+
+    public Set<String> getExcluded() {
+        return model.exclude();
     }
 
     @Override
