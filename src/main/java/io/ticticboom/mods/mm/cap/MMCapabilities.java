@@ -57,6 +57,7 @@ public class MMCapabilities {
             }
             if (ModList.get().isLoaded("ae2")) {
                 Ae2Capabilities.registerNodeHost(event, beType);
+                Ae2Capabilities.registerItemPortStorage(event, beType);
             }
         }
         event.registerItem(ENERGY_ITEM, (stack, context) -> ToolEnergy.of(stack), MMRegisters.MULTIBLOCK_TOOL.get());

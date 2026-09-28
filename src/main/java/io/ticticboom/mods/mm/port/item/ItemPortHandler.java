@@ -3,6 +3,9 @@ package io.ticticboom.mods.mm.port.item;
 import io.ticticboom.mods.mm.util.ItemNbtUtil;
 
 import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 
 import com.mojang.serialization.Codec;
@@ -31,6 +34,9 @@ public class ItemPortHandler extends ItemStackHandler {
     private static final int CODEC_MAX_COUNT = 99;
 
     private final int[] actualCounts;
+    private final BitSet emptySlots = new BitSet();
+    private final Map<Item, BitSet> partialSlots = new HashMap<>();
+    private final Item[] indexedItems;
 
     public ItemPortHandler(int size, int slotCapacity, INotifyChangeFunction changed) {
         super(size);
@@ -43,6 +49,8 @@ public class ItemPortHandler extends ItemStackHandler {
         }
         this.actualCounts = new int[size];
         for (int i = 0; i < size; i++) this.actualCounts[i] = 0;
+        this.indexedItems = new Item[size];
+        this.emptySlots.set(0, size);
     }
 
     public NonNullList<ItemStack> getStacks() {
@@ -99,6 +107,9 @@ public class ItemPortHandler extends ItemStackHandler {
             }
         }
         restoreDisplayCounts();
+        for (int i = 0; i < stacks.size(); i++) {
+            reindexSlot(i);
+        }
     }
 
     private void restoreDisplayCounts() {
@@ -120,7 +131,65 @@ public class ItemPortHandler extends ItemStackHandler {
 
     @Override
     protected void onContentsChanged(int slot) {
+        reindexSlot(slot);
         changed.call();
+    }
+
+    private void reindexSlot(int slot) {
+        Item previous = indexedItems[slot];
+        if (previous != null) {
+            BitSet slots = partialSlots.get(previous);
+            if (slots != null) {
+                slots.clear(slot);
+                if (slots.isEmpty()) partialSlots.remove(previous);
+            }
+            indexedItems[slot] = null;
+        }
+        ItemStack stack = getStackInSlot(slot);
+        if (actualCounts[slot] <= 0 || stack.isEmpty()) {
+            emptySlots.set(slot);
+            return;
+        }
+        emptySlots.clear(slot);
+        if (stack.isStackable() && actualCounts[slot] < getSlotLimit(slot)) {
+            indexedItems[slot] = stack.getItem();
+            partialSlots.computeIfAbsent(stack.getItem(), ignored -> new BitSet()).set(slot);
+        }
+    }
+
+    public ItemStack insertStackFast(ItemStack stack, boolean simulate) {
+        if (stack.isEmpty()) return ItemStack.EMPTY;
+        ItemStack remaining = stack;
+        BitSet partial = partialSlots.get(stack.getItem());
+        if (partial != null) {
+            BitSet snapshot = (BitSet) partial.clone();
+            for (int slot = snapshot.nextSetBit(0); slot >= 0 && !remaining.isEmpty(); slot = snapshot.nextSetBit(slot + 1)) {
+                remaining = insertItem(slot, remaining, simulate);
+            }
+        }
+        BitSet empty = (BitSet) emptySlots.clone();
+        for (int slot = empty.nextSetBit(0); slot >= 0 && !remaining.isEmpty(); slot = empty.nextSetBit(slot + 1)) {
+            remaining = insertItem(slot, remaining, simulate);
+        }
+        return remaining;
+    }
+
+    public long insertionCapacity(ItemStack stack) {
+        if (stack.isEmpty()) return 0;
+        long capacity = 0;
+        BitSet partial = partialSlots.get(stack.getItem());
+        if (partial != null) {
+            CompoundTag tag = ItemNbtUtil.getTag(stack);
+            for (int slot = partial.nextSetBit(0); slot >= 0; slot = partial.nextSetBit(slot + 1)) {
+                if (!areTagsDifferentOrNull(ItemNbtUtil.getTag(getStackInSlot(slot)), tag)) {
+                    capacity += getSlotLimit(slot) - actualCounts[slot];
+                }
+            }
+        }
+        for (int slot = emptySlots.nextSetBit(0); slot >= 0; slot = emptySlots.nextSetBit(slot + 1)) {
+            capacity += !stack.isStackable() ? 1 : slotCapacity > 0 ? slotCapacity : stack.getMaxStackSize();
+        }
+        return capacity;
     }
 
     @Override
@@ -185,8 +254,8 @@ public class ItemPortHandler extends ItemStackHandler {
                 // copy once, split off the single placed item and keep the remainder to return
                 ItemStack working = stack.copy();
                 ItemStack placed = working.split(1); // placed has count 1, working is remainder
-                super.setStackInSlot(slot, placed);
                 actualCounts[slot] = 1;
+                super.setStackInSlot(slot, placed);
                 if (working.isEmpty()) return ItemStack.EMPTY;
                 return working;
             }
@@ -439,6 +508,7 @@ public class ItemPortHandler extends ItemStackHandler {
         for (int i = 0; i < stacks.size(); i++) {
             stacks.set(i, ItemStack.EMPTY);
             actualCounts[i] = 0;
+            reindexSlot(i);
         }
         changed.call();
     }
