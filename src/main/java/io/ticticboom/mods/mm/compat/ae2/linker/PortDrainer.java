@@ -13,6 +13,10 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.ToIntFunction;
+
 public final class PortDrainer {
     private static final boolean CHEMICALS = ModList.get().isLoaded("appmek") && ModList.get().isLoaded("mekanism");
 
@@ -20,9 +24,13 @@ public final class PortDrainer {
     }
 
     public static void drain(IPortStorage storage, MEStorage network, IActionSource source) {
+        drain(storage, network, source, stack -> 0, new HashMap<>());
+    }
+
+    public static void drain(IPortStorage storage, MEStorage network, IActionSource source, ToIntFunction<ItemStack> reserved, Map<AEItemKey, Integer> kept) {
         var items = storage.getCapability(MMCapabilities.ITEM);
         if (items != null) {
-            drainItems(items, network, source);
+            drainItems(items, network, source, reserved, kept);
         }
         var fluids = storage.getCapability(MMCapabilities.FLUID);
         if (fluids != null) {
@@ -33,14 +41,23 @@ public final class PortDrainer {
         }
     }
 
-    private static void drainItems(IItemHandler handler, MEStorage network, IActionSource source) {
+    private static void drainItems(IItemHandler handler, MEStorage network, IActionSource source, ToIntFunction<ItemStack> reserved, Map<AEItemKey, Integer> kept) {
         for (int slot = 0; slot < handler.getSlots(); slot++) {
             ItemStack available = handler.extractItem(slot, Integer.MAX_VALUE, true);
             if (available.isEmpty()) {
                 continue;
             }
             AEItemKey key = AEItemKey.of(available);
-            long accepted = network.insert(key, available.getCount(), Actionable.SIMULATE, source);
+            int count = available.getCount();
+            int keep = Math.min(count, reserved.applyAsInt(available) - kept.getOrDefault(key, 0));
+            if (keep > 0) {
+                kept.merge(key, keep, Integer::sum);
+                count -= keep;
+            }
+            if (count <= 0) {
+                continue;
+            }
+            long accepted = network.insert(key, count, Actionable.SIMULATE, source);
             if (accepted > 0) {
                 ItemStack extracted = handler.extractItem(slot, (int) accepted, false);
                 network.insert(key, extracted.getCount(), Actionable.MODULATE, source);

@@ -50,6 +50,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.Rotation;
@@ -131,6 +132,11 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private Object requestOwner = null;
     private long requestExpiresAt = 0L;
     private int requestedCrafts = 0;
+    private int requestStarts = 0;
+    private Object reservationOwner = null;
+    private ItemStack reservedOutput = ItemStack.EMPTY;
+    private int reservedCount = 0;
+    private long reservationExpiresAt = 0L;
 
     private boolean syncPending = false;
     private RecipeStorages linkedStorages = null;
@@ -561,6 +567,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         recipe.inputs().process(level, portStorages, state);
         if (recipe.id().equals(requestedRecipeId) && requestedCrafts > 0) {
             requestedCrafts--;
+            requestStarts++;
         }
         storageContentCacheValid = false;
         state.setCanProcess(true);
@@ -1092,7 +1099,39 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             requestedRecipeId = null;
             requestOwner = null;
             requestedCrafts = 0;
+            requestStarts = 0;
         }
+    }
+
+    public int takeRequestStarts(Object owner) {
+        if (owner != requestOwner) {
+            return 0;
+        }
+        int starts = requestStarts;
+        requestStarts = 0;
+        return starts;
+    }
+
+    public void reserveOutput(Object owner, ItemStack stack, int count, long gameTime) {
+        reservationOwner = owner;
+        reservedOutput = stack.copyWithCount(1);
+        reservedCount = Math.max(0, count);
+        reservationExpiresAt = gameTime + REQUEST_TIMEOUT;
+    }
+
+    public void releaseOutput(Object owner) {
+        if (owner == reservationOwner) {
+            reservationOwner = null;
+            reservedOutput = ItemStack.EMPTY;
+            reservedCount = 0;
+        }
+    }
+
+    public int reservedOutputCount(ItemStack stack) {
+        if (reservedCount <= 0 || reservedOutput.isEmpty() || level == null || level.getGameTime() > reservationExpiresAt) {
+            return 0;
+        }
+        return ItemStack.isSameItemSameComponents(reservedOutput, stack) ? reservedCount : 0;
     }
 
     public boolean isRecipeRunning(ResourceLocation recipeId) {

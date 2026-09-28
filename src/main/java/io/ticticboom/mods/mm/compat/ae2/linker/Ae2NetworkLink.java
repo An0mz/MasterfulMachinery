@@ -4,6 +4,7 @@ import io.ticticboom.mods.mm.builder.me.MeAccessFactory;
 import io.ticticboom.mods.mm.compat.ae2.Ae2MeAccess;
 import appeng.api.features.GridLinkables;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEItemKey;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
 import io.ticticboom.mods.mm.networklink.LinkData;
@@ -18,6 +19,8 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.registries.DeferredHolder;
+
+import java.util.HashMap;
 
 public final class Ae2NetworkLink {
 
@@ -41,8 +44,9 @@ public final class Ae2NetworkLink {
         if (network == null) {
             return;
         }
+        var kept = new HashMap<AEItemKey, Integer>();
         for (IPortStorage output : storages.outputStorages()) {
-            PortDrainer.drain(output, network, IActionSource.empty());
+            PortDrainer.drain(output, network, IActionSource.empty(), controller::reservedOutputCount, kept);
         }
     }
 

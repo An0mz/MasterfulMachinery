@@ -34,6 +34,8 @@ public class ReplicationLinkFeature {
     private int patternRecipeVersion = -1;
     private String taskId = null;
     private ResourceLocation requestedRecipe = null;
+    private String startsTask = null;
+    private int startsForTask = 0;
 
     public ReplicationLinkFeature(ReplicationLinkPortBlockEntity port) {
         this.port = port;
@@ -109,14 +111,23 @@ public class ReplicationLinkFeature {
             releaseRequest(controller);
             return;
         }
+        if (!taskId.equals(startsTask)) {
+            startsTask = taskId;
+            startsForTask = 0;
+            controller.takeRequestStarts(this);
+        }
+        startsForTask += controller.takeRequestStarts(this);
         int remaining = task.getTotalAmount() - task.getCurrentAmount();
         int waiting = countWaiting(controller, task.getReplicatingStack());
         int inFlight = controller.isRecipeRunning(recipe.id()) ? 1 : 0;
+        int crafts = Math.min(remaining - waiting - inFlight, task.getTotalAmount() - startsForTask);
+        controller.reserveOutput(this, task.getReplicatingStack(), remaining, now);
         requestedRecipe = recipe.id();
-        controller.requestRecipe(this, recipe.id(), now, remaining - waiting - inFlight);
+        controller.requestRecipe(this, recipe.id(), now, crafts);
     }
 
     private void releaseRequest(MachineControllerBlockEntity controller) {
+        controller.releaseOutput(this);
         if (requestedRecipe == null) {
             return;
         }

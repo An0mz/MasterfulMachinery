@@ -314,6 +314,7 @@ public class Ae2PatternFeature implements ICraftingProvider {
         }
         var me = grid.getStorageService().getInventory();
         var source = IActionSource.ofMachine(port);
+        var kept = new HashMap<AEItemKey, Integer>();
         for (ItemPortStorage storage : storages.getOutputStorages(ItemPortStorage.class)) {
             var handler = storage.getHandler();
             for (int slot = 0; slot < handler.getSlots(); slot++) {
@@ -321,7 +322,17 @@ public class Ae2PatternFeature implements ICraftingProvider {
                 if (stack.isEmpty()) {
                     continue;
                 }
-                long inserted = me.insert(AEItemKey.of(stack), handler.getActualCount(slot), Actionable.MODULATE, source);
+                var key = AEItemKey.of(stack);
+                int count = handler.getActualCount(slot);
+                int keep = Math.min(count, controller.reservedOutputCount(stack) - kept.getOrDefault(key, 0));
+                if (keep > 0) {
+                    kept.merge(key, keep, Integer::sum);
+                    count -= keep;
+                }
+                if (count <= 0) {
+                    continue;
+                }
+                long inserted = me.insert(key, count, Actionable.MODULATE, source);
                 if (inserted > 0) {
                     handler.extractItem(slot, (int) inserted, false);
                 }
