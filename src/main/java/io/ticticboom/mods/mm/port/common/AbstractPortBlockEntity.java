@@ -35,6 +35,8 @@ public abstract class AbstractPortBlockEntity extends BlockEntity implements IPo
     private Direction machineFront;
     private ControllerState machineState = ControllerState.UNFORMED;
     @Nullable
+    private BlockPos controllerPos;
+    @Nullable
     private int[] machineColors;
     private long changeCount = 0;
     private long lastSync = Long.MIN_VALUE / 2;
@@ -62,10 +64,16 @@ public abstract class AbstractPortBlockEntity extends BlockEntity implements IPo
         return machineColors == null ? -1 : machineColors[state.ordinal()];
     }
 
-    public void setMachineInfo(@Nullable Direction front, ControllerState state, @Nullable int[] colors) {
-        if (front == machineFront && state == machineState && Arrays.equals(colors, machineColors)) {
+    @Nullable
+    public BlockPos getControllerPos() {
+        return controllerPos;
+    }
+
+    public void setMachineInfo(@Nullable BlockPos controller, @Nullable Direction front, ControllerState state, @Nullable int[] colors) {
+        if (java.util.Objects.equals(controller, controllerPos) && front == machineFront && state == machineState && Arrays.equals(colors, machineColors)) {
             return;
         }
+        controllerPos = controller;
         machineFront = front;
         machineState = state;
         machineColors = colors;

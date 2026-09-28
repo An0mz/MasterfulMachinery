@@ -9,6 +9,9 @@ public class MMConfig {
     public static boolean PARALLEL_PROCESSING_DEFAULT = false;
     public static int MAX_PARALLEL_RECIPES = 5;
     public static int PORT_AUTO_IO_INTERVAL = 10;
+    public static int NETWORK_LINK_OUTPUT_INTERVAL = 20;
+    public static boolean NETWORK_LINK_SEND_ON_REMOVE = true;
+    public static boolean NETWORK_LINK_OP_BYPASS = true;
 
     public static void bake() {
         DEBUG_TOOL = MMConfigSetup.COMMON.debugTool.get();
@@ -19,5 +22,8 @@ public class MMConfig {
         PARALLEL_PROCESSING_DEFAULT = MMConfigSetup.COMMON.parallelProcessingDefault.get();
         MAX_PARALLEL_RECIPES = MMConfigSetup.COMMON.maxParallelRecipes.get();
         PORT_AUTO_IO_INTERVAL = MMConfigSetup.COMMON.portAutoIOInterval.get();
+        NETWORK_LINK_OUTPUT_INTERVAL = MMConfigSetup.COMMON.networkLinkOutputInterval.get();
+        NETWORK_LINK_SEND_ON_REMOVE = MMConfigSetup.COMMON.networkLinkSendOnRemove.get();
+        NETWORK_LINK_OP_BYPASS = MMConfigSetup.COMMON.networkLinkOpBypass.get();
     }
 }

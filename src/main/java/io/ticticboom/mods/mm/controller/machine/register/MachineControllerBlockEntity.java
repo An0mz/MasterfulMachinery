@@ -1,5 +1,8 @@
 package io.ticticboom.mods.mm.controller.machine.register;
 
+import net.minecraft.server.level.ServerLevel;
+import io.ticticboom.mods.mm.networklink.NetworkLink;
+import io.ticticboom.mods.mm.networklink.LinkData;
 import io.ticticboom.mods.mm.compat.interop.MMInteropManager;
 import io.ticticboom.mods.mm.recipe.condition.RecipeConditionContext;
 import io.ticticboom.mods.mm.util.ColorUtil;
@@ -131,6 +134,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private ControllerState linkedState = null;
     private int comparatorSignal = 0;
     private boolean soundMuted = false;
+    private LinkData networkLink = null;
     private boolean wasActive = false;
     private long lastSync = Long.MIN_VALUE / 2;
 
@@ -165,6 +169,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             runRecipe(gameTime);
         }
         updateControllerState();
+        NetworkLink.tickController((ServerLevel) level, this);
         boolean active = !activeRecipes.isEmpty();
         if (active || wasActive) {
             markChanged();
@@ -279,7 +284,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             }
             for (var source : previous.sources()) {
                 if (source instanceof AbstractPortBlockEntity port && !kept.contains(source) && !port.isRemoved()) {
-                    port.setMachineInfo(null, ControllerState.UNFORMED, null);
+                    port.setMachineInfo(null, null, ControllerState.UNFORMED, null);
                 }
             }
         }
@@ -288,7 +293,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             int[] colors = machineColors();
             for (var source : current.sources()) {
                 if (source instanceof AbstractPortBlockEntity port) {
-                    port.setMachineInfo(front, state, colors);
+                    port.setMachineInfo(getBlockPos(), front, state, colors);
                 }
             }
         }
@@ -764,6 +769,15 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         tag.remove("CustomName");
     }
 
+    public @Nullable LinkData getNetworkLink() {
+        return networkLink;
+    }
+
+    public void setNetworkLink(@Nullable LinkData link) {
+        networkLink = link;
+        markChanged();
+    }
+
     public boolean isSoundMuted() {
         return soundMuted;
     }
@@ -874,6 +888,9 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (soundMuted) {
             tag.putBoolean("SoundMuted", true);
         }
+        if (networkLink != null) {
+            tag.put("NetworkLink", networkLink.save());
+        }
         tag.putLong("recipeSelectionSequence", recipeSelectionSequence);
         if (!inputItemLastStartedSequence.isEmpty()) {
             CompoundTag inputHistoryTag = new CompoundTag();
@@ -909,6 +926,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         recipeModeOverride = tag.contains("RecipeSelectionMode") ? RecipeSelectionMode.parse(tag.getString("RecipeSelectionMode")) : null;
         customName = tag.contains("CustomName") ? tag.getString("CustomName") : null;
         soundMuted = tag.getBoolean("SoundMuted");
+        networkLink = tag.contains("NetworkLink") ? LinkData.load(tag.getCompound("NetworkLink")) : null;
         selectedRecipeId = tag.contains("selectedRecipe") ? ResourceLocation.tryParse(tag.getString("selectedRecipe")) : null;
         recipeSelectionSequence = tag.getLong("recipeSelectionSequence");
         inputItemLastStartedSequence.clear();
@@ -1015,6 +1033,10 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             requestedCrafts = 0;
         }
         return requestedRecipeId;
+    }
+
+    public @Nullable Rotation getFormedRotation() {
+        return isFormed ? formedRotation : null;
     }
 
     public @Nullable RecipeStorages getPortStorages() {

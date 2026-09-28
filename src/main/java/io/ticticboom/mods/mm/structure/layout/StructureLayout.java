@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.structure.layout;
 
+import io.ticticboom.mods.mm.setup.MMRegisters;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.piece.StructurePieceSetupMetadata;
@@ -132,7 +133,7 @@ public class StructureLayout {
         for (PositionedLayoutPiece piece : positionedPieces) {
             if (isAnywhere(piece.piece().piece())) {
                 anywherePieces.add(piece);
-            } else if (!piece.formed(level, worldControllerPos, model, rot)) {
+            } else if (!piece.formed(level, worldControllerPos, model, rot) && !isGatewayInPlace(level, worldControllerPos, piece)) {
                 missing.add(piece);
             }
         }
@@ -151,6 +152,28 @@ public class StructureLayout {
         return missing;
     }
 
+    private static boolean isGatewayInPlace(Level level, BlockPos worldControllerPos, PositionedLayoutPiece piece) {
+        var underlying = piece.piece().piece();
+        if (underlying instanceof PortStructurePiece || underlying instanceof PortTypeStructurePiece
+                || underlying instanceof PortAnywhereStructurePiece || underlying instanceof PortTypeAnywhereStructurePiece) {
+            return false;
+        }
+        return level.getBlockState(piece.findAbsolutePos(worldControllerPos)).is(MMRegisters.INPUT_GATEWAY.get());
+    }
+
+    public boolean contains(BlockPos worldControllerPos, Rotation rotation, BlockPos pos) {
+        var pieces = rotatedPositionedPieces.get(rotation);
+        if (pieces == null) {
+            return false;
+        }
+        for (PositionedLayoutPiece piece : pieces) {
+            if (piece.findAbsolutePos(worldControllerPos).equals(pos)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean isAnywhere(Object underlying) {
         return underlying instanceof PortAnywhereStructurePiece || underlying instanceof PortTypeAnywhereStructurePiece
                 || (portsAnywhereGlobal && (underlying instanceof PortStructurePiece || underlying instanceof PortTypeStructurePiece));
@@ -164,7 +187,7 @@ public class StructureLayout {
                 anywherePieces.add(piece);
                 continue; // skip per-position check for anywhere pieces
             }
-            if (!piece.formed(level, worldControllerPos, model, rot)) {
+            if (!piece.formed(level, worldControllerPos, model, rot) && !isGatewayInPlace(level, worldControllerPos, piece)) {
                 return false;
             }
         }

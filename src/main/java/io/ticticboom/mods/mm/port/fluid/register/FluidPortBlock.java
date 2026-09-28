@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.fluid.register;
 
+import io.ticticboom.mods.mm.networklink.NetworkLink;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
 import io.ticticboom.mods.mm.datagen.provider.MMBlockstateProvider;
@@ -92,6 +93,7 @@ public class FluidPortBlock extends Block implements IPortBlock, EntityBlock {
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean p_60519_) {
         if (!state.is(newState.getBlock()) && level instanceof ServerLevel sl) {
+            NetworkLink.beforePortRemoved(level, pos);
             WorldUtil.scheduleNearbyValidation(sl, pos);
         }
         super.onRemove(state, level, pos, newState, p_60519_);

@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm;
 
+import io.ticticboom.mods.mm.networklink.NetworkLink;
 import io.ticticboom.mods.mm.config.MMConfigSetup;
 import io.ticticboom.mods.mm.extra.MMExtraBlockRegistry;
 import io.ticticboom.mods.mm.controller.MMControllerRegistry;
@@ -27,6 +28,7 @@ public class ModRoot {
         MMPortRegistry.init();
         MMControllerRegistry.init();
         MMExtraBlockRegistry.init();
+        NetworkLink.init(modEventBus);
         MMRegisters.register(modEventBus);
         MMStructurePieceRegistry.init();
         MMStructureAttachmentRegistry.init();

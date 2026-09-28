@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.controller.machine.register;
 
+import io.ticticboom.mods.mm.networklink.LinkData;
+import io.ticticboom.mods.mm.networklink.NetworkLink;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.client.gui.widgets.ControllerPortList;
 import io.ticticboom.mods.mm.client.gui.widgets.PortContentIcon;
@@ -88,7 +90,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
     private static final long CYCLE_MS = 1200;
     private static final boolean JEI = ModList.get().isLoaded("jei");
 
-    private enum Row { STRUCTURE, TIER, PARALLEL, REDSTONE, MODE, SOUND, RECIPE }
+    private enum Row { STRUCTURE, TIER, PARALLEL, REDSTONE, MODE, SOUND, LINK, RECIPE }
 
     private static final Pattern TIER = Pattern.compile("(?i)\\s*\\b(?:tier|level|lvl|mk)\\s*[.:#-]?\\s*(\\d+(?:[.,]\\d+)?|[ivx]+)\\b");
 
@@ -352,10 +354,14 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
     }
 
     private List<Row> rows() {
-        if (be.getRecipeSelectionMode() == RecipeSelectionMode.MANUAL) {
-            return List.of(Row.values());
+        var rows = new ArrayList<>(List.of(Row.STRUCTURE, Row.TIER, Row.PARALLEL, Row.REDSTONE, Row.MODE, Row.SOUND));
+        if (NetworkLink.AVAILABLE) {
+            rows.add(Row.LINK);
         }
-        return List.of(Row.STRUCTURE, Row.TIER, Row.PARALLEL, Row.REDSTONE, Row.MODE, Row.SOUND);
+        if (be.getRecipeSelectionMode() == RecipeSelectionMode.MANUAL) {
+            rows.add(Row.RECIPE);
+        }
+        return rows;
     }
 
     private int rowY(Row row) {
@@ -523,6 +529,14 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
                     VALUE_X + 12, rowY(Row.SOUND), valueRight - VALUE_X - 14, be.isSoundMuted() ? LABEL : TEXT);
         } else {
             drawClipped(gfx, Component.translatable("gui.mm.controller.sound.none"), VALUE_X, rowY(Row.SOUND), valueRight - VALUE_X, LABEL);
+        }
+        if (rows().contains(Row.LINK)) {
+            LinkData link = be.getNetworkLink();
+            if (link != null) {
+                drawClipped(gfx, Component.literal(link.ownerName()), VALUE_X, rowY(Row.LINK), valueRight - VALUE_X, TEXT);
+            } else {
+                drawClipped(gfx, Component.translatable("gui.mm.controller.link.none"), VALUE_X, rowY(Row.LINK), valueRight - VALUE_X, LABEL);
+            }
         }
         if (rows().contains(Row.RECIPE)) {
             drawClipped(gfx, recipeName(selectedRecipe()), VALUE_X + 12, rowY(Row.RECIPE), valueRight - VALUE_X - 14, TEXT);
@@ -749,6 +763,17 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
                         lines.add(Component.translatable("gui.mm.controller.sound.hint").withStyle(ChatFormatting.YELLOW));
                     } else {
                         lines.add(Component.translatable("gui.mm.controller.sound.none.hint").withStyle(ChatFormatting.GRAY));
+                    }
+                }
+                case LINK -> {
+                    LinkData link = be.getNetworkLink();
+                    if (link != null) {
+                        lines.add(Component.translatable("gui.mm.controller.link.owner", link.ownerName()).withStyle(ChatFormatting.WHITE));
+                        lines.add(Component.translatable("gui.mm.controller.link.network", link.network().pos().toShortString(),
+                                link.network().dimension().location().getPath()).withStyle(ChatFormatting.AQUA));
+                        lines.add(Component.translatable("gui.mm.controller.row.link.hint.linked").withStyle(ChatFormatting.GRAY));
+                    } else {
+                        lines.add(Component.translatable("gui.mm.controller.row.link.hint.none").withStyle(ChatFormatting.GRAY));
                     }
                 }
                 case RECIPE -> {

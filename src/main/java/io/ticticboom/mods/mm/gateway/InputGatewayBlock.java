@@ -1,0 +1,57 @@
+package io.ticticboom.mods.mm.gateway;
+
+import com.mojang.serialization.MapCodec;
+import io.ticticboom.mods.mm.util.BlockUtils;
+import io.ticticboom.mods.mm.util.WorldUtil;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+
+public class InputGatewayBlock extends BaseEntityBlock {
+    private static final MapCodec<InputGatewayBlock> CODEC = simpleCodec(properties -> new InputGatewayBlock());
+
+    public InputGatewayBlock() {
+        super(BlockUtils.createBlockProperties());
+    }
+
+    @Override
+    protected MapCodec<? extends BaseEntityBlock> codec() {
+        return CODEC;
+    }
+
+    @Override
+    protected RenderShape getRenderShape(BlockState state) {
+        return RenderShape.MODEL;
+    }
+
+    @Nullable
+    @Override
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return new InputGatewayBlockEntity(pos, state);
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+        tooltip.add(Component.translatable("block.mm.input_gateway.tooltip").withStyle(ChatFormatting.GRAY));
+    }
+
+    @Override
+    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
+        if (!state.is(newState.getBlock()) && level instanceof ServerLevel serverLevel) {
+            WorldUtil.scheduleNearbyValidation(serverLevel, pos);
+        }
+        super.onRemove(state, level, pos, newState, moved);
+    }
+}

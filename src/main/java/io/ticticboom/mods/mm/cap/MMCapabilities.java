@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.cap;
 
+import io.ticticboom.mods.mm.setup.MMRegisters;
 import io.ticticboom.mods.mm.port.IPortBlockEntity;
 import io.ticticboom.mods.mm.port.MMPortRegistry;
 import net.minecraft.core.Direction;
@@ -54,6 +55,13 @@ public class MMCapabilities {
             if (ModList.get().isLoaded("ae2")) {
                 Ae2Capabilities.registerNodeHost(event, beType);
             }
+        }
+        var gateway = MMRegisters.INPUT_GATEWAY_BE.get();
+        event.registerBlockEntity(ITEM, gateway, (be, side) -> be.itemHandler());
+        event.registerBlockEntity(FLUID, gateway, (be, side) -> be.fluidHandler());
+        event.registerBlockEntity(ENERGY, gateway, (be, side) -> be.energyHandler());
+        if (ModList.get().isLoaded("mekanism")) {
+            MekCapabilities.registerGateway(event, gateway);
         }
     }
 

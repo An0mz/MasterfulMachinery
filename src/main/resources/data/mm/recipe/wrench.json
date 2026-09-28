@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    " I ",
+    " DI",
+    "I  "
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "D": {
+      "tag": "c:dyes/green"
+    }
+  },
+  "result": {
+    "id": "mm:wrench",
+    "count": 1
+  }
+}

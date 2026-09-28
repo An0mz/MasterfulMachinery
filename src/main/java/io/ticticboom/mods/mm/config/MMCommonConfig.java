@@ -12,6 +12,9 @@ public class MMCommonConfig {
     public final ModConfigSpec.IntValue maxParallelRecipes;
     public final ModConfigSpec.BooleanValue showJeiMaxParallel;
     public final ModConfigSpec.IntValue portAutoIOInterval;
+    public final ModConfigSpec.IntValue networkLinkOutputInterval;
+    public final ModConfigSpec.BooleanValue networkLinkSendOnRemove;
+    public final ModConfigSpec.BooleanValue networkLinkOpBypass;
 
     public MMCommonConfig(ModConfigSpec.Builder builder) {
         structureValidationRate = builder.comment("How often controller will check structure. 1 means every tick, 20 means every second. Default: 10")
@@ -30,6 +33,12 @@ public class MMCommonConfig {
                 .define("showJeiMaxParallel", true);
         portAutoIOInterval = builder.comment("How often ports with enabled auto push/pull sides transfer, in ticks. Default: 10")
                 .defineInRange("portAutoIOInterval", 10, 1, 200);
+        networkLinkOutputInterval = builder.comment("How often a machine linked to an AE2 network sends its outputs to it, in ticks. Default: 20")
+                .defineInRange("networkLinkOutputInterval", 20, 1, 1200);
+        networkLinkSendOnRemove = builder.comment("When a port of a linked machine is removed, send its contents to the AE2 network instead of dropping them. Default: true")
+                .define("networkLinkSendOnRemove", true);
+        networkLinkOpBypass = builder.comment("Operators may open and break machines linked to other players. Default: true")
+                .define("networkLinkOpBypass", true);
 
         builder.comment("Preview features that are not yet stable or ready for use.")
                 .push("preview_features");

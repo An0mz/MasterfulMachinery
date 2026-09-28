@@ -1,5 +1,8 @@
 package io.ticticboom.mods.mm.cap;
 
+import io.ticticboom.mods.mm.gateway.InputGatewayBlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import mekanism.api.chemical.IChemicalHandler;
 import mekanism.api.heat.IHeatHandler;
 import mekanism.common.capabilities.Capabilities;
@@ -17,4 +20,8 @@ import net.neoforged.neoforge.capabilities.BlockCapability;
 public class MekCapabilities {
     public static final BlockCapability<IChemicalHandler, Direction> CHEMICAL = Capabilities.CHEMICAL.block();
     public static final BlockCapability<IHeatHandler, Direction> HEAT = Capabilities.HEAT;
+
+    public static void registerGateway(RegisterCapabilitiesEvent event, BlockEntityType<InputGatewayBlockEntity> gateway) {
+        event.registerBlockEntity(CHEMICAL, gateway, (be, side) -> (IChemicalHandler) be.chemicalHandler());
+    }
 }

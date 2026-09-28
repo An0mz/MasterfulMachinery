@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.mekanism.chemical.register;
 
+import io.ticticboom.mods.mm.networklink.NetworkLink;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.datagen.provider.MMBlockstateProvider;
 import net.minecraft.network.chat.MutableComponent;
@@ -69,6 +70,14 @@ public class MekanismChemicalPortBlock extends Block implements EntityBlock, IPo
                 pbe.tick();
             }
         };
+    }
+
+    @Override
+    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
+        if (!state.is(newState.getBlock())) {
+            NetworkLink.beforePortRemoved(level, pos);
+        }
+        super.onRemove(state, level, pos, newState, moved);
     }
 
     @Override
