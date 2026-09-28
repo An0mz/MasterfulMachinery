@@ -1,6 +1,0 @@
-{
-  "id": "pulverizer",
-  "type": "mm:machine",
-  "name": "Pulverizer",
-  "model": "mm:block/machines/pulverizer_controller"
-}
