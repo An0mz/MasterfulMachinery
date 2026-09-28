@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.controller.machine.register;
 
+import io.ticticboom.mods.mm.compat.interop.MMInteropManager;
+import io.ticticboom.mods.mm.recipe.condition.RecipeConditionContext;
 import io.ticticboom.mods.mm.util.ColorUtil;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.component.DataComponentMap;
@@ -127,6 +129,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private boolean syncPending = false;
     private RecipeStorages linkedStorages = null;
     private ControllerState linkedState = null;
+    private int comparatorSignal = 0;
+    private boolean soundMuted = false;
     private boolean wasActive = false;
     private long lastSync = Long.MIN_VALUE / 2;
 
@@ -139,7 +143,13 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     public void tick() {
-        if (level == null || level.isClientSide() || isRemoved()) {
+        if (level == null || isRemoved()) {
+            return;
+        }
+        if (level.isClientSide()) {
+            if (getBlockState().getBlock() instanceof MachineControllerBlock block) {
+                block.tickWorkingEffects(getBlockState(), level, getBlockPos(), soundMuted);
+            }
             return;
         }
         long gameTime = level.getGameTime();
@@ -231,11 +241,34 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (blockState.hasProperty(ControllerState.PROPERTY) && blockState.getValue(ControllerState.PROPERTY) != next) {
             level.setBlock(getBlockPos(), blockState.setValue(ControllerState.PROPERTY, next), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
         }
+        int signal = computeComparatorSignal(next);
+        if (signal != comparatorSignal) {
+            comparatorSignal = signal;
+            level.updateNeighbourForOutputSignal(getBlockPos(), blockState.getBlock());
+        }
         if (next != linkedState || portStorages != linkedStorages) {
             linkPorts(linkedStorages, portStorages, next);
             linkedStorages = portStorages;
             linkedState = next;
         }
+    }
+
+    private int computeComparatorSignal(ControllerState state) {
+        if (state != ControllerState.WORKING) {
+            return 0;
+        }
+        double percent = 100;
+        if (!activeRecipes.isEmpty()) {
+            percent = 0;
+            for (var recipeState : activeRecipes.values()) {
+                percent = Math.max(percent, recipeState.getTickPercentage());
+            }
+        }
+        return 1 + (int) Math.round(Math.max(0, Math.min(100, percent)) / 100 * 14);
+    }
+
+    public int getComparatorSignal() {
+        return comparatorSignal;
     }
 
     private void linkPorts(@Nullable RecipeStorages previous, @Nullable RecipeStorages current, ControllerState state) {
@@ -275,7 +308,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private void switchStructure(StructureModel next) {
         activeRecipes.keySet().removeIf(id -> {
             var recipe = MachineRecipeManager.RECIPES.get(id);
-            return recipe == null || !recipe.structureId().equals(next.id());
+            return recipe == null || !recipe.runsIn(next.id());
         });
         structure = next;
         formedRotation = null;
@@ -388,6 +421,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                 return false;
             }
             recipe.outputs().process(level, portStorages, state);
+            recipeFinished(recipe);
             storageContentCacheValid = false;
             lastProgressTime = level.getGameTime();
             return true;
@@ -441,13 +475,11 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                 }
                 continue;
             }
-            startRecipe(recipe, gameTime, primary, state);
-            started = true;
+            started |= startRecipe(recipe, gameTime, primary, state);
         }
         nextRecipeCheckIndex = index;
         if (!started && roundRobin != null && canStart(roundRobin.recipe(), roundRobin.state())) {
-            startRecipe(roundRobin.recipe(), gameTime, roundRobin.inputKey(), roundRobin.state());
-            started = true;
+            started = startRecipe(roundRobin.recipe(), gameTime, roundRobin.inputKey(), roundRobin.state());
         }
         if (!started && deferred != null && canStart(deferred.recipe(), deferred.state())) {
             startRecipe(deferred.recipe(), gameTime, deferred.inputKey(), deferred.state());
@@ -468,7 +500,12 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                 return false;
             }
         }
-        return recipeNextCheckTime.getOrDefault(recipe.id(), 0L) <= gameTime;
+        return recipeNextCheckTime.getOrDefault(recipe.id(), 0L) <= gameTime
+                && recipe.conditions().canRun(conditionContext());
+    }
+
+    private RecipeConditionContext conditionContext() {
+        return new RecipeConditionContext(level, getBlockPos(), structure);
     }
 
     private boolean mayHaveInputs(RecipeRequirements needs) {
@@ -506,7 +543,11 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         return (allowParallel || activeRecipes.isEmpty()) && underLimit;
     }
 
-    private void startRecipe(RecipeModel recipe, long gameTime, @Nullable ResourceLocation inputKey, RecipeStateModel state) {
+    private boolean startRecipe(RecipeModel recipe, long gameTime, @Nullable ResourceLocation inputKey, RecipeStateModel state) {
+        if (MMInteropManager.KUBEJS.isPresent() && !MMInteropManager.KUBEJS.get().postRecipeStarted(this, recipe.id())) {
+            recipeNextCheckTime.put(recipe.id(), gameTime + SKIP_COOLDOWN);
+            return false;
+        }
         recipe.inputs().process(level, portStorages, state);
         if (recipe.id().equals(requestedRecipeId) && requestedCrafts > 0) {
             requestedCrafts--;
@@ -523,6 +564,11 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             inputItemLastStartedSequence.put(inputKey, recipeSelectionSequence);
         }
         markChanged();
+        return true;
+    }
+
+    private void recipeFinished(RecipeModel recipe) {
+        MMInteropManager.KUBEJS.ifPresent(kubejs -> kubejs.postRecipeFinished(this, recipe.id()));
     }
 
     private List<EntityPortStorage> resolveSpeedStorages() {
@@ -557,6 +603,9 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     private boolean tickRecipe(RecipeModel recipe, RecipeStateModel state, long gameTime) {
+        if (!state.isCanFinish() && !recipe.conditions().isEmpty() && !recipe.conditions().canRun(conditionContext())) {
+            return false;
+        }
         if (!state.isCanFinish()) {
             boolean fed;
             try {
@@ -584,6 +633,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (recipe.outputs().canProcess(level, portStorages, state)) {
             lastProgressTime = gameTime;
             recipe.outputs().process(level, portStorages, state);
+            recipeFinished(recipe);
             storageContentCacheValid = false;
             return true;
         }
@@ -714,6 +764,15 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         tag.remove("CustomName");
     }
 
+    public boolean isSoundMuted() {
+        return soundMuted;
+    }
+
+    public void setSoundMuted(boolean muted) {
+        soundMuted = muted;
+        markChanged();
+    }
+
     public RecipeSelectionMode getRecipeSelectionMode() {
         return recipeModeOverride != null ? recipeModeOverride : model.recipeSelectionMode();
     }
@@ -812,6 +871,9 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (customName != null) {
             tag.putString("CustomName", customName);
         }
+        if (soundMuted) {
+            tag.putBoolean("SoundMuted", true);
+        }
         tag.putLong("recipeSelectionSequence", recipeSelectionSequence);
         if (!inputItemLastStartedSequence.isEmpty()) {
             CompoundTag inputHistoryTag = new CompoundTag();
@@ -846,6 +908,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         lastProgressTime = tag.contains("lastProgressTime") ? tag.getLong("lastProgressTime") : Long.MIN_VALUE;
         recipeModeOverride = tag.contains("RecipeSelectionMode") ? RecipeSelectionMode.parse(tag.getString("RecipeSelectionMode")) : null;
         customName = tag.contains("CustomName") ? tag.getString("CustomName") : null;
+        soundMuted = tag.getBoolean("SoundMuted");
         selectedRecipeId = tag.contains("selectedRecipe") ? ResourceLocation.tryParse(tag.getString("selectedRecipe")) : null;
         recipeSelectionSequence = tag.getLong("recipeSelectionSequence");
         inputItemLastStartedSequence.clear();
@@ -910,7 +973,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     public void selectRecipe(@Nullable ResourceLocation recipeId) {
         if (recipeId != null) {
             var recipe = MachineRecipeManager.RECIPES.get(recipeId);
-            if (recipe == null || structure == null || !recipe.structureId().equals(structure.id())) {
+            if (recipe == null || structure == null || !recipe.runsIn(structure.id())) {
                 return;
             }
         }
@@ -922,7 +985,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     public void requestRecipe(Object owner, ResourceLocation recipeId, long gameTime, int crafts) {
         if (!recipeId.equals(requestedRecipeId)) {
             var recipe = MachineRecipeManager.RECIPES.get(recipeId);
-            if (recipe == null || structure == null || !recipe.structureId().equals(structure.id())) {
+            if (recipe == null || structure == null || !recipe.runsIn(structure.id())) {
                 return;
             }
             requestedRecipeId = recipeId;

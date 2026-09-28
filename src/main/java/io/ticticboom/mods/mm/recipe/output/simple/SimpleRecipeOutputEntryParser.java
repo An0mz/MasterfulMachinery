@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.recipe.output.simple;
 
+import io.ticticboom.mods.mm.port.IPortIngredient;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.port.MMPortRegistry;
@@ -10,10 +11,21 @@ import io.ticticboom.mods.mm.Ref;
 public class SimpleRecipeOutputEntryParser implements IRecipeOutputEntryParser {
     @Override
     public IRecipeOutputEntry parse(JsonObject json) {
+        var ingredient = parseIngredient(json, "simple output entry");
+        double chance = 1.f;
+        if (json.has("chance")) {
+            chance = json.get("chance").getAsDouble();
+        }
+        boolean perTick = false;
+        if (json.has("per_tick")) {
+            perTick = json.get("per_tick").getAsBoolean();
+        }
+        return new SimpleRecipeOutputEntry(ingredient, chance, perTick);
+    }
+
+    public static IPortIngredient parseIngredient(JsonObject json, String what) {
         JsonElement ingredientEl = json.get("ingredient");
-        // If ingredient is missing, allow shorthand fields (item/count/nbt/nbt_snbt/nbt_match)
         if (ingredientEl == null || ingredientEl.isJsonNull()) {
-            // look for direct item/count/nbt fields and normalize
             if (json.has("item") || json.has("nbt") || json.has("nbt_snbt") || json.has("nbt_match") || json.has("count")) {
                 JsonObject normalized = new JsonObject();
                 normalized.addProperty("type", Ref.Ports.ITEM.toString());
@@ -24,19 +36,9 @@ public class SimpleRecipeOutputEntryParser implements IRecipeOutputEntryParser {
                 if (json.has("nbt_match")) normalized.add("nbt_match", json.get("nbt_match"));
                 ingredientEl = normalized;
             } else {
-                throw new RuntimeException("Missing or null 'ingredient' field in simple output entry: " + json);
+                throw new RuntimeException("Missing or null 'ingredient' field in " + what + ": " + json);
             }
         }
-
-        var ingredient = MMPortRegistry.parseIngredient(ingredientEl);
-        double chance = 1.f;
-        if (json.has("chance")) {
-            chance = json.get("chance").getAsDouble();
-        }
-        boolean perTick = false;
-        if (json.has("per_tick")) {
-            perTick = json.get("per_tick").getAsBoolean();
-        }
-        return new SimpleRecipeOutputEntry(ingredient, chance, perTick);
+        return MMPortRegistry.parseIngredient(ingredientEl);
     }
 }

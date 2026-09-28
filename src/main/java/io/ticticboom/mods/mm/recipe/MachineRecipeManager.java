@@ -1,5 +1,10 @@
 package io.ticticboom.mods.mm.recipe;
 
+import io.ticticboom.mods.mm.recipe.condition.biome.BiomeRecipeCondition;
+import io.ticticboom.mods.mm.recipe.condition.height.HeightRecipeCondition;
+import io.ticticboom.mods.mm.recipe.condition.redstone.RedstoneRecipeCondition;
+import io.ticticboom.mods.mm.recipe.condition.tier.TierRecipeCondition;
+import io.ticticboom.mods.mm.recipe.condition.time.TimeRecipeCondition;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.Ref;
@@ -45,8 +50,14 @@ public class MachineRecipeManager extends SimpleJsonResourceReloadListener {
         ENTRY_INGREDIENT_PARSERS.clear();
         ENTRY_INGREDIENT_PARSERS.put(Ref.RecipeEntries.CONSUME_INPUT, new ConsumeRecipeIngredientEntryParser());
         ENTRY_OUTPUT_PARSERS.put(Ref.RecipeEntries.SIMPLE_OUTPUT, new SimpleRecipeOutputEntryParser());
+        ENTRY_OUTPUT_PARSERS.put(Ref.RecipeEntries.WEIGHTED_OUTPUT, new io.ticticboom.mods.mm.recipe.output.weighted.WeightedRecipeOutputEntryParser());
         CONDITION_PARSERS.put(Ref.RecipeConditions.DIMENSION, new DimensionRecipeConditionParser());
         CONDITION_PARSERS.put(Ref.RecipeConditions.WEATHER, new WeatherRecipeConditionParser());
+        CONDITION_PARSERS.put(Ref.RecipeConditions.BIOME, BiomeRecipeCondition::parse);
+        CONDITION_PARSERS.put(Ref.RecipeConditions.TIME, TimeRecipeCondition::parse);
+        CONDITION_PARSERS.put(Ref.RecipeConditions.HEIGHT, HeightRecipeCondition::parse);
+        CONDITION_PARSERS.put(Ref.RecipeConditions.REDSTONE, RedstoneRecipeCondition::parse);
+        CONDITION_PARSERS.put(Ref.RecipeConditions.TIER, TierRecipeCondition::parse);
     }
 
     public static IRecipeIngredientEntry parseIngredientEntry(JsonObject json) {
@@ -65,7 +76,7 @@ public class MachineRecipeManager extends SimpleJsonResourceReloadListener {
     }
 
     public static List<RecipeModel> getRecipeForStructureIds(List<ResourceLocation> structureIds) {
-        return RECIPES.values().stream().filter(x -> structureIds.contains(x.structureId())).toList();
+        return RECIPES.values().stream().filter(x -> x.allStructureIds().stream().anyMatch(structureIds::contains)).toList();
     }
 
     public static Collection<RecipeModel> getRecipesByStrucutreId(ResourceLocation id) {
@@ -124,7 +135,9 @@ public class MachineRecipeManager extends SimpleJsonResourceReloadListener {
     private static void cacheRecipesByStructure() {
         RECIPES_BY_STRUCTURE.clear();
         for (RecipeModel model : RECIPES.values()) {
-            RECIPES_BY_STRUCTURE.computeIfAbsent(model.structureId().toString(), x -> new HashMap<>()).put(model.id(), model);
+            for (ResourceLocation structureId : model.allStructureIds()) {
+                RECIPES_BY_STRUCTURE.computeIfAbsent(structureId.toString(), x -> new HashMap<>()).put(model.id(), model);
+            }
         }
         RECIPE_VERSION++;
     }

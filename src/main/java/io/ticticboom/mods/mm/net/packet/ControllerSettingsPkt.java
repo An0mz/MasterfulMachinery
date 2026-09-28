@@ -15,7 +15,8 @@ public record ControllerSettingsPkt(BlockPos pos, Setting setting, String value)
 
     public enum Setting {
         NAME,
-        RECIPE_ORDER
+        RECIPE_ORDER,
+        SOUND_MUTED
     }
 
     public static final Type<ControllerSettingsPkt> TYPE = new Type<>(Ref.id("controller_settings"));
@@ -36,6 +37,7 @@ public record ControllerSettingsPkt(BlockPos pos, Setting setting, String value)
             switch (pkt.setting) {
                 case NAME -> controller.setCustomName(pkt.value);
                 case RECIPE_ORDER -> controller.setRecipeSelectionMode(RecipeSelectionMode.parse(pkt.value));
+                case SOUND_MUTED -> controller.setSoundMuted(Boolean.parseBoolean(pkt.value));
             }
         });
     }

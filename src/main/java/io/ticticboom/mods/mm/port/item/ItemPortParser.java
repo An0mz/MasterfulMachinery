@@ -39,7 +39,7 @@ public class ItemPortParser implements IPortParser {
 
     @Override
     public IPortIngredient parseRecipeIngredient(JsonObject json) {
-        var count = AmountRange.parse(json, "count");
+        var count = json.has("count") ? AmountRange.parse(json, "count") : AmountRange.of(1);
         CompoundTag requiredNbt = null;
         boolean nbtStrong = false;
         if (json.has("nbt")) {

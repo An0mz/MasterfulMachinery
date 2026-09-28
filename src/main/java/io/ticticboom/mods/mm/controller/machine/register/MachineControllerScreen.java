@@ -88,7 +88,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
     private static final long CYCLE_MS = 1200;
     private static final boolean JEI = ModList.get().isLoaded("jei");
 
-    private enum Row { STRUCTURE, TIER, PARALLEL, REDSTONE, MODE, RECIPE }
+    private enum Row { STRUCTURE, TIER, PARALLEL, REDSTONE, MODE, SOUND, RECIPE }
 
     private static final Pattern TIER = Pattern.compile("(?i)\\s*\\b(?:tier|level|lvl|mk)\\s*[.:#-]?\\s*(\\d+(?:[.,]\\d+)?|[ivx]+)\\b");
 
@@ -355,7 +355,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         if (be.getRecipeSelectionMode() == RecipeSelectionMode.MANUAL) {
             return List.of(Row.values());
         }
-        return List.of(Row.STRUCTURE, Row.TIER, Row.PARALLEL, Row.REDSTONE, Row.MODE);
+        return List.of(Row.STRUCTURE, Row.TIER, Row.PARALLEL, Row.REDSTONE, Row.MODE, Row.SOUND);
     }
 
     private int rowY(Row row) {
@@ -408,6 +408,12 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
 
         int my = y + rowY(Row.MODE) - 2;
         drawButtonFrame(gfx, x + VALUE_X - 2, my, valueRight - VALUE_X + 2, BUTTON_HEIGHT, isOnRow(Row.MODE, mouseX, mouseY));
+
+        if (hasWorkingSound()) {
+            int sy = y + rowY(Row.SOUND) - 2;
+            drawButtonFrame(gfx, x + VALUE_X - 2, sy, valueRight - VALUE_X + 2, BUTTON_HEIGHT, isOnRow(Row.SOUND, mouseX, mouseY));
+            drawSmallItem(gfx, new ItemStack(Items.NOTE_BLOCK), x + VALUE_X, sy + 1, 8);
+        }
 
         if (rows().contains(Row.RECIPE)) {
             int ry = y + rowY(Row.RECIPE) - 2;
@@ -512,12 +518,22 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
                 VALUE_X + 12, rowY(Row.REDSTONE), valueRight - VALUE_X - 14, TEXT);
         drawClipped(gfx, Component.translatable("gui.mm.controller.mode." + recipeMode()),
                 VALUE_X + 1, rowY(Row.MODE), valueRight - VALUE_X - 3, TEXT);
+        if (hasWorkingSound()) {
+            drawClipped(gfx, Component.translatable(be.isSoundMuted() ? "gui.mm.controller.sound.off" : "gui.mm.controller.sound.on"),
+                    VALUE_X + 12, rowY(Row.SOUND), valueRight - VALUE_X - 14, be.isSoundMuted() ? LABEL : TEXT);
+        } else {
+            drawClipped(gfx, Component.translatable("gui.mm.controller.sound.none"), VALUE_X, rowY(Row.SOUND), valueRight - VALUE_X, LABEL);
+        }
         if (rows().contains(Row.RECIPE)) {
             drawClipped(gfx, recipeName(selectedRecipe()), VALUE_X + 12, rowY(Row.RECIPE), valueRight - VALUE_X - 14, TEXT);
         }
         if (wide) {
             drawProgressText(gfx);
         }
+    }
+
+    private boolean hasWorkingSound() {
+        return be.getBlockState().getBlock() instanceof MachineControllerBlock block && block.hasWorkingSound();
     }
 
     private int nameWidth() {
@@ -727,6 +743,14 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
                     lines.add(Component.translatable("gui.mm.controller.mode." + recipeMode() + ".hint").withStyle(ChatFormatting.GRAY));
                     lines.add(Component.translatable("gui.mm.controller.mode.hint").withStyle(ChatFormatting.YELLOW));
                 }
+                case SOUND -> {
+                    if (hasWorkingSound()) {
+                        lines.add(Component.translatable(be.isSoundMuted() ? "gui.mm.controller.sound.off.hint" : "gui.mm.controller.sound.on.hint").withStyle(ChatFormatting.GRAY));
+                        lines.add(Component.translatable("gui.mm.controller.sound.hint").withStyle(ChatFormatting.YELLOW));
+                    } else {
+                        lines.add(Component.translatable("gui.mm.controller.sound.none.hint").withStyle(ChatFormatting.GRAY));
+                    }
+                }
                 case RECIPE -> {
                     lines.add(recipeName(selectedRecipe()).copy().withStyle(ChatFormatting.WHITE));
                     lines.add(Component.translatable("gui.mm.controller.row.recipe.hint").withStyle(ChatFormatting.YELLOW));
@@ -798,6 +822,11 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
             if (isOnRow(Row.REDSTONE, mouseX, mouseY)) {
                 int next = (be.getRedstoneModeOrdinal() + (button == 1 ? 2 : 1)) % 3;
                 PacketDistributor.sendToServer(new ToggleRedstoneModePkt(be.getBlockPos(), next));
+                playClick();
+                return true;
+            }
+            if (hasWorkingSound() && isOnRow(Row.SOUND, mouseX, mouseY)) {
+                PacketDistributor.sendToServer(new ControllerSettingsPkt(be.getBlockPos(), ControllerSettingsPkt.Setting.SOUND_MUTED, Boolean.toString(!be.isSoundMuted())));
                 playClick();
                 return true;
             }

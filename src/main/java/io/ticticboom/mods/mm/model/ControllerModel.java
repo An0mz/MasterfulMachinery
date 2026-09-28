@@ -38,6 +38,24 @@ public record ControllerModel(
         return config.get(key).getAsString();
     }
 
+    public ResourceLocation workingSound() {
+        return configId("workingSound");
+    }
+
+    public int workingSoundInterval() {
+        if (config == null || !config.has("workingSoundInterval") || !config.get("workingSoundInterval").isJsonPrimitive()) return 40;
+        return Math.max(1, config.get("workingSoundInterval").getAsInt());
+    }
+
+    public ResourceLocation workingParticle() {
+        return configId("workingParticle");
+    }
+
+    private ResourceLocation configId(String key) {
+        if (config == null || !config.has(key) || !config.get(key).isJsonPrimitive()) return null;
+        return ResourceLocation.tryParse(config.get(key).getAsString());
+    }
+
     public ResourceLocation customModel() {
         return ParserUtils.parseOptionalId(config, "model");
     }

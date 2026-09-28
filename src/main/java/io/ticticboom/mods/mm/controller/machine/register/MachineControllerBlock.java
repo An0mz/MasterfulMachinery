@@ -1,5 +1,13 @@
 package io.ticticboom.mods.mm.controller.machine.register;
 
+import net.minecraft.util.RandomSource;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.particles.SimpleParticleType;
+import io.ticticboom.mods.mm.config.WorkingEffectsConfig;
+import io.ticticboom.mods.mm.config.MMConfigSetup;
 import io.ticticboom.mods.mm.util.DisplayNameUtil;
 import net.minecraft.network.chat.MutableComponent;
 import io.ticticboom.mods.mm.Ref;
@@ -127,6 +135,78 @@ public class MachineControllerBlock extends HorizontalDirectionalBlock implement
             return (l, pos, s, be) -> ((MachineControllerBlockEntity) be).tick();
         }
         return null;
+    }
+
+    @Override
+    protected boolean hasAnalogOutputSignal(BlockState state) {
+        return true;
+    }
+
+    @Override
+    protected int getAnalogOutputSignal(BlockState state, Level level, BlockPos pos) {
+        return level.getBlockEntity(pos) instanceof MachineControllerBlockEntity be ? be.getComparatorSignal() : 0;
+    }
+
+    public void tickWorkingEffects(BlockState state, Level level, BlockPos pos, boolean soundMuted) {
+        if (state.getValue(ControllerState.PROPERTY) != ControllerState.WORKING || !MMConfigSetup.CLIENT.workingEffects.get()) {
+            return;
+        }
+        resolveWorkingEffects();
+        RandomSource random = level.getRandom();
+        double x = pos.getX() + 0.5;
+        double z = pos.getZ() + 0.5;
+        if (workingSound != null && !soundMuted && (level.getGameTime() + pos.hashCode()) % workingSoundInterval == 0) {
+            level.playLocalSound(x, pos.getY() + 0.5, z, workingSound, SoundSource.BLOCKS, 1.0F, 1.0F, false);
+        }
+        if (workingParticle != null && random.nextInt(4) == 0) {
+            Direction front = state.getValue(FACING).getOpposite();
+            double along = random.nextDouble() * 0.6 - 0.3;
+            double offsetX = front.getAxis() == Direction.Axis.X ? front.getStepX() * 0.52 : along;
+            double offsetZ = front.getAxis() == Direction.Axis.Z ? front.getStepZ() * 0.52 : along;
+            level.addParticle(workingParticle, x + offsetX, pos.getY() + 0.2 + random.nextDouble() * 0.6, z + offsetZ, 0, 0, 0);
+        }
+    }
+
+    private int workingEffectsGeneration = -1;
+    @Nullable
+    private SoundEvent workingSound;
+    private int workingSoundInterval;
+    @Nullable
+    private SimpleParticleType workingParticle;
+
+    private void resolveWorkingEffects() {
+        int generation = WorkingEffectsConfig.generation();
+        if (workingEffectsGeneration == generation) return;
+        workingEffectsGeneration = generation;
+        var blockId = groupHolder.getBlock().getId();
+        var entry = WorkingEffectsConfig.get(blockId);
+        ResourceLocation soundId = entry != null && entry.sound() != null ? idOrNull(entry.sound()) : model.workingSound();
+        ResourceLocation particleId = entry != null && entry.particle() != null ? idOrNull(entry.particle()) : model.workingParticle();
+        workingSoundInterval = entry != null && entry.interval() != null ? entry.interval() : model.workingSoundInterval();
+
+        workingSound = null;
+        if (soundId != null) {
+            workingSound = BuiltInRegistries.SOUND_EVENT.getOptional(soundId).orElse(null);
+            if (workingSound == null) Ref.LOG.warn("Unknown working sound {} on controller {}", soundId, blockId);
+        }
+        workingParticle = null;
+        if (particleId != null) {
+            if (BuiltInRegistries.PARTICLE_TYPE.getOptional(particleId).orElse(null) instanceof SimpleParticleType simple) {
+                workingParticle = simple;
+            } else {
+                Ref.LOG.warn("Working particle {} on controller {} is unknown or needs options, only simple particles are supported", particleId, blockId);
+            }
+        }
+    }
+
+    public boolean hasWorkingSound() {
+        resolveWorkingEffects();
+        return workingSound != null;
+    }
+
+    @Nullable
+    private static ResourceLocation idOrNull(String id) {
+        return id.isBlank() ? null : ResourceLocation.tryParse(id);
     }
 
     public boolean usesTintedScreen() {

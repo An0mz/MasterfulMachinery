@@ -81,7 +81,7 @@ public class MMJeiPlugin implements IModPlugin {
     private void registerProcessRecipe(IRecipeCategoryRegistration registration, StructureModel parent) {
         List<RecipeModel> recipes;
         if (parent != null) {
-            recipes = MachineRecipeManager.RECIPES.values().stream().filter(x -> x.structureId().equals(parent.id())).collect(Collectors.toList());
+            recipes = MachineRecipeManager.RECIPES.values().stream().filter(x -> x.runsIn(parent.id())).collect(Collectors.toList());
         } else {
             recipes = new ArrayList<>(MachineRecipeManager.RECIPES.values());
         }
@@ -100,7 +100,7 @@ public class MMJeiPlugin implements IModPlugin {
         if (MMConfig.JEI_RECIPE_SPLIT) {
             for (var entry : recipeCategories) {
                 var recipes = MachineRecipeManager.RECIPES.values().stream()
-                        .filter(x -> x.structureId().equals(entry.getStructureModel().id()))
+                        .filter(x -> x.runsIn(entry.getStructureModel().id()))
                         .sorted(java.util.Comparator.comparing(r -> r.id().toString()))
                         .toList();
                 registration.addRecipes(entry.getRecipeType(), recipes);

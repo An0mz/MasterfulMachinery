@@ -52,11 +52,17 @@ public class Ref {
     public static class RecipeEntries {
         public static final ResourceLocation CONSUME_INPUT = id("input/consume");
         public static final ResourceLocation SIMPLE_OUTPUT = id("output/simple");
+        public static final ResourceLocation WEIGHTED_OUTPUT = id("output/weighted");
     }
 
     public static class RecipeConditions {
         public static final ResourceLocation DIMENSION = id("dimension");
         public static final ResourceLocation WEATHER = id("weather");
+        public static final ResourceLocation BIOME = id("biome");
+        public static final ResourceLocation TIME = id("time");
+        public static final ResourceLocation HEIGHT = id("height");
+        public static final ResourceLocation REDSTONE = id("redstone");
+        public static final ResourceLocation TIER = id("tier");
     }
 
     public static class StructureAttachments {

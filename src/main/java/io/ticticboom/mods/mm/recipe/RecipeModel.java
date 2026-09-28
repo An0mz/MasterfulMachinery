@@ -44,44 +44,22 @@ public record RecipeModel(
         return id.getNamespace() + "/" + id.getPath() + ".json";
     }
 
-    public boolean canProcess(Level level, RecipeStateModel model, RecipeStorages storages) {
-        var canRun = conditions.canRun(level, model);
-        if (!canRun) {
-            model.setTickProgress(0);
-            model.setCanProcess(false);
-            return false;
+    public List<ResourceLocation> allStructureIds() {
+        var ids = new ArrayList<ResourceLocation>();
+        ids.add(structureId);
+        if (config != null && config.has("structureIds") && config.get("structureIds").isJsonArray()) {
+            for (JsonElement e : config.getAsJsonArray("structureIds")) {
+                var id = ResourceLocation.tryParse(e.getAsString());
+                if (id != null && !ids.contains(id)) {
+                    ids.add(id);
+                }
+            }
         }
-        //inputs first, if no inputs then quit early
-        boolean canProcessResult = inputs.canProcess(level, storages, model) && outputs.canProcess(level, storages, model);
-        if (!canProcessResult) {
-            model.setTickProgress(0);
-        }
-        model.setCanProcess(canProcessResult);
-        return canProcessResult;
+        return ids;
     }
 
-    public void runTick(Level level, RecipeStateModel model, RecipeStorages storages) {
-        inputs.processTick(level, storages, model);
-        outputs.processTick(level, storages, model);
-
-        model.proceedTick();
-        model.setTickPercentage(((double) model.getTickProgress() / ticks) * 100);
-        if (model.getTickProgress() >= ticks) {
-            model.setCanFinish(true);
-        }
-    }
-
-    public void process(Level level, RecipeStateModel model, RecipeStorages storages) {
-        inputs.process(level, storages, model);
-        outputs.process(level, storages, model);
-
-        model.setTickProgress(0);
-        model.setCanFinish(false);
-    }
-
-    public void ditchRecipe(Level level, RecipeStateModel model, RecipeStorages storages) {
-        inputs.ditch(level, storages, model);
-        outputs.ditch(level, storages, model);
+    public boolean runsIn(ResourceLocation structure) {
+        return allStructureIds().contains(structure);
     }
 
     public JsonObject debugRun(Level level, RecipeStateModel model, RecipeStorages storages) {

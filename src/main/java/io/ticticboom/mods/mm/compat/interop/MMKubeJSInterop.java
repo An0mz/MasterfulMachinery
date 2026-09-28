@@ -1,5 +1,8 @@
 package io.ticticboom.mods.mm.compat.interop;
 
+import net.minecraft.resources.ResourceLocation;
+import io.ticticboom.mods.mm.compat.kjs.event.MachineRecipeEventJS;
+import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
 import io.ticticboom.mods.mm.compat.kjs.MMKubeEvents;
 import io.ticticboom.mods.mm.compat.kjs.builder.ControllerBuilderJS;
 import io.ticticboom.mods.mm.compat.kjs.builder.ExtraBlockBuilderJS;
@@ -48,5 +51,20 @@ public class MMKubeJSInterop implements IKubeJSInterop {
         var event = new ExtraBlockEventJS();
         MMKubeEvents.EXTRA.post(event);
         return event.getBuilder().stream().map(ExtraBlockBuilderJS::build).toList();
+    }
+
+    @Override
+    public boolean postRecipeStarted(MachineControllerBlockEntity controller, ResourceLocation recipeId) {
+        if (!MMKubeEvents.RECIPE_STARTED.hasListeners()) {
+            return true;
+        }
+        return !MMKubeEvents.RECIPE_STARTED.post(new MachineRecipeEventJS(controller, recipeId.toString()), recipeId).interruptFalse();
+    }
+
+    @Override
+    public void postRecipeFinished(MachineControllerBlockEntity controller, ResourceLocation recipeId) {
+        if (MMKubeEvents.RECIPE_FINISHED.hasListeners()) {
+            MMKubeEvents.RECIPE_FINISHED.post(new MachineRecipeEventJS(controller, recipeId.toString()), recipeId);
+        }
     }
 }

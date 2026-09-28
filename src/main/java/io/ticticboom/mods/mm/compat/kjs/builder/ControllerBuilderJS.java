@@ -56,6 +56,20 @@ public class ControllerBuilderJS {
         return this;
     }
 
+    public ControllerBuilderJS workingSound(String sound) {
+        return putTexture("workingSound", sound);
+    }
+
+    public ControllerBuilderJS workingSoundInterval(int ticks) {
+        if (ticks < 1) throw new IllegalArgumentException("workingSoundInterval must be at least 1 tick: " + ticks);
+        textures.put("workingSoundInterval", Integer.toString(ticks));
+        return this;
+    }
+
+    public ControllerBuilderJS workingParticle(String particle) {
+        return putTexture("workingParticle", particle);
+    }
+
     public ControllerBuilderJS unformedColor(String color) {
         return putColor("unformedColor", color);
     }
