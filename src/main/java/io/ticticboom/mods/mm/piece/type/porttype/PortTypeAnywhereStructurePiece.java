@@ -1,5 +1,9 @@
 package io.ticticboom.mods.mm.piece.type.porttype;
 
+import io.ticticboom.mods.mm.builder.PortTiers;
+import io.ticticboom.mods.mm.builder.TieredPortPiece;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.model.PortModel;
@@ -27,7 +31,7 @@ import java.util.function.Supplier;
 import io.ticticboom.mods.mm.util.PortUtils;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-public class PortTypeAnywhereStructurePiece extends StructurePiece {
+public class PortTypeAnywhereStructurePiece extends StructurePiece implements TieredPortPiece {
 
     @Getter
     private final ResourceLocation portTypeId;
@@ -39,6 +43,8 @@ public class PortTypeAnywhereStructurePiece extends StructurePiece {
     private final int maxTier;
 
     private final List<Block> blocks = new ArrayList<>();
+    @Getter
+    private final NavigableMap<Integer, Block> blocksByRank = new TreeMap<>();
 
     public PortTypeAnywhereStructurePiece(ResourceLocation portTypeId, Optional<Boolean> input, int minTier, int maxTier) {
         this.portTypeId = portTypeId;
@@ -57,6 +63,7 @@ public class PortTypeAnywhereStructurePiece extends StructurePiece {
 
     @Override
     public void validateSetup(StructurePieceSetupMetadata meta) {
+        List<PortTiers.RankedPort<Block>> ranked = new ArrayList<>();
         for (RegistryGroupHolder port : MMPortRegistry.PORTS) {
             if (port.getBlock().get() instanceof IPortBlock pb) {
                 PortModel model = pb.getModel();
@@ -66,23 +73,18 @@ public class PortTypeAnywhereStructurePiece extends StructurePiece {
                 if (!PortUtils.sideMatches(model.type(), model.input(), input)) {
                     continue;
                 }
-                // check tier compatibility
-                var storageModel = model.config().getModel();
-                int candidateRank = storageModel.getTierRank();
-                try {
-                    if (candidateRank <= 0 && model.jsonConfig() != null && model.jsonConfig().has("tierRank")) {
-                        candidateRank = model.jsonConfig().get("tierRank").getAsInt();
-                    }
-                } catch (Exception ignored) {}
-                if (candidateRank <= 0) candidateRank = 1;
+                int candidateRank = PortTiers.rankOf(model);
                 if (candidateRank < minTier) continue;
                 if (maxTier != Integer.MAX_VALUE && candidateRank > maxTier) continue;
                 var blk = port.getBlock().get();
                 if (!blocks.contains(blk)) {
                     blocks.add(blk);
                 }
+                ranked.add(new PortTiers.RankedPort<>(candidateRank, model.input(), blk));
             }
         }
+        blocksByRank.clear();
+        blocksByRank.putAll(PortTiers.byRank(ranked));
     }
 
     @Override

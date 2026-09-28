@@ -1,6 +1,12 @@
 package io.ticticboom.mods.mm.net;
 
 import io.ticticboom.mods.mm.Ref;
+import io.ticticboom.mods.mm.net.packet.AssemblyPkt;
+import io.ticticboom.mods.mm.net.packet.BuildableStructureSyncPkt;
+import io.ticticboom.mods.mm.net.packet.ToolDismantlePkt;
+import io.ticticboom.mods.mm.net.packet.ToolHudPkt;
+import io.ticticboom.mods.mm.net.packet.ToolRotatePkt;
+import io.ticticboom.mods.mm.net.packet.ToolSettingsPkt;
 import io.ticticboom.mods.mm.net.packet.ControllerSettingsPkt;
 import io.ticticboom.mods.mm.net.packet.CycleLinkerModePkt;
 import io.ticticboom.mods.mm.net.packet.PortConfigPkt;
@@ -32,6 +38,12 @@ public class MMNetwork {
         registrar.playToServer(SelectRecipePkt.TYPE, SelectRecipePkt.STREAM_CODEC, SelectRecipePkt::handle);
         registrar.playToServer(ControllerSettingsPkt.TYPE, ControllerSettingsPkt.STREAM_CODEC, ControllerSettingsPkt::handle);
         registrar.playToServer(CycleLinkerModePkt.TYPE, CycleLinkerModePkt.STREAM_CODEC, CycleLinkerModePkt::handle);
+        registrar.playToServer(ToolRotatePkt.TYPE, ToolRotatePkt.STREAM_CODEC, ToolRotatePkt::handle);
+        registrar.playToServer(ToolDismantlePkt.TYPE, ToolDismantlePkt.STREAM_CODEC, ToolDismantlePkt::handle);
+        registrar.playToServer(ToolSettingsPkt.TYPE, ToolSettingsPkt.STREAM_CODEC, ToolSettingsPkt::handle);
+        registrar.playToClient(ToolHudPkt.TYPE, ToolHudPkt.STREAM_CODEC, ToolHudPkt::handle);
+        registrar.playToClient(BuildableStructureSyncPkt.TYPE, BuildableStructureSyncPkt.STREAM_CODEC, BuildableStructureSyncPkt::handle);
+        registrar.playToServer(AssemblyPkt.TYPE, AssemblyPkt.STREAM_CODEC, AssemblyPkt::handle);
         registrar.playToServer(PortConfigPkt.TYPE, PortConfigPkt.STREAM_CODEC, PortConfigPkt::handle);
     }
 }

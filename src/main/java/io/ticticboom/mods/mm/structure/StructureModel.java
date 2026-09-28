@@ -156,6 +156,10 @@ public class StructureModel {
         return layout.getRecipeStorages(level, controllerPos, rotation);
     }
 
+    public List<BlockPos> getPositions(Level level, BlockPos controllerPos) {
+        return layout.getPositions(level, controllerPos, this);
+    }
+
     public JsonObject getConfig() {
         return config;
     }

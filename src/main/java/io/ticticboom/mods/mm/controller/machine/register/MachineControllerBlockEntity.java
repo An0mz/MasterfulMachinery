@@ -1,5 +1,8 @@
 package io.ticticboom.mods.mm.controller.machine.register;
 
+import java.util.TreeMap;
+import io.ticticboom.mods.mm.builder.TierPrefs;
+import io.ticticboom.mods.mm.builder.PortTiers;
 import net.minecraft.server.level.ServerLevel;
 import io.ticticboom.mods.mm.networklink.NetworkLink;
 import io.ticticboom.mods.mm.networklink.LinkData;
@@ -135,6 +138,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private int comparatorSignal = 0;
     private boolean soundMuted = false;
     private LinkData networkLink = null;
+    private final TierPrefs assemblyTiers = new TierPrefs();
+    private ResourceLocation assemblyStructureId = null;
     private boolean wasActive = false;
     private long lastSync = Long.MIN_VALUE / 2;
 
@@ -778,6 +783,58 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         markChanged();
     }
 
+    public TierPrefs getAssemblyTiers() {
+        return assemblyTiers;
+    }
+
+    public void setAssemblyTier(String key, int rank) {
+        int valid = TierPrefs.validate(PortTiers.maxTiers(getAssemblyCandidates()), key, rank);
+        if (valid != TierPrefs.REJECTED && assemblyTiers.set(key, valid)) {
+            markChanged();
+        }
+    }
+
+    public void setAssemblyStructureId(ResourceLocation id) {
+        if (findAssemblyCandidate(id) == null || id.equals(assemblyStructureId)) {
+            return;
+        }
+        assemblyStructureId = id;
+        markChanged();
+    }
+
+    public List<StructureModel> getAssemblyCandidates() {
+        var byId = new TreeMap<ResourceLocation, StructureModel>();
+        for (StructureModel candidate : StructureManager.getStructuresForController(controllerId)) {
+            byId.put(candidate.id(), candidate);
+        }
+        return List.copyOf(byId.values());
+    }
+
+    public @Nullable StructureModel getAssemblyStructure() {
+        StructureModel chosen = findAssemblyCandidate(assemblyStructureId);
+        if (chosen != null) {
+            return chosen;
+        }
+        StructureModel current = structure == null ? null : findAssemblyCandidate(structure.id());
+        if (current != null) {
+            return current;
+        }
+        List<StructureModel> candidates = getAssemblyCandidates();
+        return candidates.isEmpty() ? null : candidates.get(0);
+    }
+
+    public @Nullable StructureModel findAssemblyCandidate(@Nullable ResourceLocation id) {
+        if (id == null) {
+            return null;
+        }
+        for (StructureModel candidate : getAssemblyCandidates()) {
+            if (candidate.id().equals(id)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
     public boolean isSoundMuted() {
         return soundMuted;
     }
@@ -801,14 +858,14 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (currentRecipe != null) {
             return currentRecipe;
         }
-        if (level == null || lastStartedRecipeId == null || level.getGameTime() - lastRecipeStartTime > RECENT_RECIPE_TICKS) {
+        if (level == null || lastStartedRecipeId == null || lastRecipeStartTime == Long.MIN_VALUE || level.getGameTime() - lastRecipeStartTime > RECENT_RECIPE_TICKS) {
             return null;
         }
         return MachineRecipeManager.RECIPES.get(lastStartedRecipeId);
     }
 
     public boolean isWorking() {
-        return level != null && level.getGameTime() - lastProgressTime <= RECENT_RECIPE_TICKS;
+        return level != null && lastProgressTime != Long.MIN_VALUE && level.getGameTime() - lastProgressTime <= RECENT_RECIPE_TICKS;
     }
 
     public int getActiveRecipeCount() {
@@ -891,6 +948,12 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (networkLink != null) {
             tag.put("NetworkLink", networkLink.save());
         }
+        if (!assemblyTiers.asMap().isEmpty()) {
+            tag.put("AssemblyTiers", assemblyTiers.save());
+        }
+        if (assemblyStructureId != null) {
+            tag.putString("AssemblyStructure", assemblyStructureId.toString());
+        }
         tag.putLong("recipeSelectionSequence", recipeSelectionSequence);
         if (!inputItemLastStartedSequence.isEmpty()) {
             CompoundTag inputHistoryTag = new CompoundTag();
@@ -927,6 +990,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         customName = tag.contains("CustomName") ? tag.getString("CustomName") : null;
         soundMuted = tag.getBoolean("SoundMuted");
         networkLink = tag.contains("NetworkLink") ? LinkData.load(tag.getCompound("NetworkLink")) : null;
+        assemblyTiers.copyFrom(TierPrefs.load(tag.getCompound("AssemblyTiers")));
+        assemblyStructureId = tag.contains("AssemblyStructure") ? ResourceLocation.tryParse(tag.getString("AssemblyStructure")) : null;
         selectedRecipeId = tag.contains("selectedRecipe") ? ResourceLocation.tryParse(tag.getString("selectedRecipe")) : null;
         recipeSelectionSequence = tag.getLong("recipeSelectionSequence");
         inputItemLastStartedSequence.clear();
@@ -1033,6 +1098,10 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             requestedCrafts = 0;
         }
         return requestedRecipeId;
+    }
+
+    public boolean isFormed() {
+        return isFormed;
     }
 
     public @Nullable Rotation getFormedRotation() {

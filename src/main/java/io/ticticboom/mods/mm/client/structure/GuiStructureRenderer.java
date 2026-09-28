@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.client.structure;
 
+import java.util.function.Supplier;
+import io.ticticboom.mods.mm.builder.structure.BuildableStructure;
 import io.ticticboom.mods.mm.client.RenderUtil;
 import io.ticticboom.mods.mm.client.blueprint.state.BlueprintStructureViewState;
 import io.ticticboom.mods.mm.client.gui.util.GuiPos;
@@ -22,9 +24,8 @@ public class GuiStructureRenderer {
         return hovered;
     }
 
-    private final StructureModel model;
+    private final Supplier<List<PositionedCyclingBlockRenderer>> partsFactory;
     private List<PositionedCyclingBlockRenderer> parts;
-    private final GuiStructureLayout guiLayout;
     private final AutoTransform viewTransform;
     private final GuiRenderEnvSetup renderSetup = new GuiRenderEnvSetup();
     private final StructureRenderYSliceProcessor ySliceProcessor = new StructureRenderYSliceProcessor();
@@ -41,17 +42,35 @@ public class GuiStructureRenderer {
 
 
     public GuiStructureRenderer(StructureModel model) {
-        this.model = model;
-        viewTransform = new AutoTransform(model);
-        guiLayout = new GuiStructureLayout(model.layout());
+        this(new AutoTransform(model), () -> {
+            model.layout().setup(model);
+            List<PositionedCyclingBlockRenderer> list = new ArrayList<>(new GuiStructureLayout(model.layout()).createBlockRenderers());
+            list.add(model.controllerUiRenderer());
+            return list;
+        });
+    }
+
+    private GuiStructureRenderer(AutoTransform viewTransform, Supplier<List<PositionedCyclingBlockRenderer>> partsFactory) {
+        this.viewTransform = viewTransform;
+        this.partsFactory = partsFactory;
         parts = new ArrayList<>();
+    }
+
+    public static GuiStructureRenderer ofBlocks(List<BuildableStructure.Placement> blocks) {
+        return new GuiStructureRenderer(new AutoTransform(blocks.stream().map(BuildableStructure.Placement::pos).toList()), () -> {
+            List<PositionedCyclingBlockRenderer> list = new ArrayList<>(blocks.size());
+            for (BuildableStructure.Placement placement : blocks) {
+                GuiBlockRenderer renderer = new GuiBlockRenderer(placement.state());
+                renderer.setupAt(placement.pos());
+                list.add(new PositionedCyclingBlockRenderer(List.of(renderer), placement.pos()));
+            }
+            return list;
+        });
     }
 
     public void init() {
         if (!isInitialized) {
-            model.layout().setup(model);
-            parts = guiLayout.createBlockRenderers();
-            parts.add(model.controllerUiRenderer());
+            parts = partsFactory.get();
             for (PositionedCyclingBlockRenderer part : parts) {
                 part.part.setInterval(60);
             }
@@ -99,6 +118,10 @@ public class GuiStructureRenderer {
         viewTransform.applyScroll(delta);
     }
 
+    public void render(GuiGraphics gfx, int mouseX, int mouseY, boolean hoveredView) {
+        render(gfx, mouseX, mouseY);
+    }
+
     public void render(GuiGraphics gfx, int mouseX, int mouseY) {
         if (shouldEnsureValidated) {
             StructureManager.validateAllPieces();
@@ -125,8 +148,16 @@ public class GuiStructureRenderer {
         RenderUtil.resetViewport();
     }
     public void setupViewState(BlueprintStructureViewState state) {
-        ySliceProcessor.setShouldSlice(state.isShouldSlice());
-        ySliceProcessor.setYSlice(state.getYSlice());
+        setYSlice(state.isShouldSlice(), state.getYSlice());
+    }
+
+    public void setYSlice(boolean shouldSlice, int ySlice) {
+        ySliceProcessor.setShouldSlice(shouldSlice);
+        ySliceProcessor.setYSlice(ySlice);
+    }
+
+    public void zoom(double scrollDelta) {
+        viewTransform.applyScroll(scrollDelta);
     }
 
     private boolean canRenderPart(PositionedCyclingBlockRenderer part) {

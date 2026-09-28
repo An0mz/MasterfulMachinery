@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.client.util;
 
+import net.minecraft.locale.Language;
+import net.minecraft.network.chat.Component;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -9,6 +11,14 @@ import net.neoforged.neoforge.client.extensions.IFontExtension;
 
 public class TextRenderUtil {
     private static final Minecraft mc = Minecraft.getInstance();
+
+    public static void drawClipped(GuiGraphics gfx, Font font, Component text, int x, int y, int maxWidth, int color) {
+        if (maxWidth <= 0) {
+            return;
+        }
+        FormattedText clipped = font.ellipsize(text, maxWidth);
+        gfx.drawString(font, Language.getInstance().getVisualOrder(clipped), x, y, color, false);
+    }
 
     public static FormattedText ellipsizeAlways(Font font, FormattedText text, int maxWidth) {
         final int strWidth = font.width(text);

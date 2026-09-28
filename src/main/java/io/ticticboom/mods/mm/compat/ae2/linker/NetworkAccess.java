@@ -1,5 +1,11 @@
 package io.ticticboom.mods.mm.compat.ae2.linker;
 
+import java.util.UUID;
+import java.util.Set;
+import java.util.HashSet;
+import net.minecraft.world.entity.player.Player;
+import io.ticticboom.mods.mm.networklink.Permissions;
+import appeng.blockentity.networking.ControllerBlockEntity;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.IInWorldGridNodeHost;
@@ -42,6 +48,30 @@ public final class NetworkAccess {
     @Nullable
     public static LinkData.NetworkPos clicked(Level level, BlockPos pos, Direction face, IInWorldGridNodeHost host) {
         return nodeOf(host, face) == null ? null : new LinkData.NetworkPos(level.dimension(), pos, face);
+    }
+
+    public static Set<UUID> owners(IGrid grid) {
+        Iterable<IGridNode> nodes = grid.getMachineNodes(ControllerBlockEntity.class);
+        if (!nodes.iterator().hasNext()) {
+            nodes = grid.getNodes();
+        }
+        Set<UUID> owners = new HashSet<>();
+        for (IGridNode node : nodes) {
+            UUID owner = node.getOwningPlayerProfileId();
+            if (owner != null) {
+                owners.add(owner);
+            }
+        }
+        return owners;
+    }
+
+    public static boolean mayUse(Player player, IGrid grid) {
+        for (UUID owner : owners(grid)) {
+            if (!Permissions.canAccess(player, owner)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Nullable

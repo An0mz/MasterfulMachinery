@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.controller.machine.register;
 
+import io.ticticboom.mods.mm.client.builder.AssemblyScreen;
 import io.ticticboom.mods.mm.networklink.LinkData;
 import io.ticticboom.mods.mm.networklink.NetworkLink;
 import io.ticticboom.mods.mm.Ref;
@@ -127,6 +128,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
     private int valueRight;
     private int pageBtnX;
     private int sizeBtnX;
+    private int assembleBtnX;
     private int panelBottom;
     private int inventoryX;
     private int inventoryY;
@@ -160,6 +162,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         valueRight = Math.min(infoRight, VALUE_X + VALUE_WIDTH);
         pageBtnX = right - 12;
         sizeBtnX = wide ? pageBtnX : pageBtnX - PAGE_BTN - 2;
+        assembleBtnX = sizeBtnX - PAGE_BTN - 2;
         inventoryX = (imageWidth - INVENTORY_WIDTH) / 2;
         inventoryY = imageHeight - FRAME_BOTTOM - INVENTORY_HEIGHT;
         panelBottom = inventoryY - PANEL_GAP;
@@ -229,6 +232,17 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
             gfx.fill(bx + 2, by + 3, bx + 3, by + 9, ink);
             gfx.fill(bx + 9, by + 3, bx + 10, by + 9, ink);
         }
+    }
+
+    private boolean isOnAssembleButton(double mouseX, double mouseY) {
+        return WidgetUtils.isPointerWithinSized((int) mouseX, (int) mouseY, this.leftPos + assembleBtnX, this.topPos + PAGE_BTN_Y, PAGE_BTN, PAGE_BTN);
+    }
+
+    private void drawAssembleButton(GuiGraphics gfx, int mouseX, int mouseY) {
+        int bx = this.leftPos + assembleBtnX;
+        int by = this.topPos + PAGE_BTN_Y;
+        drawButtonFrame(gfx, bx, by, PAGE_BTN, PAGE_BTN, isOnAssembleButton(mouseX, mouseY));
+        drawSmallItem(gfx, new ItemStack(Items.BRICKS), bx + 1, by + 1, 10);
     }
 
     private void toggleSize() {
@@ -373,6 +387,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         drawBackground(gfx);
         drawPageButton(gfx, mouseX, mouseY);
         drawSizeButton(gfx, mouseX, mouseY);
+        drawAssembleButton(gfx, mouseX, mouseY);
         if (onPortsPage()) {
             portList.showInputs(page == 1);
             portList.render(gfx, this.font, be.getLevel());
@@ -551,7 +566,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
     }
 
     private int nameWidth() {
-        return sizeBtnX - LEFT - 4;
+        return assembleBtnX - LEFT - 4;
     }
 
     private List<RecipeModel> selectableRecipes() {
@@ -695,6 +710,10 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
             gfx.renderComponentTooltip(this.font, lines, mouseX, mouseY);
             return;
         }
+        if (isOnAssembleButton(mouseX, mouseY)) {
+            gfx.renderComponentTooltip(this.font, List.of(Component.translatable("gui.mm.controller.assemble")), mouseX, mouseY);
+            return;
+        }
         if (isOnSizeButton(mouseX, mouseY)) {
             gfx.renderComponentTooltip(this.font, List.of(Component.translatable(bigScreen() ? "gui.mm.controller.size.small" : "gui.mm.controller.size.big")),
                     mouseX, mouseY);
@@ -824,6 +843,11 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         Shown clicked = hoveredSlot(mouseX, mouseY);
         if (clicked != null && JEI && (button == 0 || button == 1)) {
             return JeiRecipeLookup.show(clicked.content(), button == 1);
+        }
+        if (isOnAssembleButton(mouseX, mouseY)) {
+            playClick();
+            Minecraft.getInstance().setScreen(new AssemblyScreen(this, be));
+            return true;
         }
         if (isOnSizeButton(mouseX, mouseY)) {
             playClick();

@@ -99,7 +99,7 @@ public final class StructurePasteUtil {
         return plan;
     }
 
-    private static Block findControllerBlock(StructureModel model) {
+    public static Block findControllerBlock(StructureModel model) {
         for (ResourceLocation controllerId : model.controllerIds().getIds()) {
             Block block = MMControllerRegistry.getControllerBlock(controllerId);
             if (block != null) {
@@ -154,7 +154,7 @@ public final class StructurePasteUtil {
         return bounds;
     }
 
-    private static BlockPos offsetBottomMiddleFrontToAnchor(BlockPos anchorPos, Direction frontDirection, AABB bounds) {
+    public static BlockPos offsetBottomMiddleFrontToAnchor(BlockPos anchorPos, Direction frontDirection, AABB bounds) {
         Direction.Axis frontAxis = frontDirection.getAxis();
         Direction.Axis sideAxis = frontAxis == Direction.Axis.X ? Direction.Axis.Z : Direction.Axis.X;
 
@@ -221,7 +221,11 @@ public final class StructurePasteUtil {
         return min + ((max - min) / 2);
     }
 
-    private static Component obstructionMessage(List<BlockPos> obstructed) {
+    public static Component obstructionMessage(String key, List<BlockPos> obstructed) {
+        return Component.translatable(key, obstructed.size(), positionList(obstructed));
+    }
+
+    private static String positionList(List<BlockPos> obstructed) {
         var positions = new StringBuilder();
         int shown = Math.min(MAX_OBSTRUCTION_EXAMPLES, obstructed.size());
         for (int i = 0; i < shown; i++) {
@@ -234,12 +238,14 @@ public final class StructurePasteUtil {
         if (obstructed.size() > shown) {
             positions.append(", ...");
         }
+        return positions.toString();
+    }
 
-        // Singular and plural are separate keys so translators can apply their own plural rules.
+    private static Component obstructionMessage(List<BlockPos> obstructed) {
         String key = obstructed.size() == 1
                 ? "message.mm.blueprint.paste_blocked.single"
                 : "message.mm.blueprint.paste_blocked.multiple";
-        return Component.translatable(key, obstructed.size(), positions.toString());
+        return obstructionMessage(key, obstructed);
     }
 
     public record PastePlan(BlockPos controllerPos, List<PlannedBlock> blocks) {

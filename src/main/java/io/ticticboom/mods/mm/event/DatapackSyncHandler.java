@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.event;
 
+import io.ticticboom.mods.mm.builder.structure.BuildableStructureSync;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.structure.StructureManager;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
@@ -15,6 +16,11 @@ public class DatapackSyncHandler {
             StructureManager.validateAllPieces();
         } catch (RuntimeException t) {
             Ref.LOG.error("Error validating structure pieces on datapack sync", t);
+        }
+        try {
+            event.getRelevantPlayers().forEach(BuildableStructureSync::send);
+        } catch (RuntimeException t) {
+            Ref.LOG.error("Error syncing builder structures on datapack sync", t);
         }
     }
 }

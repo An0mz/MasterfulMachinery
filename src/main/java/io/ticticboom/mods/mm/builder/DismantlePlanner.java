@@ -1,0 +1,203 @@
+package io.ticticboom.mods.mm.builder;
+
+import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
+import io.ticticboom.mods.mm.piece.type.StructurePiece;
+import io.ticticboom.mods.mm.piece.type.port.PortAnywhereStructurePiece;
+import io.ticticboom.mods.mm.piece.type.port.PortStructurePiece;
+import io.ticticboom.mods.mm.piece.type.porttype.PortTypeAnywhereStructurePiece;
+import io.ticticboom.mods.mm.piece.type.porttype.PortTypeStructurePiece;
+import io.ticticboom.mods.mm.setup.MMRegisters;
+import io.ticticboom.mods.mm.structure.StructureModel;
+import io.ticticboom.mods.mm.structure.layout.PositionedLayoutPiece;
+import io.ticticboom.mods.mm.structure.layout.StructureLayout;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+public final class DismantlePlanner {
+    public static final int SEARCH_RADIUS = 16;
+
+    private DismantlePlanner() {
+    }
+
+    public record Target(BlockPos pos, Block block) {
+    }
+
+    public static @Nullable MachineControllerBlockEntity resolve(Level level, BlockPos pos) {
+        if (level.getBlockEntity(pos) instanceof MachineControllerBlockEntity controller) {
+            return controller;
+        }
+        if (level.getBlockState(pos).isAir()) {
+            return null;
+        }
+        MachineControllerBlockEntity best = null;
+        double bestDist = Double.MAX_VALUE;
+        for (int cx = (pos.getX() - SEARCH_RADIUS) >> 4; cx <= (pos.getX() + SEARCH_RADIUS) >> 4; cx++) {
+            for (int cz = (pos.getZ() - SEARCH_RADIUS) >> 4; cz <= (pos.getZ() + SEARCH_RADIUS) >> 4; cz++) {
+                LevelChunk chunk = level.getChunkSource().getChunkNow(cx, cz);
+                if (chunk == null) {
+                    continue;
+                }
+                for (var be : chunk.getBlockEntities().values()) {
+                    if (!(be instanceof MachineControllerBlockEntity controller)) {
+                        continue;
+                    }
+                    BlockPos cpos = be.getBlockPos();
+                    if (Math.abs(cpos.getX() - pos.getX()) > SEARCH_RADIUS || Math.abs(cpos.getY() - pos.getY()) > SEARCH_RADIUS
+                            || Math.abs(cpos.getZ() - pos.getZ()) > SEARCH_RADIUS) {
+                        continue;
+                    }
+                    double dist = cpos.distSqr(pos);
+                    if (dist < bestDist && structurePositions(level, controller).contains(pos)) {
+                        best = controller;
+                        bestDist = dist;
+                    }
+                }
+            }
+        }
+        return best;
+    }
+
+    public static List<Target> positions(Level level, MachineControllerBlockEntity controller) {
+        BlockPos controllerPos = controller.getBlockPos();
+        Set<BlockPos> positions = new LinkedHashSet<>(structurePositions(level, controller));
+        positions.remove(controllerPos);
+        List<Target> result = new ArrayList<>();
+        for (BlockPos pos : positions) {
+            BlockState state = level.getBlockState(pos);
+            if (!state.isAir()) {
+                result.add(new Target(pos.immutable(), state.getBlock()));
+            }
+        }
+        result.add(new Target(controllerPos, level.getBlockState(controllerPos).getBlock()));
+        return result;
+    }
+
+    public static List<BlockPos> previewPositions(Level level, BlockPos pos) {
+        if (level.getBlockEntity(pos) instanceof MachineControllerBlockEntity controller) {
+            return previewPositions(level, controller);
+        }
+        if (level.getBlockState(pos).isAir()) {
+            return List.of();
+        }
+        List<BlockPos> best = List.of();
+        double bestDist = Double.MAX_VALUE;
+        for (int cx = (pos.getX() - SEARCH_RADIUS) >> 4; cx <= (pos.getX() + SEARCH_RADIUS) >> 4; cx++) {
+            for (int cz = (pos.getZ() - SEARCH_RADIUS) >> 4; cz <= (pos.getZ() + SEARCH_RADIUS) >> 4; cz++) {
+                LevelChunk chunk = level.getChunkSource().getChunkNow(cx, cz);
+                if (chunk == null) {
+                    continue;
+                }
+                for (var be : chunk.getBlockEntities().values()) {
+                    if (!(be instanceof MachineControllerBlockEntity controller) || controller.getStructure() == null) {
+                        continue;
+                    }
+                    BlockPos cpos = be.getBlockPos();
+                    if (Math.abs(cpos.getX() - pos.getX()) > SEARCH_RADIUS || Math.abs(cpos.getY() - pos.getY()) > SEARCH_RADIUS
+                            || Math.abs(cpos.getZ() - pos.getZ()) > SEARCH_RADIUS) {
+                        continue;
+                    }
+                    double dist = cpos.distSqr(pos);
+                    if (dist < bestDist) {
+                        List<BlockPos> positions = previewPositions(level, controller);
+                        if (positions.contains(pos)) {
+                            best = positions;
+                            bestDist = dist;
+                        }
+                    }
+                }
+            }
+        }
+        return best;
+    }
+
+    private static List<BlockPos> previewPositions(Level level, MachineControllerBlockEntity controller) {
+        BlockPos controllerPos = controller.getBlockPos();
+        StructureModel structure = controller.getStructure();
+        if (structure == null) {
+            return List.of(controllerPos);
+        }
+        BlockState controllerState = level.getBlockState(controllerPos);
+        Direction facing = controllerState.hasProperty(HorizontalDirectionalBlock.FACING)
+                ? controllerState.getValue(HorizontalDirectionalBlock.FACING) : Direction.NORTH;
+        Rotation rotation = AssemblyPlanner.rotationFor(facing);
+        int bestScore = previewMatches(level, structure, controllerPos, rotation);
+        for (Rotation candidate : Rotation.values()) {
+            int score = previewMatches(level, structure, controllerPos, candidate);
+            if (score > bestScore) {
+                rotation = candidate;
+                bestScore = score;
+            }
+        }
+        List<PositionedLayoutPiece> pieces = AssemblyPlanner.pieces(structure, rotation);
+        if (!controller.isFormed() && bestScore < pieces.size()) {
+            return List.of(controllerPos);
+        }
+        Set<BlockPos> positions = new LinkedHashSet<>();
+        for (PositionedLayoutPiece positioned : pieces) {
+            BlockPos piecePos = positioned.findAbsolutePos(controllerPos);
+            if (!level.getBlockState(piecePos).isAir()) {
+                positions.add(piecePos.immutable());
+            }
+        }
+        positions.remove(controllerPos);
+        List<BlockPos> result = new ArrayList<>(positions);
+        result.add(controllerPos);
+        return result;
+    }
+
+    private static int previewMatches(Level level, StructureModel structure, BlockPos controllerPos, Rotation rotation) {
+        StructureLayout layout = structure.layout();
+        List<PositionedLayoutPiece> pieces = AssemblyPlanner.pieces(structure, rotation);
+        Set<Block> anywhere = new HashSet<>();
+        for (PositionedLayoutPiece positioned : pieces) {
+            if (layout.isAnywhere(positioned.piece().piece())) {
+                List<Block> candidates = positioned.piece().piece().createBlocksSupplier().get();
+                if (candidates != null) {
+                    anywhere.addAll(candidates);
+                }
+            }
+        }
+        Block gateway = MMRegisters.INPUT_GATEWAY.get();
+        int count = 0;
+        for (PositionedLayoutPiece positioned : pieces) {
+            StructurePiece piece = positioned.piece().piece();
+            Block existing = level.getBlockState(positioned.findAbsolutePos(controllerPos)).getBlock();
+            List<Block> candidates = piece.createBlocksSupplier().get();
+            boolean fits;
+            if (layout.isAnywhere(piece)) {
+                fits = anywhere.contains(existing);
+            } else if (isPort(piece)) {
+                fits = candidates != null && candidates.contains(existing);
+            } else {
+                fits = existing == gateway || (candidates != null && candidates.contains(existing));
+            }
+            if (fits) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static boolean isPort(StructurePiece piece) {
+        return piece instanceof PortStructurePiece || piece instanceof PortTypeStructurePiece
+                || piece instanceof PortAnywhereStructurePiece || piece instanceof PortTypeAnywhereStructurePiece;
+    }
+
+    private static List<BlockPos> structurePositions(Level level, MachineControllerBlockEntity controller) {
+        StructureModel structure = controller.getStructure();
+        return structure == null ? List.of() : structure.getPositions(level, controller.getBlockPos());
+    }
+}

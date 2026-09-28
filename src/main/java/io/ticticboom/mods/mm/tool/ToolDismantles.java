@@ -1,0 +1,127 @@
+package io.ticticboom.mods.mm.tool;
+
+import io.ticticboom.mods.mm.config.MMConfig;
+import io.ticticboom.mods.mm.builder.AssemblyJobs;
+import io.ticticboom.mods.mm.builder.DismantleJob;
+import io.ticticboom.mods.mm.builder.DismantlePlanner;
+import io.ticticboom.mods.mm.builder.ItemSink;
+import io.ticticboom.mods.mm.config.MMConfigSetup;
+import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
+import io.ticticboom.mods.mm.networklink.Permissions;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+public final class ToolDismantles {
+    public static final int CONFIRM_TICKS = 60;
+    private static final Map<UUID, Pending> PENDING = new HashMap<>();
+
+    private ToolDismantles() {
+    }
+
+    private record Pending(ResourceKey<Level> dimension, BlockPos controllerPos, long gameTime) {
+    }
+
+    public record Prepared(BlockPos controllerPos, List<DismantlePlanner.Target> positions, ItemSink sink, int perBlockFe, ItemStack tool) {
+        public DismantleJob job(ServerLevel level) {
+            return DismantleJob.create(level, controllerPos, positions, perBlockFe, tool);
+        }
+    }
+
+    public record Result(@Nullable Prepared prepared, @Nullable Component error) {
+        static Result error(Component error) {
+            return new Result(null, error);
+        }
+    }
+
+    public static Result prepare(Level level, Player player, ItemStack tool, BlockPos target) {
+        MachineControllerBlockEntity controller = DismantlePlanner.resolve(level, target);
+        if (controller == null) {
+            return Result.error(Component.translatable("message.mm.tool.dismantle.no_machine"));
+        }
+        var link = controller.getNetworkLink();
+        if (link != null && !Permissions.canAccess(player, link.owner())) {
+            return Result.error(Component.translatable("message.mm.tool.no_access"));
+        }
+        if (!player.mayBuild() || !level.mayInteract(player, controller.getBlockPos())) {
+            return Result.error(Component.translatable("message.mm.tool.dismantle.protected"));
+        }
+        List<DismantlePlanner.Target> positions = DismantlePlanner.positions(level, controller);
+        int perBlockFe = MMConfig.TOOL_ENERGY_PER_DISMANTLED_BLOCK;
+        ItemSink sink = ToolBuildPlan.sink(player, tool);
+        if (!sink.free() && perBlockFe > 0
+                && ToolEnergy.of(tool).getEnergyStored() < perBlockFe) {
+            return Result.error(Component.translatable("message.mm.assemble.out_of_energy", 0, positions.size()));
+        }
+        return new Result(new Prepared(controller.getBlockPos(), positions, sink, perBlockFe, tool), null);
+    }
+
+    public static boolean confirm(Player player, ResourceKey<Level> dimension, BlockPos controllerPos, long gameTime) {
+        Pending last = PENDING.get(player.getUUID());
+        if (last != null && last.dimension().equals(dimension) && last.controllerPos().equals(controllerPos)
+                && gameTime - last.gameTime() <= CONFIRM_TICKS) {
+            PENDING.remove(player.getUUID());
+            return true;
+        }
+        PENDING.put(player.getUUID(), new Pending(dimension, controllerPos.immutable(), gameTime));
+        return false;
+    }
+
+    public static void shiftClick(ServerPlayer player, ItemStack tool, BlockPos target) {
+        if (refuseBusy(player)) {
+            return;
+        }
+        Result result = prepare(player.level(), player, tool, target);
+        if (result.prepared() == null) {
+            player.displayClientMessage(result.error(), true);
+            return;
+        }
+        Prepared prepared = result.prepared();
+        if (!confirm(player, player.level().dimension(), prepared.controllerPos(), player.level().getGameTime())) {
+            player.displayClientMessage(Component.translatable("message.mm.tool.dismantle.confirm", prepared.positions().size()), true);
+            return;
+        }
+        start(player, prepared);
+    }
+
+    public static void start(ServerPlayer player, ItemStack tool, BlockPos target) {
+        if (refuseBusy(player)) {
+            return;
+        }
+        Result result = prepare(player.level(), player, tool, target);
+        if (result.prepared() == null) {
+            player.displayClientMessage(result.error(), true);
+            return;
+        }
+        start(player, result.prepared());
+    }
+
+    private static void start(ServerPlayer player, Prepared prepared) {
+        if (!AssemblyJobs.startDismantle(player, prepared.job(player.serverLevel()), prepared.sink())) {
+            refuseBusy(player);
+        }
+    }
+
+    private static boolean refuseBusy(ServerPlayer player) {
+        Component busy = AssemblyJobs.busyMessage(player);
+        if (busy != null) {
+            player.displayClientMessage(busy, true);
+        }
+        return busy != null;
+    }
+
+    public static void clear() {
+        PENDING.clear();
+    }
+}

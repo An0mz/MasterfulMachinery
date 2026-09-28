@@ -1,5 +1,8 @@
 package io.ticticboom.mods.mm.networklink;
 
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.server.level.ServerPlayer;
+import io.ticticboom.mods.mm.compat.ae2.Ae2ToolBinding;
 import io.ticticboom.mods.mm.compat.ae2.linker.Ae2NetworkLink;
 import io.ticticboom.mods.mm.config.MMConfig;
 import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
@@ -31,6 +34,10 @@ public final class NetworkLink {
 
     public static boolean isLinker(ItemStack stack) {
         return LINKER != null && stack.is(LINKER.get());
+    }
+
+    public static boolean bindTool(ServerPlayer player, UseOnContext context) {
+        return AVAILABLE && Ae2ToolBinding.tryBind(player, context);
     }
 
     @Nullable

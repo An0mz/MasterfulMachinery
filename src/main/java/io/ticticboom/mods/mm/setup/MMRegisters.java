@@ -1,5 +1,9 @@
 package io.ticticboom.mods.mm.setup;
 
+import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
+import io.ticticboom.mods.mm.tool.ToolComponents;
+import io.ticticboom.mods.mm.tool.MultiblockToolMenu;
+import io.ticticboom.mods.mm.tool.MultiblockToolItem;
 import io.ticticboom.mods.mm.item.WrenchItem;
 import net.minecraft.world.item.BlockItem;
 import io.ticticboom.mods.mm.gateway.InputGatewayBlockEntity;
@@ -34,6 +38,9 @@ public class MMRegisters {
     public static final DeferredHolder<Item, Item> PRIORITY_SETTER = ITEMS.register("priority_setter", PrioritySetterItem::new);
     public static final DeferredHolder<Item, MultiblockSaverItem> MULTIBLOCK_SAVER = ITEMS.register("multiblock_saver", MultiblockSaverItem::new);
 
+    public static final DeferredHolder<Item, MultiblockToolItem> MULTIBLOCK_TOOL = ITEMS.register("multiblock_tool", MultiblockToolItem::new);
+    public static final DeferredHolder<MenuType<?>, MenuType<MultiblockToolMenu>> MULTIBLOCK_TOOL_MENU = MENUS.register("multiblock_tool",
+            () -> IMenuTypeExtension.create(MultiblockToolMenu::new));
     public static final DeferredHolder<Item, WrenchItem> WRENCH = ITEMS.register("wrench", WrenchItem::new);
     public static final DeferredHolder<Block, InputGatewayBlock> INPUT_GATEWAY = BLOCKS.register("input_gateway", InputGatewayBlock::new);
     public static final DeferredHolder<Item, BlockItem> INPUT_GATEWAY_ITEM = ITEMS.register("input_gateway", () -> new BlockItem(INPUT_GATEWAY.get(), new Item.Properties()));
@@ -59,6 +66,7 @@ public class MMRegisters {
         ITEMS.register(bus);
         BLOCK_ENTITIES.register(bus);
         MENUS.register(bus);
+        ToolComponents.register(bus);
         TABS.register(bus);
     }
 }

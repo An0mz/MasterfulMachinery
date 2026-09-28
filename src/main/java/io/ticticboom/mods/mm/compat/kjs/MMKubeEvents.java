@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.compat.kjs;
 
+import io.ticticboom.mods.mm.compat.kjs.event.BuilderStructureEventJS;
 import net.minecraft.resources.ResourceLocation;
 import io.ticticboom.mods.mm.compat.kjs.event.MachineRecipeEventJS;
 import dev.latvian.mods.kubejs.event.EventTargetType;
@@ -17,6 +18,7 @@ public interface MMKubeEvents {
     EventHandler EXTRA = GROUP.startup("registerExtraBlocks", () -> ExtraBlockEventJS.class);
     EventHandler STRUCTURES = GROUP.server("createStructures", () -> StructureEventJS.class);
     EventHandler RECIPES = GROUP.server("createProcesses", () -> RecipeEventJS.class);
+    EventHandler BUILDER_STRUCTURES = GROUP.server("builderStructures", () -> BuilderStructureEventJS.class);
     TargetedEventHandler<ResourceLocation> RECIPE_STARTED = GROUP.server("recipeStarted", () -> MachineRecipeEventJS.class).supportsTarget(EventTargetType.ID).hasResult();
     TargetedEventHandler<ResourceLocation> RECIPE_FINISHED = GROUP.server("recipeFinished", () -> MachineRecipeEventJS.class).supportsTarget(EventTargetType.ID);
 

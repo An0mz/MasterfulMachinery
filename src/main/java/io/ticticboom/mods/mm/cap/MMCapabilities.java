@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.cap;
 
+import io.ticticboom.mods.mm.tool.ToolEnergy;
+import net.neoforged.neoforge.capabilities.ItemCapability;
 import io.ticticboom.mods.mm.setup.MMRegisters;
 import io.ticticboom.mods.mm.port.IPortBlockEntity;
 import io.ticticboom.mods.mm.port.MMPortRegistry;
@@ -36,6 +38,7 @@ public class MMCapabilities {
     public static final BlockCapability<IItemHandler, Direction> ITEM = Capabilities.ItemHandler.BLOCK;
     public static final BlockCapability<IFluidHandler, Direction> FLUID = Capabilities.FluidHandler.BLOCK;
     public static final BlockCapability<IEnergyStorage, Direction> ENERGY = Capabilities.EnergyStorage.BLOCK;
+    public static final ItemCapability<IEnergyStorage, Void> ENERGY_ITEM = Capabilities.EnergyStorage.ITEM;
 
     @SubscribeEvent
     public static void registerCapabilities(RegisterCapabilitiesEvent event) {
@@ -56,6 +59,7 @@ public class MMCapabilities {
                 Ae2Capabilities.registerNodeHost(event, beType);
             }
         }
+        event.registerItem(ENERGY_ITEM, (stack, context) -> ToolEnergy.of(stack), MMRegisters.MULTIBLOCK_TOOL.get());
         var gateway = MMRegisters.INPUT_GATEWAY_BE.get();
         event.registerBlockEntity(ITEM, gateway, (be, side) -> be.itemHandler());
         event.registerBlockEntity(FLUID, gateway, (be, side) -> be.fluidHandler());

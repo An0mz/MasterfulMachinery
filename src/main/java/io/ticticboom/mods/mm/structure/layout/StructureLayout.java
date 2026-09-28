@@ -161,6 +161,18 @@ public class StructureLayout {
         return level.getBlockState(piece.findAbsolutePos(worldControllerPos)).is(MMRegisters.INPUT_GATEWAY.get());
     }
 
+    public List<BlockPos> getPositions(Level level, BlockPos worldControllerPos, StructureModel model) {
+        var rotation = formedRotation(level, worldControllerPos, model, null);
+        if (rotation == null) {
+            return List.of();
+        }
+        var positions = new ArrayList<BlockPos>();
+        for (PositionedLayoutPiece piece : rotatedPositionedPieces.get(rotation)) {
+            positions.add(piece.findAbsolutePos(worldControllerPos));
+        }
+        return positions;
+    }
+
     public boolean contains(BlockPos worldControllerPos, Rotation rotation, BlockPos pos) {
         var pieces = rotatedPositionedPieces.get(rotation);
         if (pieces == null) {
@@ -174,7 +186,7 @@ public class StructureLayout {
         return false;
     }
 
-    private boolean isAnywhere(Object underlying) {
+    public boolean isAnywhere(Object underlying) {
         return underlying instanceof PortAnywhereStructurePiece || underlying instanceof PortTypeAnywhereStructurePiece
                 || (portsAnywhereGlobal && (underlying instanceof PortStructurePiece || underlying instanceof PortTypeStructurePiece));
     }

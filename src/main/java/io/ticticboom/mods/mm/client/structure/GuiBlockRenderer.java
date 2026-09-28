@@ -32,17 +32,25 @@ public class GuiBlockRenderer {
     private BlockEntity be;
     private BlockState state;
     private final List<StructurePieceModifier> modifiers;
+    private final BlockState fixedState;
     private static Minecraft mc = Minecraft.getInstance();
     private BlockPos pos;
 
     public GuiBlockRenderer(Block block, List<StructurePieceModifier> modifiers) {
         this.block = block;
         this.modifiers = modifiers;
+        this.fixedState = null;
+    }
+
+    public GuiBlockRenderer(BlockState state) {
+        this.block = state.getBlock();
+        this.modifiers = List.of();
+        this.fixedState = state;
     }
 
     public void setupAt(BlockPos pos) {
         this.pos = pos;
-        state = block.defaultBlockState();
+        state = fixedState != null ? fixedState : block.defaultBlockState();
         if (block instanceof EntityBlock eb) {
             be = eb.newBlockEntity(pos, state);
             ber = Minecraft.getInstance().getBlockEntityRenderDispatcher().getRenderer(be);

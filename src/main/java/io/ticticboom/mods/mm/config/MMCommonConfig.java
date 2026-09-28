@@ -12,6 +12,11 @@ public class MMCommonConfig {
     public final ModConfigSpec.IntValue maxParallelRecipes;
     public final ModConfigSpec.BooleanValue showJeiMaxParallel;
     public final ModConfigSpec.IntValue portAutoIOInterval;
+    public final ModConfigSpec.IntValue assemblyBlocksPerTick;
+    public final ModConfigSpec.IntValue toolEnergyCapacity;
+    public final ModConfigSpec.IntValue toolEnergyPerPlacedBlock;
+    public final ModConfigSpec.IntValue toolEnergyPerDismantledBlock;
+    public final ModConfigSpec.IntValue toolEnergyReceiveRate;
     public final ModConfigSpec.IntValue networkLinkOutputInterval;
     public final ModConfigSpec.BooleanValue networkLinkSendOnRemove;
     public final ModConfigSpec.BooleanValue networkLinkOpBypass;
@@ -33,12 +38,25 @@ public class MMCommonConfig {
                 .define("showJeiMaxParallel", true);
         portAutoIOInterval = builder.comment("How often ports with enabled auto push/pull sides transfer, in ticks. Default: 10")
                 .defineInRange("portAutoIOInterval", 10, 1, 200);
+        assemblyBlocksPerTick = builder.comment("How many blocks Assemble places per tick. Default: 2")
+                .defineInRange("assemblyBlocksPerTick", 2, 1, 64);
         networkLinkOutputInterval = builder.comment("How often a machine linked to an AE2 network sends its outputs to it, in ticks. Default: 20")
                 .defineInRange("networkLinkOutputInterval", 20, 1, 1200);
         networkLinkSendOnRemove = builder.comment("When a port of a linked machine is removed, send its contents to the AE2 network instead of dropping them. Default: true")
                 .define("networkLinkSendOnRemove", true);
         networkLinkOpBypass = builder.comment("Operators may open and break machines linked to other players. Default: true")
                 .define("networkLinkOpBypass", true);
+
+        builder.push("tool");
+        toolEnergyCapacity = builder.comment("Max FE the Multiblock Tool can store. Default: 1,000,000")
+                .defineInRange("toolEnergyCapacity", 1_000_000, 1, Integer.MAX_VALUE);
+        toolEnergyPerPlacedBlock = builder.comment("FE cost per block placed by the Multiblock Tool. Default: 50")
+                .defineInRange("toolEnergyPerPlacedBlock", 50, 0, Integer.MAX_VALUE);
+        toolEnergyPerDismantledBlock = builder.comment("FE cost per block dismantled by the Multiblock Tool. Default: 25")
+                .defineInRange("toolEnergyPerDismantledBlock", 25, 0, Integer.MAX_VALUE);
+        toolEnergyReceiveRate = builder.comment("Max FE/t the Multiblock Tool accepts from an external charger. Default: 10,000")
+                .defineInRange("toolEnergyReceiveRate", 10_000, 1, Integer.MAX_VALUE);
+        builder.pop();
 
         builder.comment("Preview features that are not yet stable or ready for use.")
                 .push("preview_features");

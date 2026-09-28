@@ -32,8 +32,11 @@ public class AutoTransform {
     private float scaleFactor;
 
     public AutoTransform(StructureModel model) {
-        for (PositionedLayoutPiece piece : model.layout().getPositionedPieces()) {
-            BlockPos pos = piece.pos();
+        this(model.layout().getPositionedPieces().stream().map(PositionedLayoutPiece::pos).toList());
+    }
+
+    public AutoTransform(Iterable<BlockPos> positions) {
+        for (BlockPos pos : positions) {
             // min
             minBound.x = Math.min(pos.getX(), minBound.x);
             minBound.y = Math.min(pos.getY(), minBound.y);

@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.event;
 
+import io.ticticboom.mods.mm.builder.structure.BuildableStructureLoader;
 import io.ticticboom.mods.mm.util.ItemNbtUtil;
 
 import io.ticticboom.mods.mm.net.packet.ProcessesSyncPkt;
@@ -25,6 +26,7 @@ public class ForgeEventsListener {
     public static void registerReloadListeners(AddReloadListenerEvent event) {
         event.addListener(new StructureManager());
         event.addListener(new MachineRecipeManager());
+        event.addListener(new BuildableStructureLoader());
     }
 
     @SubscribeEvent

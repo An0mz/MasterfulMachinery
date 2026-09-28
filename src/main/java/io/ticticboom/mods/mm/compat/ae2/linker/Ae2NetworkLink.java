@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.compat.ae2.linker;
 
+import io.ticticboom.mods.mm.builder.me.MeAccessFactory;
+import io.ticticboom.mods.mm.compat.ae2.Ae2MeAccess;
 import appeng.api.features.GridLinkables;
 import appeng.api.networking.security.IActionSource;
 import io.ticticboom.mods.mm.Ref;
@@ -26,6 +28,7 @@ public final class Ae2NetworkLink {
         DeferredHolder<Item, Item> linker = MMRegisters.ITEMS.register("network_linker", () -> new LinkerItem(new Item.Properties().stacksTo(1)));
         modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(() -> GridLinkables.register(linker.get(), new LinkerGridLinkable())));
         NeoForge.EVENT_BUS.register(new NetworkLinkProtection());
+        MeAccessFactory.setLookup(Ae2MeAccess::forTool, Ae2MeAccess::problem);
         return linker;
     }
 

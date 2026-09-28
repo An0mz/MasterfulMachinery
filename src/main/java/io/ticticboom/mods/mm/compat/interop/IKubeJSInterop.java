@@ -1,5 +1,8 @@
 package io.ticticboom.mods.mm.compat.interop;
 
+import java.util.function.Function;
+import net.minecraft.nbt.CompoundTag;
+import io.ticticboom.mods.mm.builder.structure.BuildableStructure;
 import net.minecraft.resources.ResourceLocation;
 import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
 import io.ticticboom.mods.mm.extra.ExtraBlockModel;
@@ -16,6 +19,8 @@ public interface IKubeJSInterop {
     List<ControllerModel> postRegisterControllers();
     List<PortModel> postRegisterPorts();
     List<ExtraBlockModel> postRegisterExtraBlocks();
+
+    List<BuildableStructure> postBuilderStructures(List<BuildableStructure> loaded, Function<ResourceLocation, CompoundTag> reader);
 
     boolean postRecipeStarted(MachineControllerBlockEntity controller, ResourceLocation recipeId);
 
