@@ -13,7 +13,6 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.Block;
@@ -70,14 +69,6 @@ public class MekanismChemicalPortBlock extends Block implements EntityBlock, IPo
                 pbe.tick();
             }
         };
-    }
-
-    @Override
-    public void onNeighborChange(BlockState state, LevelReader level, BlockPos pos, BlockPos neighbor) {
-        super.onNeighborChange(state, level, pos, neighbor);
-        if (level instanceof Level actual && actual.getBlockEntity(pos) instanceof MekanismChemicalPortBlockEntity pbe) {
-            pbe.neighborsChanged();
-        }
     }
 
     @Override

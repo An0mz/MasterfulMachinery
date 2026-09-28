@@ -5,11 +5,11 @@ import io.ticticboom.mods.mm.port.IPortStorage;
 import io.ticticboom.mods.mm.port.common.AbstractPortBlockEntity;
 import io.ticticboom.mods.mm.port.item.ItemPortStorage;
 import io.ticticboom.mods.mm.port.item.ItemPortStorageModel;
-import io.ticticboom.mods.mm.port.item.feature.ItemPortAutoPushAddon;
+import io.ticticboom.mods.mm.port.common.autoio.PortAutoIO;
+import io.ticticboom.mods.mm.port.common.autoio.PortTransfers;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -19,7 +19,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Optional;
 
 public class ItemPortBlockEntity extends AbstractPortBlockEntity {
     private final RegistryGroupHolder groupHolder;
@@ -30,8 +29,6 @@ public class ItemPortBlockEntity extends AbstractPortBlockEntity {
     @Getter
     private final boolean input;
 
-    private final Optional<ItemPortAutoPushAddon> autoPushAddon;
-
     public ItemPortBlockEntity(RegistryGroupHolder groupHolder, PortModel model, boolean input, BlockPos pos,
                                BlockState state) {
         super(groupHolder.getBe().get(), pos, state);
@@ -39,12 +36,8 @@ public class ItemPortBlockEntity extends AbstractPortBlockEntity {
         this.model = model;
         storage = (ItemPortStorage) model.config().createPortStorage(this::setChanged);
         this.input = input;
-        var shouldAutoPush = !input && ((ItemPortStorageModel) storage.getStorageModel()).autoPush().get();
-        if (shouldAutoPush) {
-            autoPushAddon = Optional.of(new ItemPortAutoPushAddon(this, this.model));
-        } else {
-            autoPushAddon = Optional.empty();
-        }
+        var enabledByDefault = !input && ((ItemPortStorageModel) storage.getStorageModel()).autoPush().get();
+        autoIO = new PortAutoIO(this, input, enabledByDefault, PortTransfers.items(storage::getHandler));
     }
     @Override
     public IPortStorage getStorage() {
@@ -65,20 +58,5 @@ public class ItemPortBlockEntity extends AbstractPortBlockEntity {
     @Override
     public PortModel getModel() {
         return model;
-    }
-
-    public void tick() {
-        if(lastTick == level.getGameTime()) return;
-        lastTick = level.getGameTime();
-        autoPushAddon.ifPresent(ItemPortAutoPushAddon::tick);
-    }
-
-    @Override
-    public void onLoad() {
-        autoPushAddon.ifPresent(ItemPortAutoPushAddon::onLoad);
-    }
-
-    public void neighborsChanged() {
-        autoPushAddon.ifPresent(ItemPortAutoPushAddon::tryAddNeighboringHandlers);
     }
 }

@@ -1,0 +1,49 @@
+package io.ticticboom.mods.mm.client.util;
+
+import io.ticticboom.mods.mm.util.NumberText;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+
+public final class CountFormat {
+
+    private CountFormat() {
+    }
+
+    public static String compact(long count) {
+        if (count >= 1_000_000_000) {
+            return withSuffix(Math.round(count / 100_000_000.0), "B", null);
+        }
+        if (count >= 1_000_000) {
+            return withSuffix(Math.round(count / 100_000.0), "M", "B");
+        }
+        if (count >= 1_000) {
+            return withSuffix(Math.round(count / 100.0), "K", "M");
+        }
+        return String.valueOf(count);
+    }
+
+    private static String withSuffix(long tenths, String suffix, String next) {
+        if (next != null && tenths >= 10_000) {
+            return (tenths / 10_000) + next;
+        }
+        long whole = tenths / 10;
+        long fraction = tenths % 10;
+        return fraction == 0 ? whole + suffix : whole + "." + fraction + suffix;
+    }
+
+    public static String grouped(long amount) {
+        return NumberText.grouped(amount);
+    }
+
+    public static void drawSlotCount(GuiGraphics gfx, int slotX, int slotY, long count) {
+        String text = compact(count);
+        var font = Minecraft.getInstance().font;
+        float scale = text.length() > 3 ? 0.5f : 1.0f;
+        var pose = gfx.pose();
+        pose.pushPose();
+        pose.translate(slotX + 17, slotY + 17, 200);
+        pose.scale(scale, scale, 1.0f);
+        gfx.drawString(font, text, -font.width(text), -font.lineHeight, 0xFFFFFF, true);
+        pose.popPose();
+    }
+}

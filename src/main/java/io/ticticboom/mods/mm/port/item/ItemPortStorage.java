@@ -1,5 +1,8 @@
 package io.ticticboom.mods.mm.port.item;
 
+import java.util.List;
+import java.util.ArrayList;
+import io.ticticboom.mods.mm.port.PortContent;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
@@ -163,5 +166,32 @@ public class ItemPortStorage implements IPortStorage {
 
     public void setPriority(int priority) {
         this.priority = Math.max(0, Math.min(10, priority));
+    }
+
+    @Override
+    public List<PortContent> contents() {
+        var stacks = new ArrayList<ItemStack>();
+        var counts = new ArrayList<Long>();
+        outer:
+        for (int slot = 0; slot < handler.getSlots(); slot++) {
+            ItemStack stack = handler.getStackInSlot(slot);
+            if (stack.isEmpty()) {
+                continue;
+            }
+            long count = handler.getActualCount(slot);
+            for (int i = 0; i < stacks.size(); i++) {
+                if (ItemStack.isSameItemSameComponents(stacks.get(i), stack)) {
+                    counts.set(i, counts.get(i) + count);
+                    continue outer;
+                }
+            }
+            stacks.add(stack.copyWithCount(1));
+            counts.add(count);
+        }
+        var contents = new ArrayList<PortContent>();
+        for (int i = 0; i < stacks.size(); i++) {
+            contents.add(PortContent.item(stacks.get(i), counts.get(i)));
+        }
+        return contents;
     }
 }

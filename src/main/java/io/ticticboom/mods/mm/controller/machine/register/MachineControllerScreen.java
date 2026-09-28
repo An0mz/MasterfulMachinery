@@ -1,111 +1,527 @@
 package io.ticticboom.mods.mm.controller.machine.register;
 
 import io.ticticboom.mods.mm.Ref;
-import io.ticticboom.mods.mm.net.packet.ToggleRedstoneModePkt;
-import io.ticticboom.mods.mm.client.util.TextRenderUtil;
+import io.ticticboom.mods.mm.client.gui.widgets.ControllerPortList;
+import io.ticticboom.mods.mm.client.gui.widgets.PortContentIcon;
+import io.ticticboom.mods.mm.client.util.NineSliceUtil;
+import io.ticticboom.mods.mm.compat.jei.JeiRecipeLookup;
+import io.ticticboom.mods.mm.config.MMConfigSetup;
+import io.ticticboom.mods.mm.model.RecipeSelectionMode;
+import io.ticticboom.mods.mm.net.packet.ControllerSettingsPkt;
 import io.ticticboom.mods.mm.net.packet.SelectRecipePkt;
-import io.ticticboom.mods.mm.port.item.SingleItemPortIngredient;
+import io.ticticboom.mods.mm.net.packet.ToggleRedstoneModePkt;
+import io.ticticboom.mods.mm.port.PortContent;
+import io.ticticboom.mods.mm.port.common.autoio.PortSides;
 import io.ticticboom.mods.mm.recipe.MachineRecipeManager;
 import io.ticticboom.mods.mm.recipe.RecipeModel;
-import io.ticticboom.mods.mm.recipe.output.simple.SimpleRecipeOutputEntry;
-import net.minecraft.core.registries.BuiltInRegistries;
+import io.ticticboom.mods.mm.recipe.input.consume.ConsumeRecipeIngredientEntry;
+import io.ticticboom.mods.mm.recipe.output.DisplayedOutput;
+import io.ticticboom.mods.mm.util.ChanceUtils;
+import io.ticticboom.mods.mm.util.WidgetUtils;
+import net.minecraft.ChatFormatting;
+import net.minecraft.Util;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.locale.Language;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.network.PacketDistributor;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.lwjgl.glfw.GLFW;
+
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.FormattedText;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import org.jetbrains.annotations.NotNull;
-import io.ticticboom.mods.mm.setup.loader.ControllerLoader;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MachineControllerScreen extends AbstractContainerScreen<MachineControllerMenu> {
+    private static final int TEXT = 0xDDDDDD;
+    private static final int LABEL = 0x8A8A8A;
+    private static final int DIVIDER = 0xFF3A3A3A;
+    private static final int LEFT = 10;
+    private static final int VALUE_X = 80;
+    private static final int VALUE_WIDTH = 150;
 
-    private final MachineControllerMenu menu;
+    private static final int MIN_WIDTH = 174;
+    private static final int MIN_HEIGHT = 246;
+    private static final int MAX_WIDTH = 500;
+    private static final int MAX_HEIGHT = 380;
+    private static final int WINDOW_MARGIN = 16;
+    private static final int FRAME = 6;
+    private static final int FRAME_BOTTOM = 7;
+    private static final int INVENTORY_WIDTH = 162;
+    private static final int INVENTORY_HEIGHT = 76;
+    private static final int PANEL_GAP = 12;
+    private static final int GREY = 0xFFC6C6C6;
+    private static final int WIDE_WIDTH = 400;
+    private static final int INFO_WIDTH = 190;
+    private static final int COLUMN_GAP = 12;
+    private static final int PANEL = 0xFF1C1C1C;
+    private static final int NAME_Y = 10;
+    private static final int STATUS_Y = 22;
+    private static final int RECIPE_Y = 37;
+    private static final int ROWS_Y = 64;
+    private static final int ROW_STEP = 12;
+    private static final int BUTTON_HEIGHT = ROW_STEP - 1;
+
+    private static final int MIN_INPUTS = 3;
+    private static final int MIN_OUTPUTS = 2;
+    private static final int SLOT_STEP = 19;
+    private static final int TOOLTIP_MISSING = 10;
+    private static final long CYCLE_MS = 1200;
+    private static final boolean JEI = ModList.get().isLoaded("jei");
+
+    private enum Row { STRUCTURE, TIER, PARALLEL, REDSTONE, MODE, RECIPE }
+
+    private static final Pattern TIER = Pattern.compile("(?i)\\s*\\b(?:tier|level|lvl|mk)\\s*[.:#-]?\\s*(\\d+(?:[.,]\\d+)?|[ivx]+)\\b");
+
+    private enum Status {
+        NOT_FORMED(0xFF5555), PAUSED(0xFFAA00), RUNNING(0x55FF55), STALLED(0xFF8844), IDLE(0xE0C050);
+
+        final int color;
+
+        Status(int color) {
+            this.color = color;
+        }
+
+        String key() {
+            return "gui.mm.controller.status." + name().toLowerCase(Locale.ROOT);
+        }
+    }
+
+    private static final int PAGE_BTN_Y = 8;
+    private static final int PAGE_BTN = 12;
+    private static final int LIST_Y = 24;
+    private static final int PAGE_COUNT = 3;
+
+    private static int page = 0;
+    @Nullable
+    private EditBox nameBox;
+
     private final MachineControllerBlockEntity be;
-    private final FormattedText header;
-    private final int redstoneBtnX = 10;
-    private final int redstoneBtnY = 80;
-    private static final int RECIPE_ROW_Y = 93;
-    private static final int PREV_X = 10;
-    private static final int NEXT_X = 158;
-    private static final int ICON_X = 22;
-    private static final int NAME_X = 42;
-    private static final float MIN_TEXT_SCALE = 0.6f;
+    private final ControllerPortList portList;
+    private final ControllerPortList outputList;
+    private int cycle = 0;
+    private long nextCycleMs = 0;
 
-    public MachineControllerScreen(MachineControllerMenu menu, Inventory inv, Component p_96550_) {
-        super(menu, inv, p_96550_);
-        this.menu = menu;
+    private int right;
+    private int valueRight;
+    private int pageBtnX;
+    private int sizeBtnX;
+    private int panelBottom;
+    private int inventoryX;
+    private int inventoryY;
+    private boolean wide;
+    private int infoRight;
+    private int maxInputs = MIN_INPUTS;
+    private int maxOutputs = MIN_OUTPUTS;
+
+    public MachineControllerScreen(MachineControllerMenu menu, Inventory inv, Component title) {
+        super(menu, inv, title);
         this.be = (MachineControllerBlockEntity) menu.getBe();
-        this.imageHeight = 222;
-        this.imageWidth = 174;
-        String name = menu.getModel().displayName().getString();
-        int subStrLength = Math.min(55, name.length());
-        header = FormattedText.of(name.substring(0, subStrLength) + (subStrLength < 55 ? "" : "..."));
+        this.imageHeight = MIN_HEIGHT;
+        this.imageWidth = MIN_WIDTH;
+        this.portList = new ControllerPortList(menu.getPortPositions());
+        this.outputList = new ControllerPortList(menu.getPortPositions());
+        this.outputList.showInputs(false);
+    }
+
+    @Override
+    protected void init() {
+        if (bigScreen()) {
+            this.imageWidth = Mth.clamp(this.width - 2 * WINDOW_MARGIN, MIN_WIDTH, MAX_WIDTH);
+            this.imageHeight = Mth.clamp(this.height - 2 * WINDOW_MARGIN, MIN_HEIGHT, MAX_HEIGHT);
+        } else {
+            this.imageWidth = MIN_WIDTH;
+            this.imageHeight = MIN_HEIGHT;
+        }
+        right = imageWidth - 11;
+        wide = imageWidth >= WIDE_WIDTH;
+        infoRight = wide ? LEFT + INFO_WIDTH : right;
+        valueRight = Math.min(infoRight, VALUE_X + VALUE_WIDTH);
+        pageBtnX = right - 12;
+        sizeBtnX = wide ? pageBtnX : pageBtnX - PAGE_BTN - 2;
+        inventoryX = (imageWidth - INVENTORY_WIDTH) / 2;
+        inventoryY = imageHeight - FRAME_BOTTOM - INVENTORY_HEIGHT;
+        panelBottom = inventoryY - PANEL_GAP;
+        int slots = (right - LEFT - 28 - 30) / SLOT_STEP;
+        maxOutputs = Math.max(MIN_OUTPUTS, slots / 2);
+        maxInputs = Math.max(MIN_INPUTS, slots - maxOutputs);
+        super.init();
+        placeInventorySlots();
+        if (wide) {
+            int listsX = infoRight + COLUMN_GAP;
+            int listTop = ROWS_Y - 2;
+            int listW = (right + 2 - listsX - COLUMN_GAP) / 2;
+            portList.showInputs(true);
+            portList.setBounds(this.leftPos + listsX, this.topPos + listTop, listW, panelBottom - 3 - listTop);
+            outputList.setBounds(this.leftPos + listsX + listW + COLUMN_GAP, this.topPos + listTop, listW, panelBottom - 3 - listTop);
+        } else {
+            portList.setBounds(this.leftPos + LEFT, this.topPos + LIST_Y, right - LEFT + 2, panelBottom - 3 - LIST_Y);
+        }
+    }
+
+    private void placeInventorySlots() {
+        var slots = menu.slots;
+        for (int i = 0; i < slots.size(); i++) {
+            Slot old = slots.get(i);
+            int x = inventoryX + 1 + (i % 9) * 18;
+            int y = i < 27 ? inventoryY + 1 + (i / 9) * 18 : inventoryY + 59;
+            Slot moved = new Slot(old.container, old.getContainerSlot(), x, y);
+            moved.index = old.index;
+            slots.set(i, moved);
+        }
+    }
+
+    private void drawBackground(GuiGraphics gfx) {
+        var texture = Ref.UiTextures.GUI_LARGE;
+        int x = this.leftPos;
+        int y = this.topPos;
+        NineSliceUtil.blitNineSliced(gfx, texture, x, y, imageWidth, imageHeight, FRAME, FRAME, FRAME, FRAME_BOTTOM, 174, 222, 0, 0, 256, 256);
+        gfx.fill(x + FRAME, y + FRAME, x + imageWidth - FRAME, y + imageHeight - FRAME_BOTTOM, GREY);
+        NineSliceUtil.blitNineSliced(gfx, texture, x + FRAME, y + FRAME, imageWidth - 2 * FRAME, panelBottom - FRAME + 1, 2, 2, 2, 2, 162, 121, 6, 6, 256, 256);
+        gfx.fill(x + FRAME + 2, y + FRAME + 2, x + imageWidth - FRAME - 2, y + panelBottom - 1, PANEL);
+        gfx.blit(texture, x + inventoryX, y + inventoryY, 6, 139, INVENTORY_WIDTH, INVENTORY_HEIGHT);
+    }
+
+    private static boolean bigScreen() {
+        return MMConfigSetup.CLIENT.bigControllerScreen.get();
+    }
+
+    private void drawButtonFrame(GuiGraphics gfx, int bx, int by, int w, int h, boolean hovered) {
+        var texture = hovered ? Ref.UiTextures.BUTTON_PRESSED : Ref.UiTextures.BUTTON_ACTIVE;
+        NineSliceUtil.blitNineSliced(gfx, texture, bx, by, w, h, 2, 2, 2, 2, 16, 16, 0, 0, 16, 16);
+    }
+
+    private boolean isOnSizeButton(double mouseX, double mouseY) {
+        return WidgetUtils.isPointerWithinSized((int) mouseX, (int) mouseY, this.leftPos + sizeBtnX, this.topPos + PAGE_BTN_Y, PAGE_BTN, PAGE_BTN);
+    }
+
+    private void drawSizeButton(GuiGraphics gfx, int mouseX, int mouseY) {
+        int bx = this.leftPos + sizeBtnX;
+        int by = this.topPos + PAGE_BTN_Y;
+        drawButtonFrame(gfx, bx, by, PAGE_BTN, PAGE_BTN, isOnSizeButton(mouseX, mouseY));
+        int ink = 0xFF3A3A3A;
+        if (bigScreen()) {
+            gfx.fill(bx + 4, by + 4, bx + 8, by + 8, ink);
+        } else {
+            gfx.fill(bx + 2, by + 2, bx + 10, by + 3, ink);
+            gfx.fill(bx + 2, by + 9, bx + 10, by + 10, ink);
+            gfx.fill(bx + 2, by + 3, bx + 3, by + 9, ink);
+            gfx.fill(bx + 9, by + 3, bx + 10, by + 9, ink);
+        }
+    }
+
+    private void toggleSize() {
+        MMConfigSetup.CLIENT.bigControllerScreen.set(!bigScreen());
+        MMConfigSetup.CLIENT.bigControllerScreen.save();
+        if (nameBox != null) finishRename(true);
+        init(this.minecraft, this.width, this.height);
+    }
+
+    private boolean isOnPageButton(double mouseX, double mouseY) {
+        return !wide && WidgetUtils.isPointerWithinSized((int) mouseX, (int) mouseY, this.leftPos + pageBtnX, this.topPos + PAGE_BTN_Y, PAGE_BTN, PAGE_BTN);
+    }
+
+    private void drawPageButton(GuiGraphics gfx, int mouseX, int mouseY) {
+        if (wide) return;
+        int bx = this.leftPos + pageBtnX;
+        int by = this.topPos + PAGE_BTN_Y;
+        drawButtonFrame(gfx, bx, by, PAGE_BTN, PAGE_BTN, isOnPageButton(mouseX, mouseY));
+        var next = switch (page) {
+            case 0 -> Items.HOPPER;
+            case 1 -> Items.DROPPER;
+            default -> Items.COMPARATOR;
+        };
+        drawSmallItem(gfx, new ItemStack(next), bx + 1, by + 1, 10);
+    }
+
+    private boolean onPortsPage() {
+        return !wide && page != 0;
+    }
+
+    private static void drawSmallItem(GuiGraphics gfx, ItemStack stack, int x, int y, int size) {
+        var pose = gfx.pose();
+        pose.pushPose();
+        pose.translate(x, y, 0);
+        pose.scale(size / 16f, size / 16f, 1);
+        gfx.renderItem(stack, 0, 0);
+        pose.popPose();
+    }
+
+    private record Shown(int x, int y, PortContent content, boolean input, double chance) {
+    }
+
+    private record RecipeRow(List<Shown> slots, int arrowX, int percentX, int inputPages, int outputPages,
+                             int outputX, int outputWidth) {
+        static final RecipeRow EMPTY = new RecipeRow(List.of(), 0, 0, 1, 1, 0, 0);
+    }
+
+    private Status status() {
+        if (be.getStructure() == null) return Status.NOT_FORMED;
+        if (!be.isAllowedByRedstone()) return Status.PAUSED;
+        if (be.isWorking()) return Status.RUNNING;
+        if (be.getActiveRecipeCount() > 0) return Status.STALLED;
+        return Status.IDLE;
+    }
+
+    @Nullable
+    private RecipeModel shownRecipe() {
+        return status() == Status.IDLE ? null : be.getDisplayedRecipe();
+    }
+
+    private RecipeRow recipeRow() {
+        RecipeModel recipe = shownRecipe();
+        if (recipe == null) {
+            return RecipeRow.EMPTY;
+        }
+        var inputs = new ArrayList<PortContent>();
+        for (var entry : recipe.inputs().inputs()) {
+            if (entry instanceof ConsumeRecipeIngredientEntry consume) {
+                PortContent content = consume.getIngredient().display();
+                if (content != null) inputs.add(content);
+            }
+        }
+        var outputs = new ArrayList<PortContent>();
+        var chances = new ArrayList<Double>();
+        for (var entry : recipe.outputs().outputs()) {
+            for (DisplayedOutput output : entry.displayedOutputs()) {
+                PortContent content = output.ingredient().display();
+                if (content != null) {
+                    outputs.add(content);
+                    chances.add(output.chance());
+                }
+            }
+        }
+        int inputPages = pages(inputs.size(), maxInputs);
+        int outputPages = pages(outputs.size(), maxOutputs);
+        var shown = new ArrayList<Shown>();
+        int inputFrom = cycle % inputPages * maxInputs;
+        for (int i = inputFrom; i < Math.min(inputs.size(), inputFrom + maxInputs); i++) {
+            shown.add(new Shown(LEFT + (i - inputFrom) * SLOT_STEP, RECIPE_Y, inputs.get(i), true, 1));
+        }
+        int arrowX = LEFT + Math.min(inputs.size(), maxInputs) * SLOT_STEP + 3;
+        int outputX = arrowX + 28;
+        int outputFrom = cycle % outputPages * maxOutputs;
+        for (int i = outputFrom; i < Math.min(outputs.size(), outputFrom + maxOutputs); i++) {
+            shown.add(new Shown(outputX + (i - outputFrom) * SLOT_STEP, RECIPE_Y, outputs.get(i), false, chances.get(i)));
+        }
+        int outputWidth = Math.min(outputs.size(), maxOutputs) * SLOT_STEP - 1;
+        int percentX = outputs.isEmpty() ? outputX : outputX + outputWidth + 3;
+        return new RecipeRow(shown, arrowX, percentX, inputPages, outputPages, outputX, outputWidth);
+    }
+
+    private static int pages(int count, int perPage) {
+        return Math.max(1, (count + perPage - 1) / perPage);
+    }
+
+    private void advanceCycle(int mouseX, int mouseY) {
+        long now = Util.getMillis();
+        boolean onRecipe = WidgetUtils.isPointerWithinSized(mouseX, mouseY, this.leftPos + LEFT, this.topPos + RECIPE_Y, right - LEFT, 18);
+        if (onRecipe) {
+            nextCycleMs = now + CYCLE_MS;
+        } else if (now >= nextCycleMs) {
+            cycle++;
+            nextCycleMs = now + CYCLE_MS;
+        }
+    }
+
+    private void drawPageTrack(GuiGraphics gfx, int x, int width, int pages) {
+        if (pages <= 1) return;
+        int y = this.topPos + RECIPE_Y + 20;
+        gfx.fill(x, y, x + width, y + 1, 0xFF333333);
+        int current = cycle % pages;
+        gfx.fill(x + width * current / pages, y, x + width * (current + 1) / pages, y + 1, 0xFFBBBBBB);
+    }
+
+    private List<Row> rows() {
+        if (be.getRecipeSelectionMode() == RecipeSelectionMode.MANUAL) {
+            return List.of(Row.values());
+        }
+        return List.of(Row.STRUCTURE, Row.TIER, Row.PARALLEL, Row.REDSTONE, Row.MODE);
+    }
+
+    private int rowY(Row row) {
+        return ROWS_Y + rows().indexOf(row) * ROW_STEP;
     }
 
     @Override
     protected void renderBg(GuiGraphics gfx, float partialTick, int mouseX, int mouseY) {
-        gfx.blit(Ref.UiTextures.GUI_LARGE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
+        drawBackground(gfx);
+        drawPageButton(gfx, mouseX, mouseY);
+        drawSizeButton(gfx, mouseX, mouseY);
+        if (onPortsPage()) {
+            portList.showInputs(page == 1);
+            portList.render(gfx, this.font, be.getLevel());
+            return;
+        }
+        int x = this.leftPos;
+        int y = this.topPos;
+
+        gfx.fill(x + LEFT, y + STATUS_Y + 1, x + LEFT + 5, y + STATUS_Y + 6, 0xFF000000 | status().color);
+        gfx.fill(x + LEFT, y + STATUS_Y + 11, x + right, y + STATUS_Y + 12, DIVIDER);
+        gfx.fill(x + LEFT, y + ROWS_Y - 4, x + right, y + ROWS_Y - 3, DIVIDER);
+
+        if (showsDiagnosis()) {
+            var first = menu.getDiagnosis().missing().get(0);
+            gfx.blit(Ref.UiTextures.SLOT_PARTS, x + LEFT, y + RECIPE_Y, 0, 26, 18, 18);
+            if (!first.icon().isEmpty()) {
+                gfx.renderItem(first.icon(), x + LEFT + 1, y + RECIPE_Y + 1);
+            }
+        }
+
+        var row = recipeRow();
+        if (!row.slots().isEmpty()) {
+            for (Shown s : row.slots()) {
+                gfx.blit(Ref.UiTextures.SLOT_PARTS, x + s.x(), y + s.y(), 0, 26, 18, 18);
+                PortContentIcon.draw(gfx, s.content(), x + s.x(), y + s.y());
+            }
+            drawPageTrack(gfx, x + LEFT, maxInputs * SLOT_STEP - 1, row.inputPages());
+            drawPageTrack(gfx, x + row.outputX(), row.outputWidth(), row.outputPages());
+            int ax = x + row.arrowX();
+            int ay = y + RECIPE_Y;
+            gfx.blit(Ref.UiTextures.SLOT_PARTS, ax, ay, 26, 0, 24, 17);
+            int filled = (int) Math.round(24 * progress());
+            gfx.blit(Ref.UiTextures.SLOT_PARTS, ax, ay, 26, 17, filled, 17);
+        }
+
+        int by = y + rowY(Row.REDSTONE) - 2;
+        drawButtonFrame(gfx, x + VALUE_X - 2, by, valueRight - VALUE_X + 2, BUTTON_HEIGHT, isOnRow(Row.REDSTONE, mouseX, mouseY));
+        drawSmallItem(gfx, new ItemStack(Items.REDSTONE), x + VALUE_X, by + 1, 8);
+
+        int my = y + rowY(Row.MODE) - 2;
+        drawButtonFrame(gfx, x + VALUE_X - 2, my, valueRight - VALUE_X + 2, BUTTON_HEIGHT, isOnRow(Row.MODE, mouseX, mouseY));
+
+        if (rows().contains(Row.RECIPE)) {
+            int ry = y + rowY(Row.RECIPE) - 2;
+            drawButtonFrame(gfx, x + VALUE_X - 2, ry, valueRight - VALUE_X + 2, BUTTON_HEIGHT, isOnRow(Row.RECIPE, mouseX, mouseY));
+            var selected = selectedRecipe();
+            var icon = selected == null ? null : recipeIcon(selected);
+            if (icon != null && icon.kind() == PortContent.Kind.ITEM) {
+                drawSmallItem(gfx, icon.item(), x + VALUE_X, ry + 1, 8);
+            }
+        }
+
+        if (wide) {
+            drawProgressBar(gfx);
+            int lineX = x + infoRight + COLUMN_GAP / 2;
+            gfx.fill(lineX, y + ROWS_Y - 3, lineX + 1, y + panelBottom - 3, DIVIDER);
+            portList.render(gfx, this.font, be.getLevel());
+            outputList.render(gfx, this.font, be.getLevel());
+        }
+    }
+
+    private double progress() {
+        var state = be.getRecipeState();
+        return state == null ? 1 : Math.min(100, state.getTickPercentage()) / 100;
+    }
+
+    private int progressY() {
+        List<Row> shown = rows();
+        return rowY(shown.get(shown.size() - 1)) + ROW_STEP + 8;
+    }
+
+    private void drawProgressBar(GuiGraphics gfx) {
+        if (shownRecipe() == null) return;
+        int bx = this.leftPos + LEFT;
+        int by = this.topPos + progressY() + 11;
+        int bw = infoRight - LEFT;
+        gfx.fill(bx, by, bx + bw, by + 6, 0xFF555555);
+        gfx.fill(bx + 1, by + 1, bx + bw - 1, by + 5, 0xFF111111);
+        gfx.fill(bx + 1, by + 1, bx + 1 + (int) Math.round((bw - 2) * progress()), by + 5, 0xFF000000 | Status.RUNNING.color);
+    }
+
+    private void drawProgressText(GuiGraphics gfx) {
+        RecipeModel recipe = shownRecipe();
+        if (recipe == null) return;
+        int y = progressY();
+        drawClipped(gfx, Component.translatable("gui.mm.controller.progress"), LEFT, y, VALUE_X - LEFT - 4, LABEL);
+        String elapsed = String.format(Locale.ROOT, "%.1f", recipe.ticks() * progress() / 20);
+        String total = String.format(Locale.ROOT, "%.1f", recipe.ticks() / 20.0);
+        drawClipped(gfx, Component.translatable("gui.mm.controller.progress.time", elapsed, total), VALUE_X, y, infoRight - VALUE_X, TEXT);
     }
 
     @Override
     protected void renderLabels(GuiGraphics gfx, int mouseX, int mouseY) {
-        // controller name
-        gfx.drawWordWrap(this.font, header, 10, 10, 150, 0xacacac);
-
-        // structure formation details
-        var isFormed = be.getStructure() != null;
-        gfx.drawWordWrap(this.font, Component.translatable(isFormed ? "gui.mm.controller.formed_as" : "gui.mm.controller.not_formed"), 10, 40, 150, 0xacacac);
-        if (isFormed) {
-            gfx.drawWordWrap(this.font, be.getStructure().displayName(), 10, 53, 150, 0xacacac);
+        if (nameBox == null) {
+            drawClipped(gfx, be.getName(), LEFT, NAME_Y, nameWidth(), 0xFFFFFF);
+        }
+        if (onPortsPage()) {
+            return;
         }
 
-        // show max parallel recipes under the multiblock name when formed
-        if (isFormed) {
-            int structVal = be.getStructure().maxParallelRecipes();
-            int displayInt = 1;
-            if (structVal > 0) {
-                displayInt = structVal;
-            } else {
-                var controllerModel = ControllerLoader.CONTROLLER_MODELS.get(menu.getModel().id());
-                if (controllerModel != null && controllerModel.maxParallelRecipes() > 0) {
-                    displayInt = controllerModel.maxParallelRecipes();
-                }
-            }
-            String line = Component.translatable("gui.mm.controller.max_parallel", displayInt).getString();
-            int nameY = 53;
-            int lineHeight = this.font.lineHeight;
-            int subY = nameY + lineHeight + 10;
-            // smaller text by scaling
-            gfx.pose().pushPose();
-            gfx.pose().translate(10f, (float) subY, 0f);
-            float scale = 0.65f;
-            gfx.pose().scale(scale, scale, 1f);
-            int wrapWidth = (int) (150 / scale);
-            TextRenderUtil.renderWordWrapLimit(gfx, line, 0, 0, wrapWidth, 1, 0xacacac);
-            gfx.pose().popPose();
+        Status status = status();
+        int statusWidth = right - LEFT - 9;
+        if (showsDiagnosis()) {
+            var count = Component.translatable("gui.mm.controller.missing", menu.getDiagnosis().total());
+            int countWidth = Math.min(this.font.width(count), right - LEFT - 9 - 40);
+            drawClipped(gfx, count, right - countWidth, STATUS_Y, countWidth, Status.NOT_FORMED.color);
+            statusWidth -= countWidth + 4;
+        }
+        drawClipped(gfx, Component.translatable(status.key()), LEFT + 9, STATUS_Y, statusWidth, status.color);
+
+        var recipe = recipeRow();
+        if (showsDiagnosis()) {
+            var first = menu.getDiagnosis().missing().get(0);
+            drawClipped(gfx, first.required(), LEFT + 21, RECIPE_Y, right - LEFT - 21, TEXT);
+            drawClipped(gfx, offsetText(first.pos()), LEFT + 21, RECIPE_Y + 10, right - LEFT - 21, LABEL);
+        } else if (recipe.slots().isEmpty()) {
+            gfx.drawString(this.font, Component.translatable("gui.mm.controller.recipe.none"), LEFT, RECIPE_Y + 5, LABEL, false);
+        } else {
+            int percent = (int) Math.floor(progress() * 100);
+            drawClipped(gfx, Component.literal(percent + "%"), recipe.percentX(), RECIPE_Y + 5, right - recipe.percentX(), TEXT);
         }
 
-        // recipe processing details
-        var isProcessing = be.getRecipeState() != null;
-        if (isProcessing) {
-            gfx.drawWordWrap(this.font,
-                    Component.translatable("gui.mm.controller.progress",
-                            String.format("%.2f", be.getRecipeState().getTickPercentage())),
-                    10, 110, 150, 0xacacac);
+        for (Row row : rows()) {
+            drawClipped(gfx, Component.translatable("gui.mm.controller.row." + row.name().toLowerCase(Locale.ROOT)),
+                    LEFT, rowY(row), VALUE_X - LEFT - 4, LABEL);
         }
-
-        // redstone mode toggle label (clickable)
-        Component rs = Component.translatable("gui.mm.controller.redstone", be.getRedstoneModeName());
-        gfx.drawString(this.font, rs, redstoneBtnX, redstoneBtnY, 0xacacac, false);
-
-        if (be.isManualSelection()) {
-            renderRecipePicker(gfx);
+        var structure = be.getStructure();
+        if (structure != null) {
+            String name = structure.displayName().getString();
+            Matcher tier = TIER.matcher(name);
+            boolean hasTier = tier.find();
+            String baseName = hasTier ? (name.substring(0, tier.start()) + name.substring(tier.end())).trim() : name;
+            drawClipped(gfx, Component.literal(baseName), VALUE_X, rowY(Row.STRUCTURE), valueRight - VALUE_X, TEXT);
+            gfx.drawString(this.font, hasTier ? tier.group(1) : "-", VALUE_X, rowY(Row.TIER), hasTier ? TEXT : LABEL, false);
+            drawClipped(gfx, Component.translatable("gui.mm.controller.parallel.value", be.getActiveRecipeCount(), be.getDisplayedParallelLimit()),
+                    VALUE_X, rowY(Row.PARALLEL), valueRight - VALUE_X, TEXT);
+        } else {
+            drawClipped(gfx, Component.translatable("gui.mm.controller.not_formed"), VALUE_X, rowY(Row.STRUCTURE), valueRight - VALUE_X, Status.NOT_FORMED.color);
+            gfx.drawString(this.font, "-", VALUE_X, rowY(Row.TIER), LABEL, false);
+            gfx.drawString(this.font, "-", VALUE_X, rowY(Row.PARALLEL), LABEL, false);
         }
+        drawClipped(gfx, Component.translatable("gui.mm.controller.redstone." + redstoneMode()),
+                VALUE_X + 12, rowY(Row.REDSTONE), valueRight - VALUE_X - 14, TEXT);
+        drawClipped(gfx, Component.translatable("gui.mm.controller.mode." + recipeMode()),
+                VALUE_X + 1, rowY(Row.MODE), valueRight - VALUE_X - 3, TEXT);
+        if (rows().contains(Row.RECIPE)) {
+            drawClipped(gfx, recipeName(selectedRecipe()), VALUE_X + 12, rowY(Row.RECIPE), valueRight - VALUE_X - 14, TEXT);
+        }
+        if (wide) {
+            drawProgressText(gfx);
+        }
+    }
+
+    private int nameWidth() {
+        return sizeBtnX - LEFT - 4;
     }
 
     private List<RecipeModel> selectableRecipes() {
@@ -117,73 +533,34 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
                 .toList();
     }
 
+    @Nullable
     private RecipeModel selectedRecipe() {
-        for (RecipeModel recipe : selectableRecipes()) {
-            if (recipe.id().equals(be.getSelectedRecipeId())) {
-                return recipe;
+        var id = be.getSelectedRecipeId();
+        return id == null ? null : MachineRecipeManager.RECIPES.get(id);
+    }
+
+    @Nullable
+    private static PortContent recipeIcon(RecipeModel recipe) {
+        for (var entry : recipe.outputs().outputs()) {
+            for (DisplayedOutput output : entry.displayedOutputs()) {
+                PortContent content = output.ingredient().display();
+                if (content != null) {
+                    return content;
+                }
             }
         }
         return null;
     }
 
-    private static Component recipeName(RecipeModel recipe) {
+    private static Component recipeName(@Nullable RecipeModel recipe) {
         if (recipe == null) {
             return Component.translatable("gui.mm.controller.recipe_none");
         }
-        var icon = displayStack(recipe);
-        return icon.isEmpty() ? outputName(recipe) : icon.getHoverName();
-    }
-
-    private void renderRecipePicker(GuiGraphics gfx) {
-        var selected = selectedRecipe();
-        gfx.drawString(this.font, "\u25C0", PREV_X, RECIPE_ROW_Y + 4, 0xacacac, false);
-        gfx.drawString(this.font, "\u25B6", NEXT_X, RECIPE_ROW_Y + 4, 0xacacac, false);
-        int nameX = ICON_X;
-        if (selected != null) {
-            var icon = displayStack(selected);
-            if (!icon.isEmpty()) {
-                gfx.renderItem(icon, ICON_X, RECIPE_ROW_Y);
-                gfx.renderItemDecorations(this.font, icon, ICON_X, RECIPE_ROW_Y);
-                nameX = NAME_X;
-            }
-        }
-        drawFitted(gfx, recipeName(selected).getString(), nameX, RECIPE_ROW_Y + 4, NEXT_X - nameX - 4);
-    }
-
-    private void drawFitted(GuiGraphics gfx, String text, int x, int y, int maxWidth) {
-        int width = this.font.width(text);
-        if (width <= maxWidth) {
-            gfx.drawString(this.font, text, x, y, 0xacacac, false);
-            return;
-        }
-        float scale = Math.max(MIN_TEXT_SCALE, (float) maxWidth / width);
-        String shown = this.font.plainSubstrByWidth(text, (int) (maxWidth / scale));
-        gfx.pose().pushPose();
-        gfx.pose().translate(x, y + (1 - scale) * this.font.lineHeight / 2f, 0);
-        gfx.pose().scale(scale, scale, 1f);
-        gfx.drawString(this.font, shown, 0, 0, 0xacacac, false);
-        gfx.pose().popPose();
-    }
-
-    private static Component outputName(RecipeModel recipe) {
-        for (var output : recipe.outputs().outputs()) {
-            if (output instanceof SimpleRecipeOutputEntry simple) {
-                var name = simple.getIngredient().displayName();
-                if (name != null) {
-                    return name;
-                }
-            }
+        var icon = recipeIcon(recipe);
+        if (icon != null && icon.name() != null) {
+            return icon.name();
         }
         return Component.literal(recipe.id().getPath());
-    }
-
-    private static ItemStack displayStack(RecipeModel recipe) {
-        for (var output : recipe.outputs().outputs()) {
-            if (output instanceof SimpleRecipeOutputEntry simple && simple.getIngredient() instanceof SingleItemPortIngredient item) {
-                return new ItemStack(BuiltInRegistries.ITEM.get(item.getItemId()), Math.max(1, item.getCount()));
-            }
-        }
-        return ItemStack.EMPTY;
     }
 
     private void cycleRecipe(int step) {
@@ -199,41 +576,287 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         PacketDistributor.sendToServer(new SelectRecipePkt(be.getBlockPos(), id));
     }
 
+    private boolean showsDiagnosis() {
+        return status() == Status.NOT_FORMED && !menu.getDiagnosis().missing().isEmpty();
+    }
+
+    private Component offsetText(BlockPos pos) {
+        BlockPos delta = pos.subtract(be.getBlockPos());
+        var state = be.getBlockState();
+        var parts = new ArrayList<Component>();
+        addOffset(parts, delta.getY(), "up", "down");
+        if (state.hasProperty(HorizontalDirectionalBlock.FACING)) {
+            Direction front = state.getValue(HorizontalDirectionalBlock.FACING).getOpposite();
+            Direction left = PortSides.toWorld(PortSides.Relative.LEFT, front);
+            addOffset(parts, dot(delta, front), "front", "back");
+            addOffset(parts, dot(delta, left), "left", "right");
+        }
+        MutableComponent text = Component.empty();
+        for (int i = 0; i < parts.size(); i++) {
+            if (i > 0) text.append(", ");
+            text.append(parts.get(i));
+        }
+        return text.append(" (" + pos.getX() + " " + pos.getY() + " " + pos.getZ() + ")");
+    }
+
+    private static void addOffset(List<Component> parts, int amount, String positive, String negative) {
+        if (amount != 0) {
+            parts.add(Component.translatable("gui.mm.controller.missing.offset." + (amount > 0 ? positive : negative), Math.abs(amount)));
+        }
+    }
+
+    private static int dot(BlockPos delta, Direction dir) {
+        return delta.getX() * dir.getStepX() + delta.getY() * dir.getStepY() + delta.getZ() * dir.getStepZ();
+    }
+
+    private List<Component> diagnosisTooltip() {
+        var diagnosis = menu.getDiagnosis();
+        var lines = new ArrayList<Component>();
+        lines.add(Component.translatable("gui.mm.controller.missing", diagnosis.total()));
+        int shown = Math.min(TOOLTIP_MISSING, diagnosis.missing().size());
+        for (int i = 0; i < shown; i++) {
+            var m = diagnosis.missing().get(i);
+            MutableComponent line = m.required().copy().withStyle(ChatFormatting.WHITE);
+            if (m.found() != null) {
+                line.append(Component.translatable("gui.mm.controller.missing.found", m.found()).withStyle(ChatFormatting.RED));
+            }
+            lines.add(line);
+            lines.add(Component.literal("  ").append(offsetText(m.pos())).withStyle(ChatFormatting.GRAY));
+        }
+        if (diagnosis.total() > shown) {
+            lines.add(Component.translatable("gui.mm.controller.missing.more", diagnosis.total() - shown).withStyle(ChatFormatting.DARK_GRAY));
+        }
+        lines.add(Component.translatable("gui.mm.controller.missing.hint").withStyle(ChatFormatting.DARK_GRAY));
+        return lines;
+    }
+
+    private void drawClipped(GuiGraphics gfx, Component text, int x, int y, int maxWidth, int color) {
+        var clipped = this.font.ellipsize(text, maxWidth);
+        gfx.drawString(this.font, Language.getInstance().getVisualOrder(clipped), x, y, color, false);
+    }
+
+    private String redstoneMode() {
+        return be.getRedstoneModeName().toLowerCase(Locale.ROOT);
+    }
+
+    private String recipeMode() {
+        return be.getRecipeSelectionMode().serializedName();
+    }
+
     @Override
     public void render(@NotNull GuiGraphics gfx, int mouseX, int mouseY, float partial) {
-        renderBackground(gfx, mouseX, mouseY, partial);
+        advanceCycle(mouseX, mouseY);
         super.render(gfx, mouseX, mouseY, partial);
         renderTooltip(gfx, mouseX, mouseY);
-        if (be.isManualSelection()) {
-            double mx = mouseX - this.leftPos;
-            double my = mouseY - this.topPos;
-            if (mx >= ICON_X && mx <= NEXT_X - 2 && my >= RECIPE_ROW_Y && my <= RECIPE_ROW_Y + 16) {
-                gfx.renderTooltip(this.font, Component.translatable("gui.mm.controller.recipe", recipeName(selectedRecipe())), mouseX, mouseY);
+
+        Shown hovered = hoveredSlot(mouseX, mouseY);
+        if (hovered != null) {
+            var content = hovered.content();
+            var lines = new ArrayList<Component>(content.kind() == PortContent.Kind.ITEM
+                    ? Screen.getTooltipFromItem(Minecraft.getInstance(), content.item())
+                    : PortContentIcon.tooltip(content));
+            if (hovered.chance() < 1) {
+                lines.add(Component.translatable("gui.mm.controller.recipe.chance", ChanceUtils.formatPercent(hovered.chance()))
+                        .withStyle(ChatFormatting.DARK_AQUA));
+            }
+            if (JEI && JeiRecipeLookup.canShow(content)) {
+                lines.add(Component.translatable("gui.mm.controller.recipe.jei").withStyle(ChatFormatting.YELLOW));
+            }
+            gfx.renderComponentTooltip(this.font, lines, mouseX, mouseY);
+            return;
+        }
+        if (isOnSizeButton(mouseX, mouseY)) {
+            gfx.renderComponentTooltip(this.font, List.of(Component.translatable(bigScreen() ? "gui.mm.controller.size.small" : "gui.mm.controller.size.big")),
+                    mouseX, mouseY);
+            return;
+        }
+        if (isOnPageButton(mouseX, mouseY)) {
+            String next = switch (page) {
+                case 0 -> "gui.mm.controller.page.inputs";
+                case 1 -> "gui.mm.controller.page.outputs";
+                default -> "gui.mm.controller.page.status";
+            };
+            gfx.renderComponentTooltip(this.font, List.of(Component.translatable(next)), mouseX, mouseY);
+            return;
+        }
+        List<Component> tooltip = onPortsPage() ? portList.tooltip(this.font, be.getLevel(), mouseX, mouseY) : rowTooltip(mouseX, mouseY);
+        if (tooltip == null && wide) {
+            tooltip = portList.tooltip(this.font, be.getLevel(), mouseX, mouseY);
+            if (tooltip == null) tooltip = outputList.tooltip(this.font, be.getLevel(), mouseX, mouseY);
+        }
+        if (tooltip != null) {
+            gfx.renderComponentTooltip(this.font, tooltip, mouseX, mouseY);
+        }
+    }
+
+    @Nullable
+    private List<Component> rowTooltip(int mouseX, int mouseY) {
+        if (nameBox == null && isOnName(mouseX, mouseY)) {
+            var lines = new ArrayList<Component>();
+            lines.add(be.getName());
+            if (be.getCustomName() != null) {
+                lines.add(menu.getModel().displayName().copy().withStyle(ChatFormatting.GRAY));
+            }
+            lines.add(Component.translatable("gui.mm.controller.rename.hint").withStyle(ChatFormatting.YELLOW));
+            return lines;
+        }
+        if (showsDiagnosis() && WidgetUtils.isPointerWithinSized(mouseX, mouseY, this.leftPos + LEFT, this.topPos + RECIPE_Y - 1, right - LEFT, 20)) {
+            return diagnosisTooltip();
+        }
+        if (WidgetUtils.isPointerWithinSized(mouseX, mouseY, this.leftPos + LEFT, this.topPos + STATUS_Y - 1, right - LEFT, 10)) {
+            return List.of(Component.translatable(status().key() + ".hint").withStyle(ChatFormatting.GRAY));
+        }
+        for (Row row : rows()) {
+            if (!isOnRow(row, mouseX, mouseY)) continue;
+            String key = "gui.mm.controller.row." + row.name().toLowerCase(Locale.ROOT);
+            var lines = new ArrayList<Component>();
+            lines.add(Component.translatable(key));
+            switch (row) {
+                case STRUCTURE -> {
+                    if (be.getStructure() != null) {
+                        lines.add(be.getStructure().displayName().copy().withStyle(ChatFormatting.WHITE));
+                    }
+                    lines.add(Component.translatable(be.getStructure() != null ? key + ".hint.formed" : key + ".hint.not_formed").withStyle(ChatFormatting.GRAY));
+                }
+                case TIER, PARALLEL -> lines.add(Component.translatable(key + ".hint").withStyle(ChatFormatting.GRAY));
+                case REDSTONE -> {
+                    lines.add(Component.translatable("gui.mm.controller.redstone." + redstoneMode() + ".hint").withStyle(ChatFormatting.GRAY));
+                    lines.add(Component.translatable("gui.mm.controller.redstone.hint").withStyle(ChatFormatting.YELLOW));
+                }
+                case MODE -> {
+                    lines.add(Component.translatable("gui.mm.controller.mode." + recipeMode() + ".hint").withStyle(ChatFormatting.GRAY));
+                    lines.add(Component.translatable("gui.mm.controller.mode.hint").withStyle(ChatFormatting.YELLOW));
+                }
+                case RECIPE -> {
+                    lines.add(recipeName(selectedRecipe()).copy().withStyle(ChatFormatting.WHITE));
+                    lines.add(Component.translatable("gui.mm.controller.row.recipe.hint").withStyle(ChatFormatting.YELLOW));
+                }
+            }
+            return lines;
+        }
+        return null;
+    }
+
+    @Nullable
+    private Shown hoveredSlot(double mouseX, double mouseY) {
+        if (onPortsPage()) return null;
+        for (Shown s : recipeRow().slots()) {
+            if (WidgetUtils.isPointerWithinSized((int) mouseX, (int) mouseY, this.leftPos + s.x(), this.topPos + s.y(), 18, 18)) {
+                return s;
             }
         }
+        return null;
+    }
+
+    private boolean isOnRow(Row row, double mouseX, double mouseY) {
+        if (!rows().contains(row)) return false;
+        double mx = mouseX - this.leftPos;
+        double my = mouseY - this.topPos;
+        int y = rowY(row) - 2;
+        return mx >= LEFT && mx < infoRight && my >= y && my < y + ROW_STEP;
+    }
+
+    private static void playClick() {
+        Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0f));
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        double mx = mouseX - this.leftPos;
-        double my = mouseY - this.topPos;
-        int redstoneBtnW = 150;
-        int redstoneBtnH = 12;
-        if (mx >= redstoneBtnX && mx <= redstoneBtnX + redstoneBtnW && my >= redstoneBtnY && my <= redstoneBtnY + redstoneBtnH) {
-            int next = (be.getRedstoneModeOrdinal() + 1) % 3;
-            PacketDistributor.sendToServer(new ToggleRedstoneModePkt(be.getBlockPos(), next));
+        if (nameBox != null) {
+            if (nameBox.isMouseOver(mouseX, mouseY)) {
+                return nameBox.mouseClicked(mouseX, mouseY, button);
+            }
+            finishRename(true);
+        }
+        if (!onPortsPage() && isOnName(mouseX, mouseY)) {
+            startRename();
             return true;
         }
-        if (be.isManualSelection() && my >= RECIPE_ROW_Y && my <= RECIPE_ROW_Y + 16) {
-            if (mx >= PREV_X - 2 && mx <= PREV_X + 8) {
-                cycleRecipe(-1);
+        Shown clicked = hoveredSlot(mouseX, mouseY);
+        if (clicked != null && JEI && (button == 0 || button == 1)) {
+            return JeiRecipeLookup.show(clicked.content(), button == 1);
+        }
+        if (isOnSizeButton(mouseX, mouseY)) {
+            playClick();
+            toggleSize();
+            return true;
+        }
+        if (isOnPageButton(mouseX, mouseY)) {
+            page = (page + 1) % PAGE_COUNT;
+            playClick();
+            return true;
+        }
+        if (!onPortsPage()) {
+            if (isOnRow(Row.MODE, mouseX, mouseY)) {
+                var modes = RecipeSelectionMode.values();
+                int step = button == 1 ? modes.length - 1 : 1;
+                var next = modes[(be.getRecipeSelectionMode().ordinal() + step) % modes.length];
+                PacketDistributor.sendToServer(new ControllerSettingsPkt(be.getBlockPos(), ControllerSettingsPkt.Setting.RECIPE_ORDER, next.serializedName()));
+                playClick();
                 return true;
             }
-            if (mx >= NEXT_X - 2 && mx <= NEXT_X + 8) {
-                cycleRecipe(1);
+            if (isOnRow(Row.REDSTONE, mouseX, mouseY)) {
+                int next = (be.getRedstoneModeOrdinal() + (button == 1 ? 2 : 1)) % 3;
+                PacketDistributor.sendToServer(new ToggleRedstoneModePkt(be.getBlockPos(), next));
+                playClick();
+                return true;
+            }
+            if (isOnRow(Row.RECIPE, mouseX, mouseY)) {
+                cycleRecipe(button == 1 ? -1 : 1);
+                playClick();
                 return true;
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private boolean isOnName(double mouseX, double mouseY) {
+        return WidgetUtils.isPointerWithinSized((int) mouseX, (int) mouseY, this.leftPos + LEFT, this.topPos + NAME_Y - 1, nameWidth(), 10);
+    }
+
+    private void startRename() {
+        nameBox = new EditBox(this.font, this.leftPos + LEFT - 1, this.topPos + NAME_Y - 2, nameWidth() + 2, 12, Component.empty());
+        nameBox.setMaxLength(MachineControllerBlockEntity.MAX_NAME_LENGTH);
+        nameBox.setValue(be.getName().getString());
+        addRenderableWidget(nameBox);
+        setFocused(nameBox);
+        nameBox.setFocused(true);
+    }
+
+    private void finishRename(boolean keep) {
+        if (nameBox == null) return;
+        if (keep) {
+            String typed = nameBox.getValue().strip();
+            String name = typed.equals(menu.getModel().displayName().getString()) ? "" : typed;
+            PacketDistributor.sendToServer(new ControllerSettingsPkt(be.getBlockPos(), ControllerSettingsPkt.Setting.NAME, name));
+        }
+        removeWidget(nameBox);
+        nameBox = null;
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (nameBox != null) {
+            if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+                finishRename(true);
+            } else if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+                finishRename(false);
+            } else {
+                nameBox.keyPressed(keyCode, scanCode, modifiers);
+            }
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if ((onPortsPage() || wide) && portList.mouseScrolled(mouseX, mouseY, scrollY, be.getLevel())) {
+            return true;
+        }
+        if (wide && outputList.mouseScrolled(mouseX, mouseY, scrollY, be.getLevel())) {
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 }

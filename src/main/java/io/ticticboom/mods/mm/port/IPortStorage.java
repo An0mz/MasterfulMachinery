@@ -43,6 +43,10 @@ public interface IPortStorage {
         return 0;
     }
 
+    default List<PortContent> contents() {
+        return List.of();
+    }
+
     default List<net.minecraft.network.chat.Component> describeContents() {
         return List.of();
     }

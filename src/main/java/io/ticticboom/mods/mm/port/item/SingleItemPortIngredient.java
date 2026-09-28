@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.item;
 
+import io.ticticboom.mods.mm.port.PortContent;
 import io.ticticboom.mods.mm.util.ItemNbtUtil;
 
 import com.google.gson.JsonArray;
@@ -49,6 +50,11 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
         if (requiredNbt != null) {
             ItemNbtUtil.setTag(stack, requiredNbt.copy());
         }
+    }
+
+    @Override
+    public PortContent display() {
+        return PortContent.item(stack.copyWithCount(1), stack.getCount());
     }
 
     public ItemStack outputStack() {

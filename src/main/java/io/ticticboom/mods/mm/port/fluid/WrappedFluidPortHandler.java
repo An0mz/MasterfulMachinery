@@ -36,34 +36,19 @@ public class WrappedFluidPortHandler implements IFluidHandler {
         if (resource.isEmpty()) {
             return 0;
         }
-
-        int filled = 0;
         for (int i = 0; i < handler.getTanks(); i++) {
             FluidStack stack = handler.getFluidInTank(i);
             int tankCapacity = handler.getTankCapacity(i);
-            if (stack.getAmount() >= tankCapacity) {
+            if (stack.getAmount() >= tankCapacity || !handler.isFluidValid(i, resource)) {
                 continue;
             }
-
-            if (stack.isEmpty()) {
-                filled = Math.min(resource.getAmount(), tankCapacity);
-                if (action.execute()) {
-                    handler.setFluidInTank(i, new FluidStack(resource.getFluid(), filled));
-                }
-                break;
-            } else if (handler.isFluidValid(i, resource)) {
-                var amountToFill = Math.min(tankCapacity - stack.getAmount(), resource.getAmount());
-                if (action.execute()) {
-                    handler.setFluidInTank(i, new FluidStack(stack.getFluid(), stack.getAmount() + amountToFill));
-                }
-                filled = amountToFill;
-                break;
+            int filled = Math.min(tankCapacity - stack.getAmount(), resource.getAmount());
+            if (action.execute()) {
+                handler.setFluidInTank(i, new FluidStack(resource.getFluid(), stack.getAmount() + filled));
             }
-            handler.getChanged().call();
+            return filled;
         }
-
-        handler.getChanged().call();
-        return filled;
+        return 0;
     }
 
     @Override
@@ -71,31 +56,33 @@ public class WrappedFluidPortHandler implements IFluidHandler {
         if (resource.isEmpty()) {
             return FluidStack.EMPTY;
         }
-
-        var drained = 0;
-        var taken = FluidStack.EMPTY;
         for (int i = 0; i < handler.getTanks(); i++) {
-            taken = handler.innerDrain(i, resource.getFluid(), resource.getAmount(), action.simulate());
-            drained = taken.getAmount();
-            if (drained != 0) {
-                break;
+            var taken = handler.innerDrain(i, resource.getFluid(), resource.getAmount(), action.simulate());
+            if (taken.getAmount() != 0) {
+                if (action.execute()) {
+                    handler.getChanged().call();
+                }
+                return taken;
             }
         }
-        handler.getChanged().call();
-        return new FluidStack(resource.getFluid(), drained);
+        return FluidStack.EMPTY;
     }
 
     @Override
     public @NotNull FluidStack drain(int maxDrain, FluidAction action) {
-        FluidStack res = FluidStack.EMPTY;
         for (int i = 0; i < handler.getTanks(); i++) {
             FluidStack stack = handler.getFluidInTank(i);
-            res = handler.innerDrain(i, stack.getFluid(), maxDrain, action.simulate());
-            if (res.getAmount() != 0) {
-                break;
+            if (stack.isEmpty()) {
+                continue;
+            }
+            var taken = handler.innerDrain(i, stack.getFluid(), maxDrain, action.simulate());
+            if (taken.getAmount() != 0) {
+                if (action.execute()) {
+                    handler.getChanged().call();
+                }
+                return taken;
             }
         }
-        handler.getChanged().call();
-        return res;
+        return FluidStack.EMPTY;
     }
 }

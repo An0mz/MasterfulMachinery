@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.mekanism.chemical;
 
+import io.ticticboom.mods.mm.port.PortContent;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.compat.jei.SlotGrid;
@@ -62,6 +63,11 @@ public class MekanismChemicalPortIngredient implements IPortIngredient {
      */
     public ResourceLocation getChemicalId() {
         return this.id;
+    }
+
+    @Override
+    public PortContent display() {
+        return PortContent.chemical(chemical.getTextComponent(), chemical.getIcon(), chemical.getTint(), amount, 0);
     }
 
     public Chemical getChemical() {

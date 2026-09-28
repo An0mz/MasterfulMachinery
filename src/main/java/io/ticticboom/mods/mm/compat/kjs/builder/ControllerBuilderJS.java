@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.compat.kjs.builder;
 
+import io.ticticboom.mods.mm.util.ColorUtil;
 import com.google.gson.JsonElement;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import io.ticticboom.mods.mm.compat.kjs.KubeJsValues;
@@ -52,6 +53,25 @@ public class ControllerBuilderJS {
         var rl = ResourceLocation.tryParse(texture);
         if (rl == null) throw new IllegalArgumentException("Invalid resource location: " + texture);
         textures.put(key, rl.toString());
+        return this;
+    }
+
+    public ControllerBuilderJS unformedColor(String color) {
+        return putColor("unformedColor", color);
+    }
+
+    public ControllerBuilderJS idleColor(String color) {
+        return putColor("idleColor", color);
+    }
+
+    public ControllerBuilderJS workingColor(String color) {
+        return putColor("workingColor", color);
+    }
+
+    @HideFromJS
+    private ControllerBuilderJS putColor(String key, String color) {
+        if (ColorUtil.parse(color) == null) throw new IllegalArgumentException("Invalid color, expected #RRGGBB: " + color);
+        textures.put(key, color);
         return this;
     }
 

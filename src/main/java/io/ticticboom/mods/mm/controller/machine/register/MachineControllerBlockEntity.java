@@ -1,5 +1,9 @@
 package io.ticticboom.mods.mm.controller.machine.register;
 
+import io.ticticboom.mods.mm.util.ColorUtil;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.component.DataComponentMap;
+import io.ticticboom.mods.mm.structure.StructureDiagnosis;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.config.MMConfig;
 import io.ticticboom.mods.mm.controller.IControllerBlockEntity;
@@ -7,7 +11,9 @@ import io.ticticboom.mods.mm.controller.IControllerPart;
 import io.ticticboom.mods.mm.model.ControllerModel;
 import io.ticticboom.mods.mm.model.RecipeSelectionMode;
 import io.ticticboom.mods.mm.port.IControllerAwareStorage;
+import io.ticticboom.mods.mm.port.IPortBlockEntity;
 import io.ticticboom.mods.mm.port.IRecipeDemandListener;
+import io.ticticboom.mods.mm.port.common.AbstractPortBlockEntity;
 import io.ticticboom.mods.mm.port.energy.EnergyPortIngredient;
 import io.ticticboom.mods.mm.port.energy.EnergyPortStorage;
 import io.ticticboom.mods.mm.port.entity.EntityPortStorage;
@@ -24,6 +30,7 @@ import io.ticticboom.mods.mm.structure.StructureManager;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -36,6 +43,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -43,8 +51,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -59,6 +69,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private static final int SKIP_COOLDOWN = 20;
     private static final int OUTPUT_BLOCKED_COOLDOWN = 100;
     private static final int SEARCH_CHECKS_PER_TICK = 5;
+    private static final int RECENT_RECIPE_TICKS = 20;
+    public static final int MAX_NAME_LENGTH = 50;
 
     private enum RedstoneMode { IGNORED, WITH_REDSTONE, WITHOUT_REDSTONE }
 
@@ -97,6 +109,10 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private final Map<ResourceLocation, RecipeRequirements> requirements = new HashMap<>();
     private int nextRecipeCheckIndex = 0;
     private ResourceLocation lastStartedRecipeId = null;
+    private long lastRecipeStartTime = Long.MIN_VALUE;
+    private long lastProgressTime = Long.MIN_VALUE;
+    private RecipeSelectionMode recipeModeOverride = null;
+    private String customName = null;
     private long recipeSelectionSequence = 0L;
     private final Map<ResourceLocation, Long> inputItemLastStartedSequence = new HashMap<>();
     private final Map<ResourceLocation, Long> recipeLastStartedSequence = new HashMap<>();
@@ -109,6 +125,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private int requestedCrafts = 0;
 
     private boolean syncPending = false;
+    private RecipeStorages linkedStorages = null;
+    private ControllerState linkedState = null;
     private boolean wasActive = false;
     private long lastSync = Long.MIN_VALUE / 2;
 
@@ -136,6 +154,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (isFormed) {
             runRecipe(gameTime);
         }
+        updateControllerState();
         boolean active = !activeRecipes.isEmpty();
         if (active || wasActive) {
             markChanged();
@@ -199,6 +218,60 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         }
     }
 
+    private void updateControllerState() {
+        var blockState = getBlockState();
+        ControllerState next;
+        if (!isFormed || portStorages == null) {
+            next = ControllerState.UNFORMED;
+        } else if (isAllowedByRedstone() && isWorking()) {
+            next = ControllerState.WORKING;
+        } else {
+            next = ControllerState.IDLE;
+        }
+        if (blockState.hasProperty(ControllerState.PROPERTY) && blockState.getValue(ControllerState.PROPERTY) != next) {
+            level.setBlock(getBlockPos(), blockState.setValue(ControllerState.PROPERTY, next), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+        }
+        if (next != linkedState || portStorages != linkedStorages) {
+            linkPorts(linkedStorages, portStorages, next);
+            linkedStorages = portStorages;
+            linkedState = next;
+        }
+    }
+
+    private void linkPorts(@Nullable RecipeStorages previous, @Nullable RecipeStorages current, ControllerState state) {
+        if (previous != null && previous != current) {
+            Set<IPortBlockEntity> kept = Collections.newSetFromMap(new IdentityHashMap<>());
+            if (current != null) {
+                kept.addAll(current.sources());
+            }
+            for (var source : previous.sources()) {
+                if (source instanceof AbstractPortBlockEntity port && !kept.contains(source) && !port.isRemoved()) {
+                    port.setMachineInfo(null, ControllerState.UNFORMED, null);
+                }
+            }
+        }
+        if (current != null) {
+            Direction front = getBlockState().getValue(HorizontalDirectionalBlock.FACING).getOpposite();
+            int[] colors = machineColors();
+            for (var source : current.sources()) {
+                if (source instanceof AbstractPortBlockEntity port) {
+                    port.setMachineInfo(front, state, colors);
+                }
+            }
+        }
+    }
+
+    private @Nullable int[] machineColors() {
+        int[] colors = new int[ControllerState.values().length];
+        boolean any = false;
+        for (ControllerState state : ControllerState.values()) {
+            Integer color = ColorUtil.parse(model.screenColor(state.getSerializedName()));
+            colors[state.ordinal()] = color == null ? -1 : color;
+            any |= color != null;
+        }
+        return any ? colors : null;
+    }
+
     private void switchStructure(StructureModel next) {
         activeRecipes.keySet().removeIf(id -> {
             var recipe = MachineRecipeManager.RECIPES.get(id);
@@ -213,7 +286,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         markChanged();
     }
 
-    private boolean isAllowedByRedstone() {
+    public boolean isAllowedByRedstone() {
         return switch (redstoneMode) {
             case IGNORED -> true;
             case WITH_REDSTONE -> level.hasNeighborSignal(getBlockPos());
@@ -316,6 +389,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             }
             recipe.outputs().process(level, portStorages, state);
             storageContentCacheValid = false;
+            lastProgressTime = level.getGameTime();
             return true;
         });
     }
@@ -329,7 +403,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (total == 0) {
             return;
         }
-        var mode = model.recipeSelectionMode();
+        var mode = getRecipeSelectionMode();
         int checks = mode.fairScheduling() ? total : Math.min(SEARCH_CHECKS_PER_TICK, total);
         int index = nextRecipeCheckIndex % total;
         var requested = activeRequest(gameTime);
@@ -427,13 +501,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (recipe.parallelProcessing() == MMConfig.PARALLEL_PROCESSING_DEFAULT) {
             allowParallel = model.parallelProcessingDefault();
         }
-        int limit = model.maxParallelRecipes();
-        if (structure != null && structure.maxParallelRecipes() >= 0) {
-            limit = structure.maxParallelRecipes();
-        }
-        if (limit < 0) {
-            limit = MMConfig.MAX_PARALLEL_RECIPES;
-        }
+        int limit = parallelLimit();
         boolean underLimit = limit == 0 ? activeRecipes.isEmpty() : activeRecipes.size() < limit;
         return (allowParallel || activeRecipes.isEmpty()) && underLimit;
     }
@@ -447,6 +515,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         state.setCanProcess(true);
         activeRecipes.put(recipe.id(), state);
         lastStartedRecipeId = recipe.id();
+        lastRecipeStartTime = gameTime;
+        lastProgressTime = gameTime;
         recipeSelectionSequence++;
         recipeLastStartedSequence.put(recipe.id(), recipeSelectionSequence);
         if (inputKey != null) {
@@ -503,6 +573,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             storageContentCacheValid = false;
             if (fed) {
                 state.proceedTick(recipeSpeedMultiplier());
+                lastProgressTime = gameTime;
             }
         }
         state.setTickPercentage(((double) state.getTickProgress() / recipe.ticks()) * 100);
@@ -511,6 +582,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         }
         state.setCanFinish(true);
         if (recipe.outputs().canProcess(level, portStorages, state)) {
+            lastProgressTime = gameTime;
             recipe.outputs().process(level, portStorages, state);
             storageContentCacheValid = false;
             return true;
@@ -571,6 +643,9 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     public void invalidateProgress() {
+        linkPorts(linkedStorages, null, ControllerState.UNFORMED);
+        linkedStorages = null;
+        linkedState = null;
         activeRecipes.clear();
         currentRecipe = null;
         structure = null;
@@ -598,7 +673,115 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
 
     @Override
     public @NotNull Component getDisplayName() {
-        return model.displayName();
+        return getName();
+    }
+
+    public Component getName() {
+        return customName != null ? Component.literal(customName) : model.displayName();
+    }
+
+    public @Nullable String getCustomName() {
+        return customName;
+    }
+
+    public void setCustomName(@Nullable String name) {
+        customName = name == null || name.isBlank() ? null : name.strip();
+        if (customName != null && customName.length() > MAX_NAME_LENGTH) {
+            customName = customName.substring(0, MAX_NAME_LENGTH);
+        }
+        markChanged();
+    }
+
+    @Override
+    protected void applyImplicitComponents(DataComponentInput input) {
+        super.applyImplicitComponents(input);
+        var name = input.get(DataComponents.CUSTOM_NAME);
+        if (name != null) {
+            setCustomName(name.getString());
+        }
+    }
+
+    @Override
+    protected void collectImplicitComponents(DataComponentMap.Builder components) {
+        super.collectImplicitComponents(components);
+        if (customName != null) {
+            components.set(DataComponents.CUSTOM_NAME, Component.literal(customName));
+        }
+    }
+
+    @Override
+    public void removeComponentsFromTag(CompoundTag tag) {
+        tag.remove("CustomName");
+    }
+
+    public RecipeSelectionMode getRecipeSelectionMode() {
+        return recipeModeOverride != null ? recipeModeOverride : model.recipeSelectionMode();
+    }
+
+    public void setRecipeSelectionMode(RecipeSelectionMode mode) {
+        recipeModeOverride = mode == model.recipeSelectionMode() ? null : mode;
+        recipeNextCheckTime.clear();
+        markChanged();
+    }
+
+    public @Nullable RecipeModel getDisplayedRecipe() {
+        if (currentRecipe != null) {
+            return currentRecipe;
+        }
+        if (level == null || lastStartedRecipeId == null || level.getGameTime() - lastRecipeStartTime > RECENT_RECIPE_TICKS) {
+            return null;
+        }
+        return MachineRecipeManager.RECIPES.get(lastStartedRecipeId);
+    }
+
+    public boolean isWorking() {
+        return level != null && level.getGameTime() - lastProgressTime <= RECENT_RECIPE_TICKS;
+    }
+
+    public int getActiveRecipeCount() {
+        return activeRecipes.size();
+    }
+
+    public int getDisplayedParallelLimit() {
+        if (!model.parallelProcessingDefault()) {
+            return 1;
+        }
+        return Math.max(1, parallelLimit());
+    }
+
+    private int parallelLimit() {
+        int limit = model.maxParallelRecipes();
+        if (structure != null && structure.maxParallelRecipes() >= 0) {
+            limit = structure.maxParallelRecipes();
+        }
+        return limit < 0 ? MMConfig.MAX_PARALLEL_RECIPES : limit;
+    }
+
+    public StructureDiagnosis diagnoseStructure() {
+        if (level == null || isFormed) {
+            return StructureDiagnosis.NONE;
+        }
+        try {
+            return StructureDiagnosis.diagnose(level, getBlockPos(), StructureManager.getStructuresForController(controllerId));
+        } catch (RuntimeException e) {
+            Ref.LOG.error("Failed to diagnose the structure of the controller at {}", getBlockPos(), e);
+            return StructureDiagnosis.NONE;
+        }
+    }
+
+    public List<BlockPos> getPortPositions() {
+        if (portStorages == null) {
+            return List.of();
+        }
+        var inputs = new ArrayList<BlockPos>();
+        var outputs = new ArrayList<BlockPos>();
+        for (var source : portStorages.sources()) {
+            if (source instanceof BlockEntity port) {
+                (source.isInput() ? inputs : outputs).add(port.getBlockPos());
+            }
+        }
+        inputs.addAll(outputs);
+        return inputs;
     }
 
     @Nullable
@@ -620,6 +803,14 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         tag.putBoolean("isFormed", isFormed);
         if (lastStartedRecipeId != null) {
             tag.putString("lastStartedRecipeId", lastStartedRecipeId.toString());
+            tag.putLong("lastRecipeStartTime", lastRecipeStartTime);
+        }
+        tag.putLong("lastProgressTime", lastProgressTime);
+        if (recipeModeOverride != null) {
+            tag.putString("RecipeSelectionMode", recipeModeOverride.serializedName());
+        }
+        if (customName != null) {
+            tag.putString("CustomName", customName);
         }
         tag.putLong("recipeSelectionSequence", recipeSelectionSequence);
         if (!inputItemLastStartedSequence.isEmpty()) {
@@ -651,6 +842,10 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         structure = tag.contains("structureId") ? StructureManager.STRUCTURES.get(ResourceLocation.tryParse(tag.getString("structureId"))) : null;
         isFormed = tag.contains("isFormed") ? tag.getBoolean("isFormed") : structure != null;
         lastStartedRecipeId = tag.contains("lastStartedRecipeId") ? ResourceLocation.tryParse(tag.getString("lastStartedRecipeId")) : null;
+        lastRecipeStartTime = tag.contains("lastRecipeStartTime") ? tag.getLong("lastRecipeStartTime") : Long.MIN_VALUE;
+        lastProgressTime = tag.contains("lastProgressTime") ? tag.getLong("lastProgressTime") : Long.MIN_VALUE;
+        recipeModeOverride = tag.contains("RecipeSelectionMode") ? RecipeSelectionMode.parse(tag.getString("RecipeSelectionMode")) : null;
+        customName = tag.contains("CustomName") ? tag.getString("CustomName") : null;
         selectedRecipeId = tag.contains("selectedRecipe") ? ResourceLocation.tryParse(tag.getString("selectedRecipe")) : null;
         recipeSelectionSequence = tag.getLong("recipeSelectionSequence");
         inputItemLastStartedSequence.clear();
@@ -709,7 +904,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     public boolean isManualSelection() {
-        return model.recipeSelectionMode() == RecipeSelectionMode.MANUAL;
+        return getRecipeSelectionMode() == RecipeSelectionMode.MANUAL;
     }
 
     public void selectRecipe(@Nullable ResourceLocation recipeId) {

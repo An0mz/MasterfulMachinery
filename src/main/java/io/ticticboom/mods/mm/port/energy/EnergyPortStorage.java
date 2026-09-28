@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.port.energy;
 
+import java.util.List;
+import io.ticticboom.mods.mm.port.PortContent;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.cap.MMCapabilities;
 import io.ticticboom.mods.mm.port.IPortStorage;
@@ -95,4 +97,9 @@ public class EnergyPortStorage implements IPortStorage {
     // Priority accessors
     public int getPriority() { return this.priority; }
     public void setPriority(int priority) { this.priority = Math.max(0, Math.min(10, priority)); }
+
+    @Override
+    public List<PortContent> contents() {
+        return List.of(PortContent.energy(handler.getStored(), handler.getCapacity()));
+    }
 }

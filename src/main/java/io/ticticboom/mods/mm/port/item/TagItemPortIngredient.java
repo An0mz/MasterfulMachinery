@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.item;
 
+import io.ticticboom.mods.mm.port.PortContent;
 import io.ticticboom.mods.mm.util.ItemNbtUtil;
 
 import com.google.gson.JsonObject;
@@ -47,6 +48,12 @@ public class TagItemPortIngredient extends BaseItemPortIngredient {
                 }).toList())
                 .orElseGet(List::of),
                 () -> BuiltInRegistries.ITEM.getTag(tag).map(holders -> holders.size() > 0).orElse(false), List.of());
+    }
+
+    @Override
+    public PortContent display() {
+        var all = stacks.get();
+        return all.isEmpty() ? null : PortContent.item(all.get(0).copyWithCount(1), all.get(0).getCount());
     }
 
     private static Predicate<ItemStack> createPredicate(ResourceLocation id) {

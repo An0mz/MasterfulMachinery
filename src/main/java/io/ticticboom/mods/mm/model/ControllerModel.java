@@ -32,6 +32,12 @@ public record ControllerModel(
         return ParserUtils.parseOptionalId(config, "texture");
     }
 
+    public String screenColor(String state) {
+        var key = state + "Color";
+        if (config == null || !config.has(key) || !config.get(key).isJsonPrimitive()) return null;
+        return config.get(key).getAsString();
+    }
+
     public ResourceLocation customModel() {
         return ParserUtils.parseOptionalId(config, "model");
     }

@@ -1,13 +1,13 @@
 package io.ticticboom.mods.mm.port.common;
 
 import io.ticticboom.mods.mm.Ref;
+import io.ticticboom.mods.mm.client.gui.widgets.PortConfigPanel;
 import io.ticticboom.mods.mm.port.IPortMenu;
 import io.ticticboom.mods.mm.util.BlockUtils;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.FormattedText;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.phys.Vec2;
@@ -20,7 +20,7 @@ public class SlottedContainerScreen<T extends AbstractContainerMenu & IPortMenu 
     private static final int PAGE_BUTTON_SIZE = 20;
 
     protected final T menu;
-    protected final FormattedText header;
+    protected final PortConfigPanel configPanel;
     protected final PortPager pager;
     protected final PortGrid grid;
     protected ArrayList<Vec2> slots = new ArrayList<>();
@@ -32,9 +32,7 @@ public class SlottedContainerScreen<T extends AbstractContainerMenu & IPortMenu 
         this.menu = menu;
         this.imageHeight = 222;
         this.imageWidth = 174;
-        String name = menu.getModel().displayName().getString();
-        int subStrLength = Math.min(55, name.length());
-        header = FormattedText.of(name.substring(0, subStrLength) + (subStrLength < 55 ? "" : "..."));
+        configPanel = new PortConfigPanel(menu.getBlockEntity());
         pager = menu.getPager();
         grid = pager.grid();
         setupSlots();
@@ -69,6 +67,7 @@ public class SlottedContainerScreen<T extends AbstractContainerMenu & IPortMenu 
     @Override
     protected void init() {
         super.init();
+        configPanel.setPosition(this.leftPos, this.topPos, this.imageWidth);
         if (grid.pages() <= 1) {
             return;
         }
@@ -86,6 +85,19 @@ public class SlottedContainerScreen<T extends AbstractContainerMenu & IPortMenu 
         }
         previousPage.active = page() > 0;
         nextPage.active = page() < grid.pages() - 1;
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (configPanel.mouseClicked(mouseX, mouseY)) {
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    protected boolean hasClickedOutside(double mouseX, double mouseY, int left, int top, int button) {
+        return super.hasClickedOutside(mouseX, mouseY, left, top, button) && !configPanel.isWithin(mouseX, mouseY);
     }
 
     @Override
@@ -113,12 +125,7 @@ public class SlottedContainerScreen<T extends AbstractContainerMenu & IPortMenu 
 
     @Override
     protected void renderLabels(GuiGraphics gfx, int mouseX, int mouseY) {
-        // One line on purpose. The slot grid starts at a fixed y that the menu also uses to place
-        // its Slot objects, so a title allowed to wrap would draw on top of the first row.
-        var lines = this.font.split(header, 150);
-        if (!lines.isEmpty()) {
-            gfx.drawString(this.font, lines.get(0), 8, 8, 0x404040, false);
-        }
+        PortConfigPanel.drawTitle(gfx, this.font, menu.getModel().displayName(), this.imageWidth);
         if (grid.pages() > 1) {
             var label = Component.literal((page() + 1) + " / " + grid.pages());
             gfx.drawString(this.font, label, (this.imageWidth - this.font.width(label)) / 2,
@@ -130,6 +137,15 @@ public class SlottedContainerScreen<T extends AbstractContainerMenu & IPortMenu 
     public void render(GuiGraphics gfx, int mouseX, int mouseY, float partialTicks) {
         renderBackground(gfx, mouseX, mouseY, partialTicks);
         super.render(gfx, mouseX, mouseY, partialTicks);
-        renderTooltip(gfx, mouseX, mouseY);
+        configPanel.render(gfx, this.font, mouseX, mouseY);
+        if (configPanel.isWithin(mouseX, mouseY)) {
+            configPanel.renderTooltip(gfx, this.font, mouseX, mouseY);
+        } else {
+            renderTooltip(gfx, mouseX, mouseY);
+            renderExtraTooltip(gfx, mouseX, mouseY);
+        }
+    }
+
+    protected void renderExtraTooltip(GuiGraphics gfx, int mouseX, int mouseY) {
     }
 }

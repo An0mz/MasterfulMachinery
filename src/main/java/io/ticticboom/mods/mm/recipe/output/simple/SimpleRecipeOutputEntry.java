@@ -34,6 +34,11 @@ public class SimpleRecipeOutputEntry implements IRecipeOutputEntry {
         this.chanceRollKey = "c" + AmountRange.nextRollKey();
     }
 
+    @Override
+    public java.util.List<io.ticticboom.mods.mm.recipe.output.DisplayedOutput> displayedOutputs() {
+        return java.util.List.of(new io.ticticboom.mods.mm.recipe.output.DisplayedOutput(ingredient, chance));
+    }
+
     public IPortIngredient getIngredient() {
         return ingredient;
     }

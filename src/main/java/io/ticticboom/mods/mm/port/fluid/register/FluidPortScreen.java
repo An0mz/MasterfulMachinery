@@ -1,41 +1,115 @@
 package io.ticticboom.mods.mm.port.fluid.register;
 
+import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.client.FluidRenderer;
+import io.ticticboom.mods.mm.client.gui.widgets.TankGauge;
+import io.ticticboom.mods.mm.client.util.CountFormat;
 import io.ticticboom.mods.mm.port.common.SlottedContainerScreen;
-import io.ticticboom.mods.mm.port.fluid.FluidPortStorageModel;
+import io.ticticboom.mods.mm.port.fluid.FluidPortHandler;
+import io.ticticboom.mods.mm.port.fluid.FluidPortStorage;
 import io.ticticboom.mods.mm.util.WidgetUtils;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.phys.Vec2;
+import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class FluidPortScreen extends SlottedContainerScreen<FluidPortMenu> {
-    public FluidPortScreen(FluidPortMenu menu, Inventory p_97742_, Component p_97743_) {
-        super(menu, p_97742_, p_97743_);
+    public FluidPortScreen(FluidPortMenu menu, Inventory inv, Component title) {
+        super(menu, inv, title);
     }
 
-    public void renderFluids(GuiGraphics gfx, int mouseX, int mouseY) {
+    private FluidPortHandler handler() {
         FluidPortBlockEntity be = menu.getBlockEntity();
-        FluidPortStorageModel storageModel = (FluidPortStorageModel) be.getStorage().getStorageModel();
+        return ((FluidPortStorage) be.getStorage()).getHandler();
+    }
+
+    private boolean singleTank() {
+        return handler().getTanks() == 1;
+    }
+
+    @Override
+    protected void renderBg(GuiGraphics gfx, float partialTicks, int mouseX, int mouseY) {
+        if (!singleTank()) {
+            super.renderBg(gfx, partialTicks, mouseX, mouseY);
+            return;
+        }
+        gfx.blit(Ref.UiTextures.PORT_GUI, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
+        int x = this.leftPos + TankGauge.X;
+        int y = this.topPos + TankGauge.Y;
+        TankGauge.drawFrame(gfx, x, y);
+        var handler = handler();
+        var stack = handler.getFluidInTank(0);
+        int capacity = handler.getTankCapacity(0);
+        if (!stack.isEmpty() && capacity > 0) {
+            var props = IClientFluidTypeExtensions.of(stack.getFluid());
+            var sprite = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(props.getStillTexture(stack));
+            TankGauge.drawFill(gfx, x, y, (double) stack.getAmount() / capacity, sprite, props.getTintColor(stack));
+        }
+        TankGauge.drawLabel(gfx, this.font, x, y, stack.isEmpty() ? null : stack.getHoverName(), stack.getAmount(), capacity, "mB");
+    }
+
+    @Override
+    protected void renderLabels(GuiGraphics gfx, int mouseX, int mouseY) {
+        super.renderLabels(gfx, mouseX, mouseY);
+        if (singleTank()) {
+            return;
+        }
         int i = firstSlotOnPage();
         for (Vec2 slot : slots) {
             int slotX = (int) slot.x + 1;
             int slotY = (int) slot.y + 1;
             var stack = menu.getStackInSlot(i);
-            var color = 0x80ffffff;
             FluidRenderer.INSTANCE.render(gfx, slotX, slotY, stack, 16);
+            if (!stack.isEmpty()) {
+                CountFormat.drawSlotCount(gfx, slotX - 1, slotY - 1, stack.getAmount());
+            }
             if (WidgetUtils.isPointerWithinSized(mouseX, mouseY, this.leftPos + slotX, this.topPos + slotY, 16, 16)) {
-                gfx.fillGradient(RenderType.guiOverlay(), slotX, slotY, slotX + 16, slotY + 16, color, color, 99);
-                if (!stack.isEmpty()) {
-                    var tooltip = new ArrayList<Component>();
-                    tooltip.add(stack.getDisplayName().copy().append(": " + stack.getAmount() + "mB / " + storageModel.slotCapacity() + "mB"));
-                    gfx.renderComponentTooltip(this.font, tooltip, mouseX - this.leftPos, mouseY - this.topPos);
-                }
+                gfx.fillGradient(RenderType.guiOverlay(), slotX, slotY, slotX + 16, slotY + 16, 0x80ffffff, 0x80ffffff, 99);
             }
             i++;
         }
+    }
+
+    @Override
+    protected void renderExtraTooltip(GuiGraphics gfx, int mouseX, int mouseY) {
+        var handler = handler();
+        if (singleTank()) {
+            if (TankGauge.isHovered(mouseX, mouseY, this.leftPos + TankGauge.X, this.topPos + TankGauge.Y)) {
+                gfx.renderComponentTooltip(this.font, tankTooltip(handler, 0), mouseX, mouseY);
+            }
+            return;
+        }
+        int i = firstSlotOnPage();
+        for (Vec2 slot : slots) {
+            if (WidgetUtils.isPointerWithinSized(mouseX, mouseY, this.leftPos + (int) slot.x + 1, this.topPos + (int) slot.y + 1, 16, 16)) {
+                gfx.renderComponentTooltip(this.font, tankTooltip(handler, i), mouseX, mouseY);
+                return;
+            }
+            i++;
+        }
+    }
+
+    private static List<Component> tankTooltip(FluidPortHandler handler, int tank) {
+        var stack = handler.getFluidInTank(tank);
+        var tooltip = new ArrayList<Component>();
+        tooltip.add(stack.isEmpty() ? Component.translatable("gui.mm.port.tank.empty") : stack.getHoverName());
+        tooltip.add(Component.literal(CountFormat.grouped(stack.getAmount()) + " / "
+                + CountFormat.grouped(handler.getTankCapacity(tank)) + " mB").withStyle(ChatFormatting.GRAY));
+        if (handler.isLocked()) {
+            var locked = handler.getLockedFluid(tank);
+            tooltip.add(locked == null
+                    ? Component.translatable("gui.mm.port.tank.locked_any").withStyle(ChatFormatting.GOLD)
+                    : Component.translatable("gui.mm.port.tank.locked", new FluidStack(locked, 1).getHoverName()).withStyle(ChatFormatting.GOLD));
+        }
+        return tooltip;
     }
 }

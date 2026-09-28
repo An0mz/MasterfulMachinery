@@ -8,6 +8,7 @@ public class MMConfig {
     public static boolean PREVIEW_BP_SCREEN = false;
     public static boolean PARALLEL_PROCESSING_DEFAULT = false;
     public static int MAX_PARALLEL_RECIPES = 5;
+    public static int PORT_AUTO_IO_INTERVAL = 10;
 
     public static void bake() {
         DEBUG_TOOL = MMConfigSetup.COMMON.debugTool.get();
@@ -17,5 +18,6 @@ public class MMConfig {
         PREVIEW_BP_SCREEN = MMConfigSetup.COMMON.previewBlueprintScreen.get();
         PARALLEL_PROCESSING_DEFAULT = MMConfigSetup.COMMON.parallelProcessingDefault.get();
         MAX_PARALLEL_RECIPES = MMConfigSetup.COMMON.maxParallelRecipes.get();
+        PORT_AUTO_IO_INTERVAL = MMConfigSetup.COMMON.portAutoIOInterval.get();
     }
 }

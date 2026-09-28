@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.fluid;
 
+import io.ticticboom.mods.mm.port.PortContent;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
@@ -38,6 +39,11 @@ public class FluidPortIngredient implements IPortIngredient {
         if (fluid == null) {
             throw new RuntimeException(String.format("Could not find fluid [%s] which is required by an MM recipe", fluidId));
         }
+    }
+
+    @Override
+    public PortContent display() {
+        return PortContent.fluid(new FluidStack(fluid, amount.max()), 0);
     }
 
     @Override

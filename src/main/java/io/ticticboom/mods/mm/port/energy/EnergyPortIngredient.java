@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.energy;
 
+import io.ticticboom.mods.mm.port.PortContent;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.Ref;
@@ -23,6 +24,11 @@ public class EnergyPortIngredient implements IPortIngredient {
 
     public EnergyPortIngredient(LongAmountRange amount) {
         this.amount = amount;
+    }
+
+    @Override
+    public PortContent display() {
+        return PortContent.energy(amount.max(), 0);
     }
 
     public long getAmount() {

@@ -1,6 +1,8 @@
 package io.ticticboom.mods.mm.net;
 
 import io.ticticboom.mods.mm.Ref;
+import io.ticticboom.mods.mm.net.packet.ControllerSettingsPkt;
+import io.ticticboom.mods.mm.net.packet.PortConfigPkt;
 import io.ticticboom.mods.mm.net.packet.ProcessesSyncPkt;
 import io.ticticboom.mods.mm.net.packet.SelectRecipePkt;
 import io.ticticboom.mods.mm.net.packet.StructureSyncPkt;
@@ -27,5 +29,7 @@ public class MMNetwork {
         registrar.playToClient(ProcessesSyncPkt.TYPE, ProcessesSyncPkt.STREAM_CODEC, ProcessesSyncPkt::handle);
         registrar.playToServer(ToggleRedstoneModePkt.TYPE, ToggleRedstoneModePkt.STREAM_CODEC, ToggleRedstoneModePkt::handle);
         registrar.playToServer(SelectRecipePkt.TYPE, SelectRecipePkt.STREAM_CODEC, SelectRecipePkt::handle);
+        registrar.playToServer(ControllerSettingsPkt.TYPE, ControllerSettingsPkt.STREAM_CODEC, ControllerSettingsPkt::handle);
+        registrar.playToServer(PortConfigPkt.TYPE, PortConfigPkt.STREAM_CODEC, PortConfigPkt::handle);
     }
 }

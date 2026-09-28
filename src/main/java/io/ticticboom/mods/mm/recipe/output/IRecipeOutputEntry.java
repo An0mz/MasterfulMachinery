@@ -15,6 +15,10 @@ public interface IRecipeOutputEntry {
     void output(Level level, RecipeStorages storages, RecipeStateModel state);
     default void processTick(Level level, RecipeStorages storages, RecipeStateModel state) {}
     void ditchRecipe(Level level, RecipeStorages storages, RecipeStateModel state);
+
+    default java.util.List<DisplayedOutput> displayedOutputs() {
+        return java.util.List.of();
+    }
     void setRecipe(IRecipeLayoutBuilder builder, RecipeModel model, IFocusGroup focus, IJeiHelpers helpers, SlotGrid grid);
 
     JsonObject debugExpected(Level level, RecipeStorages storages, RecipeStateModel model, JsonObject jsonObject);

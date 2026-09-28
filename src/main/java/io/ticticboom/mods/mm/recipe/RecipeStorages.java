@@ -36,6 +36,10 @@ public final class RecipeStorages {
         return outputStorages;
     }
 
+    public List<IPortBlockEntity> sources() {
+        return sources;
+    }
+
     public <T extends IPortStorage> List<T> getInputStorages(Class<T> clz) {
         return getStorages(clz, inputStorages, inputsByType);
     }

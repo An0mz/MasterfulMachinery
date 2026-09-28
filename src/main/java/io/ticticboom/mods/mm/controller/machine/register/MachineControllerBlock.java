@@ -14,6 +14,7 @@ import io.ticticboom.mods.mm.util.WorldUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -30,7 +31,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
+import java.util.EnumMap;
 import java.util.Objects;
+import net.neoforged.neoforge.client.model.generators.ConfiguredModel;
+import net.neoforged.neoforge.client.model.generators.ModelFile;
 
 public class MachineControllerBlock extends HorizontalDirectionalBlock implements IControllerPart, IControllerBlock {
 
@@ -51,7 +55,8 @@ public class MachineControllerBlock extends HorizontalDirectionalBlock implement
         this.model = model;
         this.groupHolder = groupHolder;
         registerDefaultState(this.getStateDefinition().any()
-                .setValue(FACING, Direction.NORTH));
+                .setValue(FACING, Direction.NORTH)
+                .setValue(ControllerState.PROPERTY, ControllerState.UNFORMED));
     }
 
     @Override
@@ -61,21 +66,37 @@ public class MachineControllerBlock extends HorizontalDirectionalBlock implement
 
     @Override
     public void generateModel(MMBlockstateProvider provider) {
+        var id = groupHolder.getBlock().getId();
+        var models = new EnumMap<ControllerState, ModelFile>(ControllerState.class);
         var custom = model.customModel();
-        if (custom != null) {
-            provider.directionalState(groupHolder.getBlock().get(),
-                    provider.customBlock(groupHolder.getBlock().getId(), custom));
-            return;
-        }
         var base = Objects.requireNonNullElse(model.baseTexture(), Ref.Textures.BASE_BLOCK);
-        var overlay = Objects.requireNonNullElse(model.overlayTexture(), Ref.Textures.CONTROLLER_OVERLAY);
-        var mdl = provider.dynamicBlockNorthOverlay(groupHolder.getBlock().getId(), base, overlay);
-        provider.directionalState(groupHolder.getBlock().get(), mdl);
+        if (custom != null) {
+            var mdl = provider.customBlock(id, custom);
+            for (ControllerState state : ControllerState.values()) {
+                models.put(state, mdl);
+            }
+        } else if (model.overlayTexture() != null) {
+            var mdl = provider.dynamicBlockNorthOverlay(id, base, model.overlayTexture());
+            for (ControllerState state : ControllerState.values()) {
+                models.put(state, mdl);
+            }
+        } else {
+            for (ControllerState state : ControllerState.values()) {
+                var loc = state == ControllerState.UNFORMED ? id : id.withSuffix("_" + state.getSerializedName());
+                models.put(state, provider.controllerModel(loc, base, Ref.Textures.CONTROLLER_FRAME,
+                        Ref.Textures.controllerScreen(state.getSerializedName())));
+            }
+        }
+        provider.getVariantBuilder(groupHolder.getBlock().get())
+                .forAllStates(state -> ConfiguredModel.builder()
+                        .modelFile(models.get(state.getValue(ControllerState.PROPERTY)))
+                        .rotationY((int) state.getValue(FACING).toYRot())
+                        .build());
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING);
+        builder.add(FACING, ControllerState.PROPERTY);
     }
 
 
@@ -87,7 +108,11 @@ public class MachineControllerBlock extends HorizontalDirectionalBlock implement
 
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
-        return BlockUtils.commonUse(state, level, pos, player, hitResult, MachineControllerBlockEntity.class, null);
+        if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer
+                && level.getBlockEntity(pos) instanceof MachineControllerBlockEntity controller) {
+            serverPlayer.openMenu(controller, buf -> MachineControllerMenu.writeOpenData(buf, controller));
+        }
+        return InteractionResult.sidedSuccess(level.isClientSide());
     }
 
     @Nullable
@@ -102,6 +127,10 @@ public class MachineControllerBlock extends HorizontalDirectionalBlock implement
             return (l, pos, s, be) -> ((MachineControllerBlockEntity) be).tick();
         }
         return null;
+    }
+
+    public boolean usesTintedScreen() {
+        return model.customModel() == null && model.overlayTexture() == null;
     }
 
     @Override

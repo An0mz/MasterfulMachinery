@@ -17,7 +17,6 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -63,16 +62,6 @@ public class EnergyPortBlock extends Block implements IPortBlock, EntityBlock {
                 pbe.tick();
             }
         };
-    }
-
-    @Override
-    public void onNeighborChange(BlockState state, LevelReader level, BlockPos pos, BlockPos neighbor) {
-        super.onNeighborChange(state, level, pos, neighbor);
-        if(level.isClientSide()) return;
-        var thisBe = WorldUtil.getBlockEntity(pos, (ServerLevel) level);
-        if (thisBe instanceof EnergyPortBlockEntity pbe) {
-            pbe.neighborsChanged();
-        }
     }
 
     @Override

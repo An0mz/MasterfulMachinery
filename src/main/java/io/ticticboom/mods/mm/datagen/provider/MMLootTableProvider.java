@@ -20,6 +20,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.entries.LootItem;
+import net.minecraft.world.level.storage.loot.functions.CopyComponentsFunction;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
 
@@ -48,7 +50,7 @@ public class MMLootTableProvider extends LootTableProvider {
             for (var blockEntry : MMRegisters.BLOCKS.getEntries()) {
                 var block = blockEntry.get();
                 if (block instanceof IControllerPart controllerPart) {
-                    consumer.accept(lootTableKey(controllerPart.getModel().id()), createBlockLootTable(block));
+                    consumer.accept(lootTableKey(controllerPart.getModel().id()), createNamedBlockLootTable(block));
                 }
                 if (block instanceof IPortPart portPart) {
                     consumer.accept(lootTableKey(portPart.getModel().id()), createBlockLootTable(block));
@@ -61,6 +63,15 @@ public class MMLootTableProvider extends LootTableProvider {
 
         private static ResourceKey<LootTable> lootTableKey(String id) {
             return ResourceKey.create(Registries.LOOT_TABLE, Ref.id("blocks/" + id));
+        }
+
+        protected LootTable.Builder createNamedBlockLootTable(Block block) {
+            LootPool.Builder builder = LootPool.lootPool()
+                    .setRolls(ConstantValue.exactly(1f))
+                    .add(LootItem.lootTableItem(block)
+                            .apply(CopyComponentsFunction.copyComponents(CopyComponentsFunction.Source.BLOCK_ENTITY)
+                                    .include(DataComponents.CUSTOM_NAME)));
+            return LootTable.lootTable().withPool(builder);
         }
 
         protected LootTable.Builder createBlockLootTable(Block block) {

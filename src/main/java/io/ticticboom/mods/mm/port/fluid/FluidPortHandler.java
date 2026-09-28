@@ -9,6 +9,7 @@ import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +22,9 @@ public class FluidPortHandler implements IFluidHandler {
     private final INotifyChangeFunction changed;
 
     private final ArrayList<FluidStack> stacks;
+    private final Fluid[] lockedFluids;
+    @Getter
+    private boolean locked = false;
 
     // OPTIONAL_CODEC, not CODEC: the strict codec rejects empty stacks, and empty tanks are
     // serialised on every block update. Same split as ItemStack in 1.20.5.
@@ -33,6 +37,41 @@ public class FluidPortHandler implements IFluidHandler {
         stacks = new ArrayList<>();
         for (int i = 0; i < tanks; i++) {
             stacks.add(FluidStack.EMPTY);
+        }
+        lockedFluids = new Fluid[tanks];
+    }
+
+    public void setLocked(boolean locked) {
+        this.locked = locked;
+        for (int i = 0; i < tanks; i++) {
+            FluidStack stack = stacks.get(i);
+            lockedFluids[i] = locked && !stack.isEmpty() ? stack.getFluid() : null;
+        }
+        changed.call();
+    }
+
+    @Nullable
+    public Fluid getLockedFluid(int tank) {
+        return lockedFluids[tank];
+    }
+
+    public void loadLock(boolean locked, Fluid[] fluids) {
+        this.locked = locked;
+        for (int i = 0; i < tanks; i++) {
+            lockedFluids[i] = locked && i < fluids.length ? fluids[i] : null;
+        }
+    }
+
+    public void clearAll() {
+        for (int i = 0; i < tanks; i++) {
+            stacks.set(i, FluidStack.EMPTY);
+        }
+        changed.call();
+    }
+
+    private void rememberLockedFluid(int tank, Fluid fluid) {
+        if (locked && lockedFluids[tank] == null) {
+            lockedFluids[tank] = fluid;
         }
     }
 
@@ -48,6 +87,9 @@ public class FluidPortHandler implements IFluidHandler {
 
     public void setFluidInTank(int i, FluidStack fluidStack) {
         stacks.set(i, fluidStack);
+        if (!fluidStack.isEmpty()) {
+            rememberLockedFluid(i, fluidStack.getFluid());
+        }
         changed.call();
     }
 
@@ -58,20 +100,26 @@ public class FluidPortHandler implements IFluidHandler {
 
     @Override
     public boolean isFluidValid(int i, @NotNull FluidStack fluidStack) {
+        Fluid lockedFluid = lockedFluids[i];
+        if (lockedFluid != null && lockedFluid != fluidStack.getFluid()) {
+            return false;
+        }
         FluidStack slotStack = stacks.get(i);
         return slotStack.isEmpty() || slotStack.isFluidEqual(fluidStack);
     }
 
     @Override
     public int fill(FluidStack stack, FluidAction action) {
-        changed.call();
         if (stack.isEmpty()) {
             return 0;
         }
 
         int filled = 0;
-        for (int slot = 0; slot < stacks.size(); slot++) {
+        for (int slot = 0; slot < stacks.size() && filled < stack.getAmount(); slot++) {
             filled += innerFill(slot, stack.getFluid(), stack.getAmount() - filled, action.simulate());
+        }
+        if (action.execute() && filled > 0) {
+            changed.call();
         }
         return filled;
     }
@@ -85,33 +133,32 @@ public class FluidPortHandler implements IFluidHandler {
 
         var canBeFilled = Math.min(capacity - storedAmount, amount);
 
-        if (!simulate) {
+        if (!simulate && canBeFilled > 0) {
             FluidStack stack = stacks.get(slot);
             if (stack.isEmpty()) {
                 stacks.set(slot, new FluidStack(fluid, canBeFilled));
             } else {
                 stack.setAmount(storedAmount + canBeFilled);
             }
+            rememberLockedFluid(slot, fluid);
         }
         return canBeFilled;
     }
 
     @Override
     public @NotNull FluidStack drain(FluidStack stack, FluidAction action) {
-        changed.call();
         if (stack.isEmpty()) {
             return FluidStack.EMPTY;
         }
 
         int drained = 0;
-        for (int slot = 0; slot < stacks.size(); slot++) {
-            var innerDrained = innerDrain(slot, stack.getFluid(), stack.getAmount(), action.simulate());
-            drained += innerDrained.getAmount();
-            if (drained >= stack.getAmount()) {
-                break;
-            }
+        for (int slot = 0; slot < stacks.size() && drained < stack.getAmount(); slot++) {
+            drained += innerDrain(slot, stack.getFluid(), stack.getAmount() - drained, action.simulate()).getAmount();
         }
-        return new FluidStack(stack.getFluid(), drained);
+        if (action.execute() && drained > 0) {
+            changed.call();
+        }
+        return drained == 0 ? FluidStack.EMPTY : new FluidStack(stack.getFluid(), drained);
     }
 
     public FluidStack innerDrain(int slot, Fluid fluid, int amount, boolean simulate) {
@@ -133,21 +180,19 @@ public class FluidPortHandler implements IFluidHandler {
 
     @Override
     public @NotNull FluidStack drain(int i, FluidAction action) {
-        changed.call();
         Fluid fluid = findFirstFluid();
         if (fluid == null) {
             return FluidStack.EMPTY;
         }
 
         int drained = 0;
-        for (int slot = 0; slot < stacks.size(); slot++) {
-            var innerDrained = innerDrain(slot, fluid, i, action.simulate());
-            drained += innerDrained.getAmount();
-            if (drained >= i) {
-                break;
-            }
+        for (int slot = 0; slot < stacks.size() && drained < i; slot++) {
+            drained += innerDrain(slot, fluid, i - drained, action.simulate()).getAmount();
         }
-        return new FluidStack(fluid, drained);
+        if (action.execute() && drained > 0) {
+            changed.call();
+        }
+        return drained == 0 ? FluidStack.EMPTY : new FluidStack(fluid, drained);
     }
 
     private Fluid findFirstFluid() {

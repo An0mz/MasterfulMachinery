@@ -1,8 +1,11 @@
 package io.ticticboom.mods.mm.port.common;
 
 import io.ticticboom.mods.mm.Ref;
+import io.ticticboom.mods.mm.controller.machine.register.ControllerState;
 import io.ticticboom.mods.mm.port.IPortBlockEntity;
 import io.ticticboom.mods.mm.port.IPortPart;
+import io.ticticboom.mods.mm.port.common.autoio.PortAutoIO;
+import net.minecraft.core.Direction;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -16,11 +19,23 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
+
 public abstract class AbstractPortBlockEntity extends BlockEntity implements IPortBlockEntity, IPortPart {
 
     static final int SYNC_INTERVAL = 10;
+    private static final String FRONT_KEY = "MMMachineFront";
+    private static final String STATE_KEY = "MMMachineState";
+    private static final String COLORS_KEY = "MMMachineColors";
 
     protected long lastTick = 0;
+    @Nullable
+    protected PortAutoIO autoIO;
+    @Nullable
+    private Direction machineFront;
+    private ControllerState machineState = ControllerState.UNFORMED;
+    @Nullable
+    private int[] machineColors;
     private long changeCount = 0;
     private long lastSync = Long.MIN_VALUE / 2;
     private boolean syncPending = false;
@@ -29,15 +44,75 @@ public abstract class AbstractPortBlockEntity extends BlockEntity implements IPo
         super(type, pos, state);
     }
 
+    @Nullable
+    public PortAutoIO getAutoIO() {
+        return autoIO;
+    }
+
+    @Nullable
+    public Direction getMachineFront() {
+        return machineFront;
+    }
+
+    public ControllerState getMachineState() {
+        return machineState;
+    }
+
+    public int getMachineColor(ControllerState state) {
+        return machineColors == null ? -1 : machineColors[state.ordinal()];
+    }
+
+    public void setMachineInfo(@Nullable Direction front, ControllerState state, @Nullable int[] colors) {
+        if (front == machineFront && state == machineState && Arrays.equals(colors, machineColors)) {
+            return;
+        }
+        machineFront = front;
+        machineState = state;
+        machineColors = colors;
+        if (level != null && !level.isClientSide()) {
+            level.blockEntityChanged(getBlockPos());
+            requestSync();
+        }
+    }
+
+    public void tick() {
+        if (level == null || lastTick == level.getGameTime()) {
+            return;
+        }
+        lastTick = level.getGameTime();
+        if (autoIO != null) {
+            autoIO.tick();
+        }
+    }
+
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         tag.put(Ref.NBT_STORAGE_KEY, getStorage().save(new CompoundTag(), registries));
+        if (autoIO != null) {
+            autoIO.save(tag);
+        }
+        if (machineFront != null) {
+            tag.putByte(FRONT_KEY, (byte) machineFront.get2DDataValue());
+        }
+        tag.putByte(STATE_KEY, (byte) machineState.ordinal());
+        if (machineColors != null) {
+            tag.putIntArray(COLORS_KEY, machineColors);
+        }
         super.saveAdditional(tag, registries);
     }
 
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         getStorage().load(tag.getCompound(Ref.NBT_STORAGE_KEY), registries);
+        if (autoIO != null) {
+            autoIO.load(tag);
+        }
+        machineFront = tag.contains(FRONT_KEY) ? Direction.from2DDataValue(tag.getByte(FRONT_KEY)) : null;
+        var states = ControllerState.values();
+        int state = tag.getByte(STATE_KEY);
+        machineState = state >= 0 && state < states.length ? states[state] : ControllerState.UNFORMED;
+        int[] colors = tag.getIntArray(COLORS_KEY);
+        machineColors = colors.length == states.length ? colors : null;
         super.loadAdditional(tag, registries);
     }
 
@@ -66,6 +141,10 @@ public abstract class AbstractPortBlockEntity extends BlockEntity implements IPo
         }
         super.setChanged();
         changeCount++;
+        requestSync();
+    }
+
+    private void requestSync() {
         if (syncPending) {
             return;
         }

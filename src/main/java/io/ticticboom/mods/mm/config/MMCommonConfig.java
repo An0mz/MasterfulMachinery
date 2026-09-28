@@ -11,6 +11,7 @@ public class MMCommonConfig {
     public final ModConfigSpec.BooleanValue parallelProcessingDefault;
     public final ModConfigSpec.IntValue maxParallelRecipes;
     public final ModConfigSpec.BooleanValue showJeiMaxParallel;
+    public final ModConfigSpec.IntValue portAutoIOInterval;
 
     public MMCommonConfig(ModConfigSpec.Builder builder) {
         structureValidationRate = builder.comment("How often controller will check structure. 1 means every tick, 20 means every second. Default: 10")
@@ -27,6 +28,8 @@ public class MMCommonConfig {
                 .defineInRange("maxParallelRecipes", 5, 1, 100);
         showJeiMaxParallel = builder.comment("Show 'Max Parallel Processing' line in JEI structure view. Default: true")
                 .define("showJeiMaxParallel", true);
+        portAutoIOInterval = builder.comment("How often ports with enabled auto push/pull sides transfer, in ticks. Default: 10")
+                .defineInRange("portAutoIOInterval", 10, 1, 200);
 
         builder.comment("Preview features that are not yet stable or ready for use.")
                 .push("preview_features");

@@ -45,6 +45,17 @@ import io.ticticboom.mods.mm.util.ItemNbtUtil;
 @SuppressWarnings("unused")
 @JeiPlugin
 public class MMJeiPlugin implements IModPlugin {
+
+    @Override
+    public void onRuntimeAvailable(mezz.jei.api.runtime.IJeiRuntime jeiRuntime) {
+        JeiRecipeLookup.setRuntime(jeiRuntime);
+    }
+
+    @Override
+    public void onRuntimeUnavailable() {
+        JeiRecipeLookup.setRuntime(null);
+    }
+
     public static final ResourceLocation UID = Ref.id("jei_plugin");
 
     @Override

@@ -8,4 +8,8 @@ public class ChanceUtils {
         var rnd = random.nextDouble();
         return chance >= rnd;
     }
+
+    public static String formatPercent(double fraction) {
+        return new java.math.BigDecimal(Double.toString(fraction * 100)).setScale(2, java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
+    }
 }

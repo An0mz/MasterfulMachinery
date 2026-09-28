@@ -115,15 +115,52 @@ public class StructureLayout {
         }
     }
 
+    public List<PositionedLayoutPiece> closestMissing(Level level, BlockPos worldControllerPos, StructureModel model) {
+        List<PositionedLayoutPiece> best = null;
+        for (var entry : rotatedPositionedPieces.entrySet()) {
+            var missing = missingPieces(level, worldControllerPos, model, entry.getValue(), entry.getKey());
+            if (best == null || missing.size() < best.size()) {
+                best = missing;
+            }
+        }
+        return best == null ? List.of() : best;
+    }
+
+    private List<PositionedLayoutPiece> missingPieces(Level level, BlockPos worldControllerPos, StructureModel model, List<PositionedLayoutPiece> positionedPieces, Rotation rot) {
+        var missing = new ArrayList<PositionedLayoutPiece>();
+        var anywherePieces = new ArrayList<PositionedLayoutPiece>();
+        for (PositionedLayoutPiece piece : positionedPieces) {
+            if (isAnywhere(piece.piece().piece())) {
+                anywherePieces.add(piece);
+            } else if (!piece.formed(level, worldControllerPos, model, rot)) {
+                missing.add(piece);
+            }
+        }
+        for (PositionedLayoutPiece req : anywherePieces) {
+            boolean placeable = false;
+            for (PositionedLayoutPiece candidate : anywherePieces) {
+                if (candidateMatches(req.piece(), req.piece().piece(), level, candidate.findAbsolutePos(worldControllerPos), rot, model)) {
+                    placeable = true;
+                    break;
+                }
+            }
+            if (!placeable) {
+                missing.add(req);
+            }
+        }
+        return missing;
+    }
+
+    private boolean isAnywhere(Object underlying) {
+        return underlying instanceof PortAnywhereStructurePiece || underlying instanceof PortTypeAnywhereStructurePiece
+                || (portsAnywhereGlobal && (underlying instanceof PortStructurePiece || underlying instanceof PortTypeStructurePiece));
+    }
+
     private boolean innerFormed(Level level, BlockPos worldControllerPos, StructureModel model, List<PositionedLayoutPiece> positionedPieces, Rotation rot) {
         // First pass: validate all non-anywhere pieces in-place
         List<PositionedLayoutPiece> anywherePieces = new ArrayList<>();
         for (PositionedLayoutPiece piece : positionedPieces) {
-            var layoutPiece = piece.piece();
-            var underlying = layoutPiece.piece();
-            // treat port pieces as anywhere if either they are explicitly anywhere OR the layout enables portsAnywhereGlobal
-            if (underlying instanceof PortAnywhereStructurePiece || underlying instanceof PortTypeAnywhereStructurePiece
-                    || (portsAnywhereGlobal && (underlying instanceof PortStructurePiece || underlying instanceof PortTypeStructurePiece))) {
+            if (isAnywhere(piece.piece().piece())) {
                 anywherePieces.add(piece);
                 continue; // skip per-position check for anywhere pieces
             }

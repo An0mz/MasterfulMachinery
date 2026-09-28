@@ -31,6 +31,11 @@ public interface IPortIngredient {
         return null;
     }
 
+    @org.jetbrains.annotations.Nullable
+    default PortContent display() {
+        return null;
+    }
+
     JsonObject debugInput(Level level, RecipeStorages storages, JsonObject json);
     JsonObject debugOutput(Level level, RecipeStorages storages, JsonObject json);
 
