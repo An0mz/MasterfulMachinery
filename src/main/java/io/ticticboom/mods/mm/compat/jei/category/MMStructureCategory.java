@@ -8,6 +8,8 @@ import io.ticticboom.mods.mm.client.structure.GuiStructureRenderer;
 import io.ticticboom.mods.mm.client.util.TextRenderUtil;
 import io.ticticboom.mods.mm.compat.jei.SlotGrid;
 import io.ticticboom.mods.mm.compat.jei.SlotGridEntry;
+import io.ticticboom.mods.mm.compat.jei.StructureInfoWidget;
+import io.ticticboom.mods.mm.compat.jei.StructureLayerWidget;
 import io.ticticboom.mods.mm.controller.MMControllerRegistry;
 import io.ticticboom.mods.mm.setup.MMRegisters;
 import io.ticticboom.mods.mm.structure.StructureModel;
@@ -17,6 +19,9 @@ import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.drawable.IDrawableStatic;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
+import mezz.jei.api.gui.inputs.IJeiInputHandler;
+import mezz.jei.api.gui.widgets.IRecipeExtrasBuilder;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
@@ -33,6 +38,9 @@ import org.joml.Vector4f;
 import io.ticticboom.mods.mm.config.MMConfigSetup;
 import io.ticticboom.mods.mm.structure.StructureProblems;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class MMStructureCategory implements IRecipeCategory<StructureModel> {
 
     public static final RecipeType<StructureModel> RECIPE_TYPE = RecipeType.create("mm", "structure", StructureModel.class);
@@ -47,6 +55,9 @@ public class MMStructureCategory implements IRecipeCategory<StructureModel> {
     private IDrawableStatic background;
     private int dynamicHeight = PANEL_SIZE.y;
     private final MutableComponent title = Component.translatable("jei.mm.category.structure");
+    private static final int LAYER_WIDGET_WIDTH = 80;
+    private static final int LAYER_WIDGET_Y = RENDER_SIZE.y - 12;
+    private final Map<ResourceLocation, Integer> selectedLayers = new HashMap<>();
 
     public MMStructureCategory(final IGuiHelper helper) {
         this.helper = helper;
@@ -96,6 +107,7 @@ public class MMStructureCategory implements IRecipeCategory<StructureModel> {
         GuiStructureRenderer guiRenderer = recipe.getGuiRenderer();
         guiRenderer.resetTransforms();
         guiRenderer.init();
+        selectedLayers.put(recipe.id(), -1);
         var countedItemStacks = recipe.getCountedItemStacks();
 
         int columns = 8;
@@ -138,6 +150,36 @@ public class MMStructureCategory implements IRecipeCategory<StructureModel> {
                 .addItemStack(MMRegisters.BLUEPRINT.get().getStructureInstance(recipe.id()));
             builder.addInvisibleIngredients(RecipeIngredientRole.OUTPUT)
                 .addItemStack(MMRegisters.BLUEPRINT.get().getStructureInstance(recipe.id()));
+    }
+
+    @Override
+    public void createRecipeExtras(IRecipeExtrasBuilder builder, StructureModel recipe, IFocusGroup focuses) {
+        GuiStructureRenderer guiRenderer = recipe.getGuiRenderer();
+        guiRenderer.init();
+        int layerCount = guiRenderer.getStructureSize().y + 1;
+        if (layerCount >= 2) {
+            var widget = new StructureLayerWidget(
+                (PANEL_SIZE.x - LAYER_WIDGET_WIDTH) / 2, LAYER_WIDGET_Y, LAYER_WIDGET_WIDTH, layerCount,
+                () -> selectedLayers.getOrDefault(recipe.id(), -1),
+                layer -> selectedLayers.put(recipe.id(), layer));
+            builder.addWidget(widget);
+            builder.addInputHandler(widget);
+        }
+        builder.addWidget(new StructureInfoWidget(RENDER_SIZE.x - StructureInfoWidget.SIZE - 1, LAYER_WIDGET_Y + 1));
+        builder.addInputHandler(new IJeiInputHandler() {
+            private final ScreenRectangle area = new ScreenRectangle(1, 1, RENDER_SIZE.x, RENDER_SIZE.y);
+
+            @Override
+            public ScreenRectangle getArea() {
+                return area;
+            }
+
+            @Override
+            public boolean handleMouseScrolled(double mouseX, double mouseY, double scrollDeltaX, double scrollDelta) {
+                guiRenderer.zoom(scrollDelta);
+                return true;
+            }
+        });
     }
 
     @Override
@@ -211,11 +253,17 @@ public class MMStructureCategory implements IRecipeCategory<StructureModel> {
         guiGraphics.pose().setIdentity();
 
         var renderer = recipe.getGuiRenderer();
+        int layer = selectedLayers.getOrDefault(recipe.id(), -1);
+        renderer.setYSlice(layer >= 0, renderer.getMinBound().y() + layer);
         renderer.setViewport(GuiPos.of(pos.x + 1, pos.y + 1, RENDER_SIZE.x, RENDER_SIZE.y));
-        renderer.setHoverBounds(GuiPos.of(1, 1, RENDER_SIZE.x, RENDER_SIZE.y));
-        renderer.render(guiGraphics, (int) mouseX, (int) mouseY);
+        renderer.setHoverBounds(null);
+        renderer.render(guiGraphics, (int) mouseX, (int) mouseY, isOverView(mouseX, mouseY));
 
         guiGraphics.pose().popPose();
+    }
+
+    private static boolean isOverView(double mouseX, double mouseY) {
+        return mouseX >= 1 && mouseX < 1 + RENDER_SIZE.x && mouseY >= 1 && mouseY < LAYER_WIDGET_Y;
     }
 
     private Vector2i getGuiPosition(PoseStack poseStack) {

@@ -2,7 +2,6 @@ package io.ticticboom.mods.mm.client.structure;
 
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import io.ticticboom.mods.mm.client.RenderUtil;
 import io.ticticboom.mods.mm.client.gui.util.GuiPos;
@@ -17,19 +16,22 @@ public class GuiRenderEnvSetup {
     @Setter
     private GuiPos viewportPos;
     private static Minecraft mc = Minecraft.getInstance();
+    private static final float FOV_DEGREES = 85;
+    private static final float FIT_MARGIN = 1.1f;
 
     public GuiRenderEnvSetup() {
     }
 
 
 
-    public void preRender(float xRot, float yRot, int extent, Matrix4f viewMatrix) {
-        // getModelViewStack returns a joml Matrix4fStack in 1.21, not a PoseStack.
+    public void preRender(float xRot, float yRot, float radius, Matrix4f viewMatrix) {
         var modelViewStack = RenderSystem.getModelViewStack();
         modelViewStack.pushMatrix();
+        modelViewStack.identity();
         var s = 95.5f;
+        float distance = FIT_MARGIN * s * radius / (float) Math.sin(Math.toRadians(FOV_DEGREES / 2));
+        modelViewStack.translate(0, 0, -distance);
         modelViewStack.scale(s, s, s);
-        modelViewStack.translate(0,0, 100 - extent);
         modelViewStack.mul(viewMatrix);
         var quat = new Quaternionf().rotateXYZ((float) Math.toRadians(xRot), (float) Math.toRadians(yRot), 0);
         modelViewStack.rotate(quat);
@@ -38,7 +40,7 @@ public class GuiRenderEnvSetup {
         // projection
         RenderSystem.backupProjectionMatrix();
         var proj = new Matrix4f().identity();
-        proj.setPerspective((float) Math.toRadians(85), (float) viewportPos.w() / viewportPos.h(), 0.01f, 1000000f);
+        proj.setPerspective((float) Math.toRadians(FOV_DEGREES), (float) viewportPos.w() / viewportPos.h(), 0.01f, 1000000f);
         RenderSystem.setProjectionMatrix(proj, VertexSorting.DISTANCE_TO_ORIGIN);
 
         setupViewport();

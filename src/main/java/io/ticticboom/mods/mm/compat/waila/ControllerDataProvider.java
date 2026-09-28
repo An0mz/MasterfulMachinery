@@ -2,6 +2,7 @@ package io.ticticboom.mods.mm.compat.waila;
 
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
+import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -11,27 +12,38 @@ import snownee.jade.api.IServerDataProvider;
 import snownee.jade.api.ITooltip;
 import snownee.jade.api.config.IPluginConfig;
 
+import java.util.Locale;
+
 public class ControllerDataProvider implements IServerDataProvider<BlockAccessor>, IBlockComponentProvider {
     public static final ResourceLocation UID = Ref.id("controller_progress");
-    public static final String TICK_KEY = "TickPercentage";
-    public static final String REDSTONE_KEY = "RedstoneMode";
+    private static final String STATUS_KEY = "Status";
+    private static final String PROGRESS_KEY = "Progress";
+    private static final String RUNNING_KEY = "Running";
+    private static final String LIMIT_KEY = "ParallelLimit";
+    private static final String REDSTONE_KEY = "RedstoneMode";
+    private static final String OWNER_KEY = "Owner";
 
     public static final ControllerDataProvider INSTANCE = new ControllerDataProvider();
 
     @Override
     public void appendServerData(CompoundTag data, BlockAccessor blockAccessor) {
-        var be = blockAccessor.getBlockEntity();
-        if (be instanceof MachineControllerBlockEntity cbe) {
-            if (cbe.getRecipeState() != null) {
-                var tickPercentage = String.format("%.2f", cbe.getRecipeState().getTickPercentage()) + "%";
-                data.putString(TICK_KEY, tickPercentage);
-            } else {
-                data.putString(TICK_KEY, "Idle");
-            }
-            data.putString(REDSTONE_KEY, cbe.getRedstoneModeName());
+        if (!(blockAccessor.getBlockEntity() instanceof MachineControllerBlockEntity cbe)) {
+            return;
+        }
+        String status = cbe.statusKey();
+        data.putString(STATUS_KEY, status);
+        if (cbe.getRecipeState() != null) {
+            data.putFloat(PROGRESS_KEY, (float) cbe.getRecipeState().getTickPercentage());
+        }
+        if (!"not_formed".equals(status)) {
+            data.putInt(RUNNING_KEY, cbe.getActiveRecipeCount());
+            data.putInt(LIMIT_KEY, cbe.getDisplayedParallelLimit());
+        }
+        data.putString(REDSTONE_KEY, cbe.getRedstoneModeName().toLowerCase(Locale.ROOT));
+        if (cbe.getNetworkLink() != null) {
+            data.putString(OWNER_KEY, cbe.getNetworkLink().ownerName());
         }
     }
-
 
     @Override
     public ResourceLocation getUid() {
@@ -41,20 +53,33 @@ public class ControllerDataProvider implements IServerDataProvider<BlockAccessor
     @Override
     public void appendTooltip(ITooltip tooltip, BlockAccessor blockAccessor, IPluginConfig iPluginConfig) {
         CompoundTag data = blockAccessor.getServerData();
-        if (data.contains(TICK_KEY)) {
-            var progress = data.getString(TICK_KEY);
-            tooltip.add(Component.translatable("jade.mm.controller.progress", progress));
+        if (!data.contains(STATUS_KEY)) {
+            return;
         }
-        if (data.contains(REDSTONE_KEY)) {
-            String m = data.getString(REDSTONE_KEY);
-            if (!"IGNORED".equals(m)) {
-                Component friendly = switch (m) {
-                    case "WITH_REDSTONE" -> Component.translatable("jade.mm.controller.redstone.with");
-                    case "WITHOUT_REDSTONE" -> Component.translatable("jade.mm.controller.redstone.without");
-                    default -> Component.translatable("jade.mm.controller.redstone.other", m);
-                };
-                tooltip.add(friendly);
-            }
+        String status = data.getString(STATUS_KEY);
+        tooltip.add(Component.translatable("gui.mm.controller.status." + status).withStyle(statusColor(status)));
+        if (data.contains(PROGRESS_KEY)) {
+            tooltip.add(Component.translatable("jade.mm.controller.progress", String.format("%.0f%%", data.getFloat(PROGRESS_KEY))));
         }
+        if (data.contains(LIMIT_KEY)) {
+            tooltip.add(Component.translatable("jade.mm.controller.parallel", data.getInt(RUNNING_KEY), data.getInt(LIMIT_KEY)));
+        }
+        String redstone = data.getString(REDSTONE_KEY);
+        if (!redstone.isEmpty() && !"ignored".equals(redstone)) {
+            tooltip.add(Component.translatable("jade.mm.controller.redstone",
+                    Component.translatable("gui.mm.controller.redstone." + redstone)));
+        }
+        if (data.contains(OWNER_KEY)) {
+            tooltip.add(Component.translatable("jade.mm.controller.owner", data.getString(OWNER_KEY)).withStyle(ChatFormatting.AQUA));
+        }
+    }
+
+    static ChatFormatting statusColor(String status) {
+        return switch (status) {
+            case "not_formed" -> ChatFormatting.RED;
+            case "paused", "stalled" -> ChatFormatting.GOLD;
+            case "running" -> ChatFormatting.GREEN;
+            default -> ChatFormatting.YELLOW;
+        };
     }
 }

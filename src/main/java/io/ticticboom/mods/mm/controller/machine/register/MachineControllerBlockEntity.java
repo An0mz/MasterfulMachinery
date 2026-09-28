@@ -868,6 +868,14 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         return level != null && lastProgressTime != Long.MIN_VALUE && level.getGameTime() - lastProgressTime <= RECENT_RECIPE_TICKS;
     }
 
+    public String statusKey() {
+        if (!isFormed || portStorages == null) return "not_formed";
+        if (!isAllowedByRedstone()) return "paused";
+        if (isWorking()) return "running";
+        if (!activeRecipes.isEmpty()) return "stalled";
+        return "idle";
+    }
+
     public int getActiveRecipeCount() {
         return activeRecipes.size();
     }
