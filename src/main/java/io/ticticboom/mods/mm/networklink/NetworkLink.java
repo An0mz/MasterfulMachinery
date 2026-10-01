@@ -64,8 +64,11 @@ public final class NetworkLink {
         if (!AVAILABLE || controller.getNetworkLink() == null) {
             return;
         }
-        if (level.getGameTime() % MMConfig.NETWORK_LINK_OUTPUT_INTERVAL == 0) {
-            Ae2NetworkLink.exportOutputs(level, controller, controller.getNetworkLink());
+        boolean finished = controller.takeLinkExportRequest();
+        if (finished || level.getGameTime() % MMConfig.NETWORK_LINK_OUTPUT_INTERVAL == 0) {
+            if (Ae2NetworkLink.exportOutputs(level, controller, controller.getNetworkLink())) {
+                controller.markLinkExported(level.getGameTime());
+            }
         }
     }
 

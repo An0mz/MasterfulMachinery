@@ -144,6 +144,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private int comparatorSignal = 0;
     private boolean soundMuted = false;
     private LinkData networkLink = null;
+    private boolean linkExportRequested = false;
+    private long lastLinkExport = -1L;
     private final TierPrefs assemblyTiers = new TierPrefs();
     private ResourceLocation assemblyStructureId = null;
     private boolean wasActive = false;
@@ -585,6 +587,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     private void recipeFinished(RecipeModel recipe) {
+        linkExportRequested = true;
         MMInteropManager.KUBEJS.ifPresent(kubejs -> kubejs.postRecipeFinished(this, recipe.id()));
     }
 
@@ -963,6 +966,9 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (networkLink != null) {
             tag.put("NetworkLink", networkLink.save());
         }
+        if (lastLinkExport >= 0) {
+            tag.putLong("LastLinkExport", lastLinkExport);
+        }
         if (!assemblyTiers.asMap().isEmpty()) {
             tag.put("AssemblyTiers", assemblyTiers.save());
         }
@@ -1005,6 +1011,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         customName = tag.contains("CustomName") ? tag.getString("CustomName") : null;
         soundMuted = tag.getBoolean("SoundMuted");
         networkLink = tag.contains("NetworkLink") ? LinkData.load(tag.getCompound("NetworkLink")) : null;
+        lastLinkExport = tag.contains("LastLinkExport") ? tag.getLong("LastLinkExport") : -1L;
         assemblyTiers.copyFrom(TierPrefs.load(tag.getCompound("AssemblyTiers")));
         assemblyStructureId = tag.contains("AssemblyStructure") ? ResourceLocation.tryParse(tag.getString("AssemblyStructure")) : null;
         selectedRecipeId = tag.contains("selectedRecipe") ? ResourceLocation.tryParse(tag.getString("selectedRecipe")) : null;
@@ -1132,6 +1139,21 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             return 0;
         }
         return ItemStack.isSameItemSameComponents(reservedOutput, stack) ? reservedCount : 0;
+    }
+
+    public boolean takeLinkExportRequest() {
+        boolean requested = linkExportRequested;
+        linkExportRequested = false;
+        return requested;
+    }
+
+    public void markLinkExported(long gameTime) {
+        lastLinkExport = gameTime;
+        syncPending = true;
+    }
+
+    public long getLastLinkExport() {
+        return lastLinkExport;
     }
 
     public boolean isRecipeRunning(ResourceLocation recipeId) {

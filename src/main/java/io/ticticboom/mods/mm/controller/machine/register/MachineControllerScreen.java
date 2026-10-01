@@ -562,6 +562,16 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         }
     }
 
+    private Component lastSentLine() {
+        long last = be.getLastLinkExport();
+        if (last < 0 || be.getLevel() == null) {
+            return Component.translatable("gui.mm.controller.link.never_sent").withStyle(ChatFormatting.GRAY);
+        }
+        long seconds = Math.max(0, (be.getLevel().getGameTime() - last) / 20);
+        String ago = seconds < 60 ? seconds + "s" : seconds < 3600 ? seconds / 60 + "m" : seconds / 3600 + "h";
+        return Component.translatable("gui.mm.controller.link.last_sent", ago).withStyle(ChatFormatting.GRAY);
+    }
+
     private boolean hasWorkingSound() {
         return be.getBlockState().getBlock() instanceof MachineControllerBlock block && block.hasWorkingSound();
     }
@@ -791,6 +801,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
                         lines.add(Component.translatable("gui.mm.controller.link.owner", link.ownerName()).withStyle(ChatFormatting.WHITE));
                         lines.add(Component.translatable("gui.mm.controller.link.network", link.network().pos().toShortString(),
                                 link.network().dimension().location().getPath()).withStyle(ChatFormatting.AQUA));
+                        lines.add(lastSentLine());
                         lines.add(Component.translatable("gui.mm.controller.row.link.hint.linked").withStyle(ChatFormatting.GRAY));
                     } else {
                         lines.add(Component.translatable("gui.mm.controller.row.link.hint.none").withStyle(ChatFormatting.GRAY));

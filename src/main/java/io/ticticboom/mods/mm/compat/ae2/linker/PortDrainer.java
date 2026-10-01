@@ -23,25 +23,28 @@ public final class PortDrainer {
     private PortDrainer() {
     }
 
-    public static void drain(IPortStorage storage, MEStorage network, IActionSource source) {
-        drain(storage, network, source, stack -> 0, new HashMap<>());
+    public static boolean drain(IPortStorage storage, MEStorage network, IActionSource source) {
+        return drain(storage, network, source, stack -> 0, new HashMap<>());
     }
 
-    public static void drain(IPortStorage storage, MEStorage network, IActionSource source, ToIntFunction<ItemStack> reserved, Map<AEItemKey, Integer> kept) {
+    public static boolean drain(IPortStorage storage, MEStorage network, IActionSource source, ToIntFunction<ItemStack> reserved, Map<AEItemKey, Integer> kept) {
+        boolean moved = false;
         var items = storage.getCapability(MMCapabilities.ITEM);
         if (items != null) {
-            drainItems(items, network, source, reserved, kept);
+            moved |= drainItems(items, network, source, reserved, kept);
         }
         var fluids = storage.getCapability(MMCapabilities.FLUID);
         if (fluids != null) {
-            drainFluids(fluids, network, source);
+            moved |= drainFluids(fluids, network, source);
         }
         if (CHEMICALS) {
-            ChemicalDrainer.drain(storage, network, source);
+            moved |= ChemicalDrainer.drain(storage, network, source);
         }
+        return moved;
     }
 
-    private static void drainItems(IItemHandler handler, MEStorage network, IActionSource source, ToIntFunction<ItemStack> reserved, Map<AEItemKey, Integer> kept) {
+    private static boolean drainItems(IItemHandler handler, MEStorage network, IActionSource source, ToIntFunction<ItemStack> reserved, Map<AEItemKey, Integer> kept) {
+        boolean moved = false;
         for (int slot = 0; slot < handler.getSlots(); slot++) {
             ItemStack available = handler.extractItem(slot, Integer.MAX_VALUE, true);
             if (available.isEmpty()) {
@@ -60,12 +63,14 @@ public final class PortDrainer {
             long accepted = network.insert(key, count, Actionable.SIMULATE, source);
             if (accepted > 0) {
                 ItemStack extracted = handler.extractItem(slot, (int) accepted, false);
-                network.insert(key, extracted.getCount(), Actionable.MODULATE, source);
+                moved |= network.insert(key, extracted.getCount(), Actionable.MODULATE, source) > 0;
             }
         }
+        return moved;
     }
 
-    private static void drainFluids(IFluidHandler handler, MEStorage network, IActionSource source) {
+    private static boolean drainFluids(IFluidHandler handler, MEStorage network, IActionSource source) {
+        boolean moved = false;
         for (int tank = 0; tank < handler.getTanks(); tank++) {
             FluidStack stored = handler.getFluidInTank(tank);
             if (stored.isEmpty()) {
@@ -75,8 +80,9 @@ public final class PortDrainer {
             long accepted = network.insert(key, stored.getAmount(), Actionable.SIMULATE, source);
             if (accepted > 0) {
                 FluidStack drained = handler.drain(stored.copyWithAmount((int) accepted), IFluidHandler.FluidAction.EXECUTE);
-                network.insert(key, drained.getAmount(), Actionable.MODULATE, source);
+                moved |= network.insert(key, drained.getAmount(), Actionable.MODULATE, source) > 0;
             }
         }
+        return moved;
     }
 }

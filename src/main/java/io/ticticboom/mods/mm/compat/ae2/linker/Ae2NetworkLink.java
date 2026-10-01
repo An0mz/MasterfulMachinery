@@ -39,19 +39,21 @@ public final class Ae2NetworkLink {
         return linker;
     }
 
-    public static void exportOutputs(ServerLevel level, MachineControllerBlockEntity controller, LinkData link) {
+    public static boolean exportOutputs(ServerLevel level, MachineControllerBlockEntity controller, LinkData link) {
         var storages = controller.getPortStorages();
         if (storages == null || storages.outputStorages().isEmpty()) {
-            return;
+            return false;
         }
         var network = NetworkAccess.storage(level.getServer(), link.network());
         if (network == null) {
-            return;
+            return false;
         }
         var kept = new HashMap<AEItemKey, Integer>();
+        boolean moved = false;
         for (IPortStorage output : storages.outputStorages()) {
-            PortDrainer.drain(output, network, IActionSource.empty(), controller::reservedOutputCount, kept);
+            moved |= PortDrainer.drain(output, network, IActionSource.empty(), controller::reservedOutputCount, kept);
         }
+        return moved;
     }
 
     public static void sendPortContents(ServerLevel level, BlockPos pos, IPortBlockEntity port, LinkData link) {

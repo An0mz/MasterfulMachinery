@@ -13,22 +13,23 @@ final class ChemicalDrainer {
     private ChemicalDrainer() {
     }
 
-    static void drain(IPortStorage storage, MEStorage network, IActionSource source) {
+    static boolean drain(IPortStorage storage, MEStorage network, IActionSource source) {
         if (!(storage instanceof MekanismChemicalPortStorage chemical)) {
-            return;
+            return false;
         }
         var stored = chemical.chemicalTank.getStack();
         if (stored.isEmpty()) {
-            return;
+            return false;
         }
         MekanismKey key = MekanismKey.of(stored);
         if (key == null) {
-            return;
+            return false;
         }
         long accepted = network.insert(key, stored.getAmount(), Actionable.SIMULATE, source);
         if (accepted > 0) {
             var extracted = chemical.extract(accepted, Action.EXECUTE);
-            network.insert(key, extracted.getAmount(), Actionable.MODULATE, source);
+            return network.insert(key, extracted.getAmount(), Actionable.MODULATE, source) > 0;
         }
+        return false;
     }
 }

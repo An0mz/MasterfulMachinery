@@ -303,6 +303,8 @@
   "gui.mm.controller.link.none": "Not linked",
   "gui.mm.controller.link.owner": "Owner: %s",
   "gui.mm.controller.link.network": "Network at %s (%s)",
+  "gui.mm.controller.link.last_sent": "Last sent outputs to ME: %s ago",
+  "gui.mm.controller.link.never_sent": "No outputs sent to ME yet",
   "gui.mm.controller.row.link.hint.linked": "Only the owner's team can open or break this machine. Use the Network Linker's Info mode to unlink.",
   "gui.mm.controller.row.link.hint.none": "Link the machine to an AE2 network with the Network Linker.",
   "item.mm.network_linker": "Machine Network Linker",
