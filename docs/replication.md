@@ -102,6 +102,10 @@ The key uses the **path** of the id, not the namespace, so `kubejs:plasma` becom
   machine produces more than one.
 - `network: false` is for a buffer you want to fill and drain only through recipes, with the
   network unable to see it.
+- Output ports only empty into **matter tanks**. A network with no matter tank leaves the matter in
+  the port.
+- Matter tanks only connect to a pipe **above or below** them. A tank beside a pipe is not on the
+  network.
 
 ## From KubeJS
 
@@ -190,8 +194,10 @@ Notes:
 - The link does not feed the machine. Matter, items and energy still come in through their own
   ports.
 - Without an item output hatch nothing is ever delivered.
-- It handles one order at a time. A machine can finish one extra item, which waits in the output
-  hatch for the next order.
+- It handles one order at a time, and never makes more than was ordered.
+- A machine also linked to AE2 keeps the ordered items for the Terminal instead of sending them to
+  ME.
+- Give a recipe `"requestOnly": true` to make it only when ordered, never on its own.
 
 ## See also
 

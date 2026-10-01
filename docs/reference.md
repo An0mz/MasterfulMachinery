@@ -34,6 +34,8 @@ The same things can be made from KubeJS:
 | `MMEvents.registerExtraBlocks` | `kubejs/startup_scripts/` |
 | `MMEvents.createStructures` | `kubejs/server_scripts/` |
 | `MMEvents.createProcesses` | `kubejs/server_scripts/` |
+| `MMEvents.recipeStarted` / `MMEvents.recipeFinished` | `kubejs/server_scripts/` — see [Recipe events](#recipe-events) |
+| `MMEvents.builderStructures` | `kubejs/server_scripts/` — see [Structure Builder](#structure-builder) |
 
 An event in the wrong folder silently never runs.
 
@@ -58,6 +60,10 @@ An event in the wrong folder silently never runs.
 | `parallelProcessingDefault` | no | Whether recipes on this controller run in parallel when the recipe does not say |
 | `maxParallelRecipes` | no | How many recipes can run at once, `0`–`100`. Falls back to the global config |
 | `recipeSelectionMode` | no | `default`, `avoid_same_recipe`, `round_robin_input_item` or `manual` |
+| `workingSound` | no | A sound played while the machine works, e.g. `minecraft:block.blastfurnace.fire_crackle` |
+| `workingSoundInterval` | no | Ticks between sounds. Default `40` |
+| `workingParticle` | no | A particle shown around the controller while the machine works, e.g. `minecraft:smoke` |
+| `unformedColor` / `idleColor` / `workingColor` | no | The controller screen's colour in each state, as `#RRGGBB` |
 
 Recipe selection modes:
 
@@ -83,8 +89,39 @@ MMEvents.registerControllers(event => {
         .parallelProcessingDefault(true)
         .maxParallelRecipes(4)
         .recipeSelectionMode('avoid_same_recipe')
+        .workingSound('minecraft:block.blastfurnace.fire_crackle')
+        .workingSoundInterval(30)
+        .workingParticle('minecraft:smoke')
+        .workingColor('#FF8800')
 })
 ```
+
+Players can mute a machine's sound from its screen, and turn all working sounds and particles off in
+the client config. `config/mm/working_effects.json` overrides the sound, interval and particle per
+controller without touching the pack's files; the in-game config screen edits it too.
+
+### The controller screen
+
+Right-click a formed controller to open its screen:
+
+- **Name** — click it to rename the machine. An empty name restores the original.
+- **Status** — Running, Idle, Stuck (a recipe started but cannot continue), Paused by redstone or Not
+  formed. Hover it for the reason. When the machine is not formed, the screen lists the missing
+  blocks.
+- **Redstone** — Ignored, With Signal or Without Signal.
+- **Mode** — the recipe selection mode for this machine.
+- **Sound** — mute or unmute the machine. Only shown when the controller has a `workingSound`.
+- **Linked to** — the ME network link, with AE2 installed. See [`ae2.md`](ae2.md).
+- **Recipe** — in `manual` mode, pick the recipe with the arrows.
+- **Inputs / Outputs** — pages listing every port and what is in it. With JEI, hover an item and
+  press R or U to look it up.
+- **Assemble** — places the missing blocks of the machine from your inventory. Pick the tier of
+  each part first when the structure allows several.
+
+The button in the top-right corner switches between a large and a small screen.
+
+A comparator next to the controller gives 0 while the machine is not working, and 1–15 by recipe
+progress while it works.
 
 ## Ports
 
@@ -109,6 +146,20 @@ MMEvents.registerControllers(event => {
 | `only` | no | `input`, `output` or `both` (default) |
 | `texture`, `overlay`, `model` | no | As on controllers |
 | `inputTexture`, `outputTexture`, `inputOverlay`, `outputOverlay`, `inputModel`, `outputModel` | no | The same, for one side only |
+
+### The port screen
+
+Every port's screen has a side panel:
+
+- **Auto I/O per side** — click a side to make the port push to it (output ports) or pull from it
+  (input ports). `autoPush` only sets which sides start on. The Machine Wrench does the same from the
+  world: right-click a port's side to toggle it.
+- **Lock** — on fluid and chemical ports, lock a tank to what is in it, so it keeps that fluid or
+  chemical even when it empties.
+- **Dump** — Shift+click to delete everything in the port.
+
+Ports with more slots than fit on screen get pages; scroll or use the arrows. A light on each port
+shows its machine's state, in the screen colours.
 
 ### Port types
 
@@ -272,6 +323,7 @@ Add `"defaultIgnored": true` to a list to also accept any block at all. State li
 | `controllerIds` | One controller id or a list. Several controllers can share one structure |
 | `maxParallelRecipes` | Overrides the controller's limit for this structure |
 | `portsAnywhere` | As above |
+| `tier` | The structure's tier number, used by `minTier` / `maxTier` recipe conditions. Without it, the tier is read from the name: "Tier 2", "Mk II", "Level 3" and so on, or `1` |
 
 KubeJS:
 
@@ -318,8 +370,10 @@ structure.
 | `ticks` | yes | How long one craft takes. 20 ticks is one second |
 | `inputs` | yes | List of input entries |
 | `outputs` | yes | List of output entries |
+| `structureIds` | no | A list of more structures that can run this recipe too |
 | `conditions` | no | Extra requirements — see below |
 | `parallelProcessing` | no | Let this recipe run several times at once |
+| `requestOnly` | no | Only run when something asks for it: the Replication Terminal, AE2, or a pick in `manual` mode |
 
 ### Entries
 
@@ -332,6 +386,24 @@ Inputs use `mm:input/consume` and outputs use `mm:output/simple`. Both take:
 | `per_tick` | Spread the ingredient over the recipe instead of taking it at the start. For energy, `amount` is the total for the whole recipe; for heat, matter and radiation it is taken every tick |
 
 An item ingredient can also be written as just a string: `"ingredient": "minecraft:diamond"`.
+
+### Weighted outputs
+
+`mm:output/weighted` gives exactly one of several outputs each craft, picked by weight:
+
+```json
+{
+  "type": "mm:output/weighted",
+  "options": [
+    { "weight": 6, "ingredient": { "type": "mm:item", "item": "minecraft:iron_nugget", "count": 3 } },
+    { "weight": 3, "ingredient": { "type": "mm:item", "item": "minecraft:gold_nugget", "count": 2 } },
+    { "weight": 1 }
+  ]
+}
+```
+
+Here iron comes out 60% of the time, gold 30%, and an option with no ingredient means nothing, 10%.
+`chance` works on the whole entry as on other outputs. JEI shows each option with its odds.
 
 ### Random amounts
 
@@ -359,7 +431,19 @@ always gives 4 nuggets and 5 gold always gives 8:
 ]
 ```
 
-`weather` is `clear`, `rain` or `thunder`. Every condition has to pass. Conditions are JSON only.
+Every condition has to pass. While one fails, the recipe does not start, and a running one waits.
+
+| Type | Keys | Passes when |
+|---|---|---|
+| `mm:dimension` | `dimension` | The machine is in that dimension |
+| `mm:weather` | `weather`: `clear`, `rain` or `thunder` | The weather matches |
+| `mm:biome` | `biome`: a biome, or a biome tag with `#` | The controller is in that biome |
+| `mm:time` | `time`: `day` or `night` | It is that time of day |
+| `mm:height` | `minY`, `maxY` (either or both) | The controller's Y is in range |
+| `mm:redstone` | `redstone`: `powered` or `unpowered` | The controller does or does not get a signal |
+| `mm:tier` | `minTier`, `maxTier` (either or both) | The structure's `tier` is in range |
+
+JEI lists a recipe's conditions under it.
 
 ### Item NBT
 
@@ -385,6 +469,37 @@ MMEvents.createProcesses(event => {
         .output({ type: 'mm:output/simple', chance: 0.5, ingredient: { type: 'mm:item', item: 'minecraft:copper_block', count: 1 } })
 })
 ```
+
+More builder methods:
+
+| Method | Same as |
+|---|---|
+| `.structureIds('kubejs:a', 'kubejs:b')` | `structureId` plus `structureIds` |
+| `.requestOnly(true)` | `requestOnly` |
+| `.dimension('minecraft:the_nether')` | `mm:dimension` |
+| `.weather('rain')` | `mm:weather` |
+| `.biome('#minecraft:is_ocean')` | `mm:biome` |
+| `.time('night')` | `mm:time` |
+| `.minY(-64)`, `.maxY(0)` | `mm:height` |
+| `.redstone('powered')` | `mm:redstone` |
+| `.minTier(2)`, `.maxTier(3)` | `mm:tier` |
+
+### Recipe events
+
+```js
+// kubejs/server_scripts/
+MMEvents.recipeStarted('kubejs:bronze', event => {
+    if (event.level.isNight()) event.cancel()
+})
+
+MMEvents.recipeFinished('kubejs:bronze', event => {
+    console.info('Bronze made at ' + event.pos)
+})
+```
+
+Both run for one recipe id, or for every recipe when no id is given. `event.recipeId`,
+`event.controllerId`, `event.structureId`, `event.level`, `event.pos` and `event.block` describe the
+machine. Cancelling `recipeStarted` stops the recipe from starting; it tries again later.
 
 ## Names and colours
 
@@ -460,27 +575,95 @@ MMEvents.registerExtraBlocks(event => {
 | **Multiblock Saver** | Right-click two blocks to mark opposite corners, then right-click the air to save what is between them as a structure. The files go to `config/mm/structures/`, as JSON and as a KubeJS script. Sneak + right-click the air to clear the corners |
 | **Priority Setter** | Right-click to raise the number, up to 10. Sneak + right-click a port to apply it. Ports with higher priority are used first |
 | **Debug Tool** | Right-click a controller to write a report of why it is or is not forming and running |
+| **Structure Builder** | Builds and takes apart whole structures. See [Structure Builder](#structure-builder) |
+| **Machine Wrench** | Right-click a port side to toggle its auto input/output. Sneak + right-click a port to show all its sides |
+| **Input Gateway** | A block to build into a machine in place of a casing or glass, or to place next to an input port. Items, fluids, energy and Mekanism chemicals piped into it go to the machine's input ports |
+| **Network Linker** | With AE2 installed, links a machine to an ME network. See [`ae2.md`](ae2.md) |
 
 `/mm reform` (operators only) rechecks every machine near online players. Use it after changing
 structures with `/reload`.
 
-JEI shows every structure and its recipes. In the structure preview, left-drag rotates, the scroll
-wheel zooms and shift-drag pans. With Jade, looking at a port shows what is inside it.
+JEI shows every structure and its recipes. In the structure preview, drag rotates, the scroll wheel
+or right-drag zooms and shift-drag moves it. The bar at the bottom shows one layer at a time; hover
+the blue "i" for the controls. Recipes with more than six rows of inputs or outputs scroll.
+
+With Jade, looking at a controller shows its status, progress, how many recipes run, its redstone
+mode and its owner. Looking at a port shows its machine and its auto I/O.
+
+### Structure Builder
+
+The Structure Builder builds a whole structure in one go.
+
+- **Shift+use** opens its screen. Pick a structure on the **Structures** tab. While holding it,
+  **Shift+scroll** turns the structure before you build.
+- **Right-click** a block to build there. Blocks come from the builder's own store, your inventory,
+  and an ME network if bound.
+- **Shift+right-click** a machine, or hold the dismantle key, to take it apart. Shift+right-click again
+  to confirm. A builder structure with no controller can be taken apart too, while it is the one
+  selected.
+- It runs on FE. Charge it in any charger.
+
+Its tabs:
+
+| Tab | What |
+|---|---|
+| Structures | Every MM structure and builder structure, grouped by category, with a search box |
+| Materials | What the selected structure needs, against what you carry and what is in the store |
+| Settings | The tier to use for each kind of part, **Instant build**, and the ME options |
+| Config | The in-game config screen |
+| Admin | Operators only: create, rename and delete categories, and put structures in them |
+
+**Instant build** places the whole structure in one tick instead of a few blocks at a time. It still
+uses blocks and energy.
+
+Builder structures are `.nbt` structure files in a datapack, under
+`data/<namespace>/mm_builder_structures/`. Files under `mbtool_structures/` and `spatial_structures/`
+are read too. From KubeJS:
+
+```js
+// kubejs/server_scripts/
+MMEvents.builderStructures(event => {
+    event.add('mypack:hut', 'mypack:mm_builder_structures/hut.nbt')
+    event.remove('mypack:old_hut')
+    event.removeNamespace('someothermod')
+})
+```
 
 ## Config
+
+Most options can be changed in game: open **Mods → Masterful Machinery → Config**, or the Config tab
+of the Structure Builder. Server options need operator access.
 
 `config/mm-common.toml`:
 
 | Option | Default | Meaning |
 |---|---|---|
 | `portsAutoExtractByDefault` | `false` | The `autoPush` value for ports that do not set it |
+| `portAutoIOInterval` | `10` | How often ports with auto I/O sides move things, in ticks |
 | `parallelProcessingDefault` | `false` | Whether recipes run in parallel when nothing else says |
 | `maxParallelRecipes` | `5` | The global parallel limit |
 | `structureValidationRate` | `10` | How often a controller rechecks its structure, in ticks |
-| `asyncValidation` | `true` | Check structures off the main thread. Turn off if machines misbehave |
 | `splitRecipesJei` | `true` | One JEI category per structure |
 | `showJeiMaxParallel` | `true` | Show the parallel limit in JEI |
 | `debugTool` | `true` | Whether the Debug Tool works |
+| `assemblyBlocksPerTick` | `2` | How many blocks Assemble and the Structure Builder place per tick |
+| `networkLinkOutputInterval` | `20` | See [`ae2.md`](ae2.md#config) |
+| `networkLinkSendOnRemove` | `true` | See [`ae2.md`](ae2.md#config) |
+| `networkLinkOpBypass` | `true` | See [`ae2.md`](ae2.md#config) |
+| `tool.toolEnergyCapacity` | `1000000` | FE the Structure Builder holds |
+| `tool.toolEnergyPerPlacedBlock` | `50` | FE per block built |
+| `tool.toolEnergyPerDismantledBlock` | `25` | FE per block taken apart |
+| `tool.toolEnergyReceiveRate` | `10000` | FE per tick it accepts from a charger |
+
+`config/mm-client.toml`:
+
+| Option | Default | Meaning |
+|---|---|---|
+| `controller.tintControllerScreen` | `true` | Colour the controller screen by the machine's state |
+| `controller.unformedColor` / `idleColor` / `workingColor` | red / green / yellow | The colours, as `#RRGGBB` |
+| `controller.workingEffects` | `true` | Play working sounds and show working particles |
+| `controller.bigScreen` | `true` | Open the controller screen large |
+| `ports.statusLight` | `true` | Show the state light on ports |
 
 ## Troubleshooting
 
@@ -499,7 +682,10 @@ wheel zooms and shift-drag pans. With Jade, looking at a port shows what is insi
 - **The machine will not form.** Use the Debug Tool on the controller. Check that each port's
   `controllerIds` includes this controller, and that the layout has exactly one `C`.
 - **The machine forms but the recipe never starts.** Check the recipe's `structureId`, that every
-  input is in an input port, and that the output ports have room.
+  input is in an input port, and that the output ports have room. A recipe with `requestOnly` only
+  runs when asked for, and one with conditions waits until they pass; JEI lists both.
+- **The screen says Stuck.** A recipe started but cannot go on, usually because its outputs do not
+  fit or a `per_tick` input ran out. Empty the output ports or refill the input.
 - **The game stops saying two config files define the same id.** Two files under `config/mm/` gave
   the same `id`. The message names both files; rename one. Filenames and folders do not matter, only
   the `id` inside. Using one block in several structures is fine.
@@ -507,6 +693,6 @@ wheel zooms and shift-drag pans. With Jade, looking at a port shows what is insi
   so that machine can never form. The log and the structure's JEI page name the missing port. Add
   the port config, or correct the name in the structure.
 - **A recipe with a `per_tick` input never finishes.** The machine pauses on any tick it cannot pay
-  for in full, and gives up after about ten seconds, returning what it took. Check the port is
+  for in full, shows Stuck, and carries on once the port is supplied again. Check the port is
   actually supplied. Note `per_tick` energy is the total spread across the recipe, while other
   types take the amount every tick.

@@ -223,6 +223,20 @@ The recipe needs the blaze rod in the port but never takes it.
 { "type": "mm:output/simple", "ingredient": { "type": "mm:item", "item": "minecraft:raw_iron", "count": { "min": 1, "max": 3 } } }
 ```
 
+### One of several outputs
+
+```json
+{
+  "type": "mm:output/weighted",
+  "options": [
+    { "weight": 3, "ingredient": { "type": "mm:item", "item": "minecraft:iron_nugget", "count": 2 } },
+    { "weight": 1, "ingredient": { "type": "mm:item", "item": "minecraft:gold_nugget", "count": 1 } }
+  ]
+}
+```
+
+Each craft gives either the iron or the gold, iron three times as often.
+
 ### Input and output that scale together
 
 ```json
@@ -248,6 +262,17 @@ The port needs `"type": "mm:fluid"` with `rows`, `columns` and `slotCapacity` (m
   { "type": "mm:weather", "weather": "rain" }
 ]
 ```
+
+### Only at night, only below Y 0
+
+```json
+"conditions": [
+  { "type": "mm:time", "time": "night" },
+  { "type": "mm:height", "maxY": 0 }
+]
+```
+
+Biome, redstone and structure tier conditions are in [`reference.md`](reference.md#conditions).
 
 ### Running several crafts at once
 
@@ -378,3 +403,5 @@ the name.
 - [`entity.md`](entity.md) — machines that use mobs.
 - [`mekanism.md`](mekanism.md) — Mekanism chemicals and heat.
 - [`replication.md`](replication.md) — Replication matter.
+- [`ae2.md`](ae2.md) — AE2 autocrafting and the Network Linker.
+- [`ars-nouveau.md`](ars-nouveau.md) — Ars Nouveau Source.

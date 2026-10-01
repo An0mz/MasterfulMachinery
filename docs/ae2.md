@@ -1,21 +1,64 @@
-# AE2 autocrafting and Masterful Machinery
+# AE2 and Masterful Machinery
 
-How to make a machine's recipes autocraftable from an ME terminal, using
-[Applied Energistics 2](https://www.curseforge.com/minecraft/mc-mods/applied-energistics-2). The
-port type only exists when AE2 is installed.
+How to connect machines to [Applied Energistics 2](https://www.curseforge.com/minecraft/mc-mods/applied-energistics-2).
+Everything on this page only exists when AE2 is installed.
 
-## The port
+There are two ways to autocraft with an MM machine:
 
-| Port type | What it does |
-|---|---|
-| `mm:ae2/pattern` | Puts the machine's recipes in the ME crafting terminal and runs the orders |
+| | Network Linker + Pattern Provider | ME Pattern Connector |
+|---|---|---|
+| Recipes in the terminal | Only the ones you encode | Every recipe of the machine |
+| Needs | A Pattern Provider and encoded patterns | A port in the structure, cabled to ME |
+| Cost | Normal AE2 pattern cost | None: every recipe for free |
+| Works at a distance | Yes, any distance or dimension | No, it needs a cable and a channel |
 
-## Port config
+The **Network Linker with a Pattern Provider** is the normal way, and works like autocrafting with any
+other mod's machine. The **ME Pattern Connector** is optional: a pack adds it only if it wants every
+recipe offered with no encoding.
+
+## The Network Linker
+
+An item that links a machine to an ME network without cables.
+
+1. Hold the linker in **Linking** mode. Sneak + mouse wheel changes the mode.
+2. Right-click a Wireless Access Point or any AE2 network block to save that network.
+3. Right-click a machine's controller to link it.
+
+A linked machine:
+
+- **Sends its outputs to ME.** As soon as a recipe finishes, everything in the output ports goes into
+  the network. It also checks every 20 ticks for anything else that lands in the output ports.
+- **Sends port contents to ME when a port is broken**, instead of dropping them.
+- **Belongs to the network's owner.** Only the owner, their FTB Teams team, and operators can open or
+  break the machine.
+
+Hover the **Linked to** row in the controller screen to see the owner, the network's position and when
+outputs were last sent.
+
+In **Info** mode, right-click a controller or port to see its link. Sneak + right-click it to unlink the
+machine, or sneak + right-click the air to forget the saved network.
+
+## Autocrafting with a Pattern Provider
+
+1. Link the machine with the Network Linker.
+2. Put a Pattern Provider against one of the machine's **input ports**.
+3. Encode a processing pattern with the recipe's inputs and outputs, and put it in the provider.
+4. Order the item from a crafting terminal.
+
+The provider puts the ingredients in the input port, the machine runs the recipe, and the linker sends
+the result back to the network, which finishes the craft. Item ports take whole batches at once from a
+provider.
+
+Ingredients AE2 cannot carry, like energy, are supplied through the machine's own ports as usual.
+
+## The ME Pattern Connector
+
+A port that puts every recipe of the machine in the crafting terminal and runs the orders itself.
 
 ```json
 {
   "id": "me_port",
-  "controllerIds": "mm:pulverizer",
+  "controllerIds": "mm:alloy_kiln",
   "name": "ME Pattern Connector",
   "type": "mm:ae2/pattern",
   "config": {
@@ -27,65 +70,72 @@ port type only exists when AE2 is installed.
 | Option | Default | Meaning |
 |---|---|---|
 | `patternPriority` | `0` | Which machine AE2 prefers when several can make the same item |
+| `exclude` | none | Ingredient types to leave out of the patterns, e.g. `["energy"]` |
 
-This port has no input or output side, so one file makes one block: `mm:<id>`, not
-`mm:<id>_input` and `mm:<id>_output`.
+This port has no input or output side, so one file makes one block: `mm:<id>`.
 
-## Setting one up
+### Setting one up
 
 1. Put the port block in the machine's structure, like any other port.
-2. Run an ME cable to it. The port is a normal machine to AE2: it needs a **channel** and power.
-3. Give the machine its usual **input hatches** and **output hatches**. The port fills the input
-   hatches and takes results out of the output hatches; it does not store anything itself.
+2. Run an ME cable to it. It needs a **channel** and power.
+3. Give the machine its usual **input ports** and **output ports**. The connector fills the input ports
+   and takes results from the output ports; it stores nothing itself.
 
-Order the item in the crafting terminal. AE2 takes the ingredients out of storage, puts them in the
-machine, the machine runs, and the result goes back into storage.
+### Which recipes appear
 
-## Which recipes appear
+A recipe is offered when AE2 can carry everything on both sides. Items and fluids always work. With
+these addons installed, more types can be part of a pattern:
 
-A recipe is only offered when it has an **item or fluid on both sides**. AE2 cannot carry energy,
-Source or radiation, so it cannot supply them or accept them as a result.
-
-| Recipe | In the terminal? |
+| Type | Addon |
 |---|---|
-| 2 clay → 1 brick | Yes |
-| 1 bucket of lava + 1 iron → 1 steel | Yes |
-| 30,000 FE → 1 diamond | No — nothing AE2 can supply |
-| 1 clay → 1,000 Source | No — nothing AE2 can accept |
+| Energy | [Applied Flux](https://www.curseforge.com/minecraft/mc-mods/applied-flux) |
+| Mekanism chemicals | [Applied Mekanistics](https://www.curseforge.com/minecraft/mc-mods/applied-mekanistics) |
+| Ars Nouveau Source | [Ars Énergistique](https://www.curseforge.com/minecraft/mc-mods/ars-energistique) |
+| PneumaticCraft air | [Applied Pneumatics](https://www.curseforge.com/minecraft/mc-mods/applied-pneumatics) |
+| Replication matter | [Replication AE2 Bridge](https://www.curseforge.com/minecraft/mc-mods/replication-ae2-bridge) |
 
-Recipes that do not appear still run normally in the machine. Energy, Source and the rest are
-supplied through their own ports as usual.
+Use `exclude` to keep a type out of the patterns, so the machine gets it from its own ports instead.
+The names are `energy`, `chemical`, `source`, `air` and `matter`.
 
-## Matter as an ingredient
+Recipes that are not offered still run normally in the machine.
 
-Recipes that use Replication matter can be autocrafted when
-[Replication AE2 Bridge](https://www.curseforge.com/minecraft/mc-mods/replication-ae2-bridge) is
-installed and its block connects your matter network to ME. The matter has to be visible in the ME
-terminal first — if it is not there, the bridge is not set up, and nothing MM does can help.
+### Notes
 
-## Notes
+- The connector runs **one craft at a time**. AE2 queues the rest.
+- Several machines can offer the same recipe. AE2 shares the work, and `patternPriority` decides who
+  is asked first.
 
-- The port runs **one craft at a time**. AE2 queues the rest.
-- It is not a storage bus. The machine's contents are not visible in the terminal; only finished
-  results are pushed back.
-- Several machines can offer the same recipe. AE2 shares the work between them, and
-  `patternPriority` decides who is asked first.
-
-## From KubeJS
+### From KubeJS
 
 ```js
 // kubejs/startup_scripts/
 MMEvents.registerPorts(event => {
     event.create('me_port')
         .name('ME Pattern Connector')
-        .controllerId('mm:pulverizer')
+        .controllerId('mm:alloy_kiln')
         .config('mm:ae2/pattern', config => {
             config.patternPriority(0)
+            config.exclude('energy')
         })
 })
 ```
 
+## The Structure Builder and ME
+
+The Structure Builder can take blocks from an ME network and order the missing ones. Put it in a
+Wireless Access Point, or sneak + right-click an AE2 network block with it. Its Settings tab turns
+**Use ME network** and **Auto-craft missing** on and off. See [`reference.md`](reference.md#structure-builder).
+
+## Config
+
+In `config/mm-common.toml`:
+
+| Option | Default | Meaning |
+|---|---|---|
+| `networkLinkOutputInterval` | `20` | How often a linked machine checks its output ports, in ticks |
+| `networkLinkSendOnRemove` | `true` | Send a broken port's contents to ME instead of dropping them |
+| `networkLinkOpBypass` | `true` | Operators may open and break machines linked by other players |
+
 ## See also
 
 - [`reference.md`](reference.md) — every key and option.
-- [`replication.md`](replication.md) — matter, and ordering from the Replication Terminal.
