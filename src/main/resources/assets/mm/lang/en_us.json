@@ -298,7 +298,6 @@
   "jei.mm.condition.tier.max": "Structure tier %s or lower",
   "jei.mm.condition.tier.range": "Structure tier %s to %s",
   "block.mm.input_gateway": "Input Gateway",
-  "block.mm.input_gateway.tooltip": "Build it into a machine in place of a casing or glass block, or place it next to an input port: items, fluids, energy and Mekanism chemicals piped in go to that machine's input ports",
   "gui.mm.controller.row.link": "Linked to",
   "gui.mm.controller.link.none": "Not linked",
   "gui.mm.controller.link.owner": "Owner: %s",

@@ -48,13 +48,13 @@ public class MMCommonConfig {
                 .define("networkLinkOpBypass", true);
 
         builder.push("tool");
-        toolEnergyCapacity = builder.comment("Max FE the Multiblock Tool can store. Default: 1,000,000")
+        toolEnergyCapacity = builder.comment("Max FE the Structure Builder can store. Default: 1,000,000")
                 .defineInRange("toolEnergyCapacity", 1_000_000, 1, Integer.MAX_VALUE);
-        toolEnergyPerPlacedBlock = builder.comment("FE cost per block placed by the Multiblock Tool. Default: 50")
+        toolEnergyPerPlacedBlock = builder.comment("FE cost per block placed by the Structure Builder. Default: 50")
                 .defineInRange("toolEnergyPerPlacedBlock", 50, 0, Integer.MAX_VALUE);
-        toolEnergyPerDismantledBlock = builder.comment("FE cost per block dismantled by the Multiblock Tool. Default: 25")
+        toolEnergyPerDismantledBlock = builder.comment("FE cost per block dismantled by the Structure Builder. Default: 25")
                 .defineInRange("toolEnergyPerDismantledBlock", 25, 0, Integer.MAX_VALUE);
-        toolEnergyReceiveRate = builder.comment("Max FE/t the Multiblock Tool accepts from an external charger. Default: 10,000")
+        toolEnergyReceiveRate = builder.comment("Max FE/t the Structure Builder accepts from an external charger. Default: 10,000")
                 .defineInRange("toolEnergyReceiveRate", 10_000, 1, Integer.MAX_VALUE);
         builder.pop();
 
