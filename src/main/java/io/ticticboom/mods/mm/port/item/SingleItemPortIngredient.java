@@ -23,8 +23,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.core.registries.BuiltInRegistries;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
 import net.minecraft.nbt.CompoundTag;
@@ -36,6 +34,11 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
     private final ItemStack stack;
     @Getter
     private final ResourceLocation itemId;
+
+    @Override
+    protected Item indexedItem() {
+        return item;
+    }
 
     public SingleItemPortIngredient(ResourceLocation itemId, AmountRange count, CompoundTag requiredNbt, boolean nbtStrong) {
         super(count, createPredicate(itemId), requiredNbt, nbtStrong);
@@ -71,11 +74,12 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
 
     @Override
     public boolean canOutput(Level level, RecipeStorages storages, RecipeStateModel state) {
-        List<ItemPortStorage> itemStorages = storages.getOutputStorages(ItemPortStorage.class);
+        ItemStack probe = outputProbe();
+        List<ItemPortStorage> itemStorages = outputPorts(storages, probe);
         int remainingToInsert = resolveCount(state);
 
         for (ItemPortStorage itemStorage : itemStorages) {
-            remainingToInsert = itemStorage.canInsert(item, remainingToInsert);
+            remainingToInsert = itemStorage.canInsert(probe, remainingToInsert);
             if (remainingToInsert <= 0) return true;
         }
         return remainingToInsert <= 0;
@@ -83,19 +87,32 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
 
     @Override
     public void output(Level level, RecipeStorages storages, RecipeStateModel state) {
-        List<ItemPortStorage> itemStorages = storages.getOutputStorages(ItemPortStorage.class);
+        ItemStack probe = outputProbe();
+        List<ItemPortStorage> itemStorages = outputPorts(storages, probe);
         int remainingToInsert = resolveCount(state);
 
         for (ItemPortStorage s : itemStorages) {
             if (remainingToInsert <= 0) break;
-            if (this.requiredNbt != null) {
-                ItemStack probe = new ItemStack(item, remainingToInsert);
-                ItemNbtUtil.setTag(probe, this.requiredNbt.copy());
-                remainingToInsert = s.insert(probe, remainingToInsert);
-            } else {
-                remainingToInsert = s.insert(item, remainingToInsert);
-            }
+            remainingToInsert = s.insert(probe, remainingToInsert);
         }
+    }
+
+    private ItemStack outputProbe() {
+        ItemStack probe = new ItemStack(item, 1);
+        if (requiredNbt != null) ItemNbtUtil.setTag(probe, requiredNbt.copy());
+        return probe;
+    }
+
+    private List<ItemPortStorage> outputPorts(RecipeStorages storages, ItemStack probe) {
+        List<ItemPortStorage> ports = storages.getOutputItemStorages(item);
+        ports.sort((a, b) -> {
+            int priority = Integer.compare(b.getPriority(), a.getPriority());
+            if (priority != 0) return priority;
+            int partial = Boolean.compare(b.getHandler().hasCompatiblePartialSlot(probe),
+                    a.getHandler().hasCompatiblePartialSlot(probe));
+            return partial != 0 ? partial : a.getStorageUid().toString().compareTo(b.getStorageUid().toString());
+        });
+        return ports;
     }
 
     @Override
@@ -107,9 +124,8 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
 
     @Override
     public JsonObject debugOutput(Level level, RecipeStorages storages, JsonObject json) {
-        List<ItemPortStorage> itemStorages = new ArrayList<>(storages.getOutputStorages(ItemPortStorage.class));
-        itemStorages.sort(Comparator.comparingInt(ItemPortStorage::getPriority).reversed()
-                .thenComparing(s -> s.getStorageUid().toString()));
+        ItemStack probe = outputProbe();
+        List<ItemPortStorage> itemStorages = outputPorts(storages, probe);
         var searchedStorages = new JsonArray();
         var searchIterations = new JsonArray();
         json.addProperty("ingredientType", Ref.Ports.ITEM.toString());
@@ -124,7 +140,7 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
         for (ItemPortStorage storage : itemStorages) {
             var iterJson = new JsonObject();
 
-            remainingToInsert = storage.canInsert(item, remainingToInsert);
+            remainingToInsert = storage.canInsert(probe, remainingToInsert);
 
             iterJson.addProperty("remaining", remainingToInsert);
             iterJson.addProperty("storageUid", storage.getStorageUid().toString());

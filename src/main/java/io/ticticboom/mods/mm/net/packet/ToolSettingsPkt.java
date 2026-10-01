@@ -26,7 +26,7 @@ public record ToolSettingsPkt(Action action, String key, int value) implements C
 
     public static final StreamCodec<RegistryFriendlyByteBuf, ToolSettingsPkt> STREAM_CODEC = StreamCodec.of((buf, pkt) -> encode(pkt, buf), ToolSettingsPkt::decode);
 
-    public enum Action { SELECT_STRUCTURE, SET_TIER, SET_USE_ME, SET_AUTOCRAFT, FORGET_NETWORK }
+    public enum Action { SELECT_STRUCTURE, SET_TIER, SET_USE_ME, SET_AUTOCRAFT, FORGET_NETWORK, SET_INSTANT_BUILD }
 
     public static final int BUILDER_STRUCTURE = 1;
 
@@ -109,6 +109,10 @@ public record ToolSettingsPkt(Action action, String key, int value) implements C
             }
             case SET_AUTOCRAFT -> {
                 ToolData.setAutoCraft(tool, value != 0);
+                return true;
+            }
+            case SET_INSTANT_BUILD -> {
+                ToolData.setInstantBuild(tool, value != 0);
                 return true;
             }
             case FORGET_NETWORK -> {

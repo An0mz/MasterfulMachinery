@@ -93,10 +93,11 @@ public class MMJeiPlugin implements IModPlugin {
         } else {
             recipes = new ArrayList<>(MachineRecipeManager.RECIPES.values());
         }
-        int maxInputRows = recipes.stream().mapToInt(r -> (int) Math.ceil(r.inputs().inputs().size() / 3.0)).max().orElse(1);
-        int maxOutputRows = recipes.stream().mapToInt(r -> (int) Math.ceil(r.outputs().outputs().size() / 3.0)).max().orElse(1);
+        int maxInputRows = recipes.stream().mapToInt(r -> MMRecipeCategory.rowsFor(r.inputs().inputs().size())).max().orElse(1);
+        int maxOutputRows = recipes.stream().mapToInt(r -> MMRecipeCategory.rowsFor(
+                r.outputs().outputs().stream().mapToInt(o -> o.displayedOutputs().size()).sum())).max().orElse(1);
         int maxRows = Math.max(maxInputRows, maxOutputRows);
-        int height = maxRows * 16 + 20; // Padding für Progressbar etc.
+        int height = Math.max(40, Math.min(maxRows, MMRecipeCategory.VISIBLE_ROWS) * 20);
         MMRecipeCategory category = new MMRecipeCategory(registration.getJeiHelpers(), parent, height);
         registration.addRecipeCategories(category);
         recipeCategories.add(category);

@@ -47,7 +47,7 @@ public final class AssemblyJobs {
         Component busy();
     }
 
-    private record Build(AssemblyJob job, MaterialSource source) implements Running {
+    private record Build(AssemblyJob job, MaterialSource source, boolean instant) implements Running {
         public ServerLevel level() {
             return job.level;
         }
@@ -156,13 +156,18 @@ public final class AssemblyJobs {
 
     public static boolean start(ServerPlayer player, BlockPos controllerPos, AssemblyPlanner.Plan plan, MaterialSource source, int perBlockFe,
                                 boolean requiresController) {
+        return start(player, controllerPos, plan, source, perBlockFe, requiresController, false);
+    }
+
+    public static boolean start(ServerPlayer player, BlockPos controllerPos, AssemblyPlanner.Plan plan, MaterialSource source, int perBlockFe,
+                                boolean requiresController, boolean instant) {
         if (JOBS.containsKey(player.getUUID())) {
             return false;
         }
         AssemblyJob job = requiresController
                 ? AssemblyJob.create(player.serverLevel(), controllerPos, plan, perBlockFe)
                 : AssemblyJob.createWithoutController(player.serverLevel(), controllerPos, plan, perBlockFe);
-        JOBS.put(player.getUUID(), new Build(job, source));
+        JOBS.put(player.getUUID(), new Build(job, source, instant));
         return true;
     }
 
@@ -199,7 +204,8 @@ public final class AssemblyJobs {
                 it.remove();
                 continue;
             }
-            if (job.tick(player, budget)) {
+            int jobBudget = job instanceof Build build && build.instant() ? Integer.MAX_VALUE : budget;
+            if (job.tick(player, jobBudget)) {
                 player.displayClientMessage(job.summary(), true);
                 it.remove();
             }

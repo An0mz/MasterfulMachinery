@@ -3,6 +3,7 @@ package io.ticticboom.mods.mm.recipe.output.simple;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.compat.jei.SlotGrid;
+import io.ticticboom.mods.mm.compat.jei.SlotBadgeDrawable;
 import io.ticticboom.mods.mm.compat.jei.SlotGridEntry;
 import io.ticticboom.mods.mm.port.IPortIngredient;
 import io.ticticboom.mods.mm.port.item.BaseItemPortIngredient;
@@ -103,6 +104,9 @@ public class SimpleRecipeOutputEntry implements IRecipeOutputEntry {
         var rSlot = builder.addSlot(RecipeIngredientRole.OUTPUT, slot.getInnerX(), slot.getInnerY());
         if (ingredient instanceof BaseItemPortIngredient item) {
             slot.setBadgeCount(item.getCount());
+            if (item.getCount() > 1) {
+                rSlot.setOverlay(new SlotBadgeDrawable(item.getCount(), false), 0, 0);
+            }
         }
         var range = ingredient.getAmountRange();
         if (range != null && range.isRanged()) {

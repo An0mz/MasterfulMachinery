@@ -4,9 +4,12 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.port.IPortBlockEntity;
 import io.ticticboom.mods.mm.port.IPortStorage;
+import io.ticticboom.mods.mm.port.item.ItemPortStorage;
+import net.minecraft.world.item.Item;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +20,8 @@ public final class RecipeStorages {
     private final List<IPortBlockEntity> sources;
     private final Map<Class<?>, List<?>> inputsByType = new HashMap<>();
     private final Map<Class<?>, List<?>> outputsByType = new HashMap<>();
+    private final ItemPortIndex inputItemPortIndex;
+    private final ItemPortIndex outputItemPortIndex;
 
     public RecipeStorages(List<IPortStorage> inputStorages, List<IPortStorage> outputStorages) {
         this(inputStorages, outputStorages, List.of());
@@ -26,6 +31,8 @@ public final class RecipeStorages {
         this.inputStorages = List.copyOf(inputStorages);
         this.outputStorages = List.copyOf(outputStorages);
         this.sources = List.copyOf(sources);
+        this.inputItemPortIndex = new ItemPortIndex(this.inputStorages);
+        this.outputItemPortIndex = new ItemPortIndex(this.outputStorages);
     }
 
     public List<IPortStorage> inputStorages() {
@@ -38,6 +45,16 @@ public final class RecipeStorages {
 
     public List<IPortBlockEntity> sources() {
         return sources;
+    }
+
+    public List<ItemPortStorage> getInputItemStorages(Item item) {
+        return inputItemPortIndex.forItem(item);
+    }
+
+    public List<ItemPortStorage> getOutputItemStorages(Item item) {
+        var candidates = new LinkedHashSet<>(outputItemPortIndex.forItem(item));
+        candidates.addAll(outputItemPortIndex.withEmptySlots());
+        return new ArrayList<>(candidates);
     }
 
     public <T extends IPortStorage> List<T> getInputStorages(Class<T> clz) {

@@ -46,21 +46,26 @@ public class ToolSettingsTab {
 
     private boolean useMe;
     private boolean autoCraft;
+    private boolean instantBuild;
     private final BooleanSupplier bound;
     private final Consumer<Boolean> onToggleUseMe;
     private final Consumer<Boolean> onToggleAutoCraft;
+    private final Consumer<Boolean> onToggleInstantBuild;
     private final Runnable onForgetNetwork;
 
     public ToolSettingsTab(Font font, TierPrefs prefs, ObjIntConsumer<String> onChange, boolean useMe, boolean autoCraft,
-                            BooleanSupplier bound, Consumer<Boolean> onToggleUseMe, Consumer<Boolean> onToggleAutoCraft, Runnable onForgetNetwork) {
+                            boolean instantBuild, BooleanSupplier bound, Consumer<Boolean> onToggleUseMe,
+                            Consumer<Boolean> onToggleAutoCraft, Consumer<Boolean> onToggleInstantBuild, Runnable onForgetNetwork) {
         this.font = font;
         this.prefs = prefs;
         this.onChange = onChange;
         this.useMe = useMe;
         this.autoCraft = autoCraft;
+        this.instantBuild = instantBuild;
         this.bound = bound;
         this.onToggleUseMe = onToggleUseMe;
         this.onToggleAutoCraft = onToggleAutoCraft;
+        this.onToggleInstantBuild = onToggleInstantBuild;
         this.onForgetNetwork = onForgetNetwork;
     }
 
@@ -73,6 +78,12 @@ public class ToolSettingsTab {
         lines.addAll(font.split(Component.translatable("gui.mm.tool.settings.note"), width - 8));
         lines.addAll(font.split(Component.translatable("gui.mm.tool.settings.dismantle", ToolKeys.DISMANTLE.getTranslatedKeyMessage()), width - 8));
         footer = lines;
+        if (rowsBottom() - rowsTop() < ROW) {
+            footer = font.split(Component.translatable("gui.mm.tool.settings.dismantle", ToolKeys.DISMANTLE.getTranslatedKeyMessage()), width - 8);
+        }
+        if (rowsBottom() - rowsTop() < ROW) {
+            footer = List.of();
+        }
         clampScroll();
     }
 
@@ -81,7 +92,7 @@ public class ToolSettingsTab {
     }
 
     private int rowsBottom() {
-        return y + height - footer.size() * 9 - 6 - meSectionHeight() - (hasMeSection() ? 8 : 4);
+        return y + height - footer.size() * 9 - 6 - meSectionHeight() - (hasMeSection() ? 8 : 4) - ROW - 4;
     }
 
     private static boolean hasMeSection() {
@@ -100,6 +111,10 @@ public class ToolSettingsTab {
     }
 
     private int meSectionTop() {
+        return instantRowTop() + ROW + 4;
+    }
+
+    private int instantRowTop() {
         return rowsBottom() + 4;
     }
 
@@ -153,8 +168,11 @@ public class ToolSettingsTab {
         gfx.disableScissor();
         drawScrollBar(gfx, top, bottom);
         gfx.fill(x + 4, bottom + 1, x + width - 4, bottom + 2, DIVIDER);
-        int footerY = bottom + 4;
+        int instantY = instantRowTop();
+        drawToggleRow(gfx, Component.translatable("gui.mm.tool.settings.instant_build"), instantBuild, instantY, mouseX, mouseY);
+        int footerY = instantY + ROW + 4;
         if (hasMeSection()) {
+            gfx.fill(x + 4, instantY + ROW + 1, x + width - 4, instantY + ROW + 2, DIVIDER);
             drawMeSection(gfx, mouseX, mouseY);
             int meBottom = meSectionBottom();
             gfx.fill(x + 4, meBottom + 1, x + width - 4, meBottom + 2, DIVIDER);
@@ -178,19 +196,19 @@ public class ToolSettingsTab {
     }
 
     private void drawToggleRow(GuiGraphics gfx, Component label, boolean value, int rowY, int mouseX, int mouseY) {
-        boolean hovered = isOnMeRow(mouseX, mouseY, rowY);
+        boolean hovered = isOnOptionRow(mouseX, mouseY, rowY);
         drawClipped(gfx, label, x + 4, rowY + 3, labelWidth() - 4, hovered ? TEXT : LABEL);
         Component state = Component.translatable(value ? "options.on" : "options.off");
         drawClipped(gfx, state, valueX(), rowY + 3, valueWidth(), value ? VALUE : LABEL);
     }
 
     private void drawForgetButton(GuiGraphics gfx, int rowY, int mouseX, int mouseY) {
-        boolean hovered = isOnMeRow(mouseX, mouseY, rowY);
+        boolean hovered = isOnOptionRow(mouseX, mouseY, rowY);
         Component label = Component.translatable("gui.mm.tool.settings.forget_network");
         drawClipped(gfx, label, x + 4, rowY + 3, width - 8, hovered ? VALUE : TEXT);
     }
 
-    private boolean isOnMeRow(double mouseX, double mouseY, int rowY) {
+    private boolean isOnOptionRow(double mouseX, double mouseY, int rowY) {
         return mouseX >= x + 2 && mouseX < x + width - 2 && mouseY >= rowY && mouseY < rowY + ROW;
     }
 
@@ -267,19 +285,24 @@ public class ToolSettingsTab {
         if (button != 0) {
             return false;
         }
+        if (isOnOptionRow(mouseX, mouseY, instantRowTop())) {
+            instantBuild = !instantBuild;
+            onToggleInstantBuild.accept(instantBuild);
+            return true;
+        }
         if (hasMeSection() && mouseX >= x && mouseX < x + width) {
             int meTop = meSectionTop();
-            if (isOnMeRow(mouseX, mouseY, meTop)) {
+            if (isOnOptionRow(mouseX, mouseY, meTop)) {
                 useMe = !useMe;
                 onToggleUseMe.accept(useMe);
                 return true;
             }
-            if (isOnMeRow(mouseX, mouseY, meTop + ROW)) {
+            if (isOnOptionRow(mouseX, mouseY, meTop + ROW)) {
                 autoCraft = !autoCraft;
                 onToggleAutoCraft.accept(autoCraft);
                 return true;
             }
-            if (bound.getAsBoolean() && isOnMeRow(mouseX, mouseY, meTop + 2 * ROW)) {
+            if (bound.getAsBoolean() && isOnOptionRow(mouseX, mouseY, meTop + 2 * ROW)) {
                 onForgetNetwork.run();
                 return true;
             }
@@ -313,6 +336,12 @@ public class ToolSettingsTab {
 
     @Nullable
     public List<Component> tooltip(double mouseX, double mouseY) {
+        if (mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < rowsTop()) {
+            return List.of(Component.translatable("gui.mm.tool.settings.note"));
+        }
+        if (isOnOptionRow(mouseX, mouseY, instantRowTop())) {
+            return List.of(Component.translatable("gui.mm.tool.settings.instant_build_hint"));
+        }
         boolean onArrow = (mouseX >= leftArrowX() && mouseX < leftArrowX() + BUTTON) || mouseX >= rightArrowX();
         if (mouseX < x || mouseX >= x + width || onArrow) {
             return null;

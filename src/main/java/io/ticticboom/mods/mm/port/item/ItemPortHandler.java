@@ -5,6 +5,9 @@ import io.ticticboom.mods.mm.util.ItemNbtUtil;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Predicate;
 import java.util.Map;
 import java.util.List;
 
@@ -36,7 +39,11 @@ public class ItemPortHandler extends ItemStackHandler {
     private final int[] actualCounts;
     private final BitSet emptySlots = new BitSet();
     private final Map<Item, BitSet> partialSlots = new HashMap<>();
+    private final Map<Item, BitSet> fullSlots = new HashMap<>();
+    private final Map<Item, Long> itemTotals = new HashMap<>();
     private final Item[] indexedItems;
+    private final int[] indexedCounts;
+    private long contentRevision;
 
     public ItemPortHandler(int size, int slotCapacity, INotifyChangeFunction changed) {
         super(size);
@@ -50,6 +57,7 @@ public class ItemPortHandler extends ItemStackHandler {
         this.actualCounts = new int[size];
         for (int i = 0; i < size; i++) this.actualCounts[i] = 0;
         this.indexedItems = new Item[size];
+        this.indexedCounts = new int[size];
         this.emptySlots.set(0, size);
     }
 
@@ -110,6 +118,7 @@ public class ItemPortHandler extends ItemStackHandler {
         for (int i = 0; i < stacks.size(); i++) {
             reindexSlot(i);
         }
+        contentRevision++;
     }
 
     private void restoreDisplayCounts() {
@@ -132,16 +141,26 @@ public class ItemPortHandler extends ItemStackHandler {
     @Override
     protected void onContentsChanged(int slot) {
         reindexSlot(slot);
+        contentRevision++;
         changed.call();
     }
 
     private void reindexSlot(int slot) {
         Item previous = indexedItems[slot];
         if (previous != null) {
+            long previousTotal = itemTotals.getOrDefault(previous, 0L) - indexedCounts[slot];
+            if (previousTotal > 0) itemTotals.put(previous, previousTotal);
+            else itemTotals.remove(previous);
+            indexedCounts[slot] = 0;
             BitSet slots = partialSlots.get(previous);
             if (slots != null) {
                 slots.clear(slot);
                 if (slots.isEmpty()) partialSlots.remove(previous);
+            }
+            slots = fullSlots.get(previous);
+            if (slots != null) {
+                slots.clear(slot);
+                if (slots.isEmpty()) fullSlots.remove(previous);
             }
             indexedItems[slot] = null;
         }
@@ -151,10 +170,61 @@ public class ItemPortHandler extends ItemStackHandler {
             return;
         }
         emptySlots.clear(slot);
+        indexedItems[slot] = stack.getItem();
+        indexedCounts[slot] = actualCounts[slot];
+        itemTotals.merge(stack.getItem(), (long) actualCounts[slot], Long::sum);
         if (stack.isStackable() && actualCounts[slot] < getSlotLimit(slot)) {
-            indexedItems[slot] = stack.getItem();
             partialSlots.computeIfAbsent(stack.getItem(), ignored -> new BitSet()).set(slot);
+        } else {
+            fullSlots.computeIfAbsent(stack.getItem(), ignored -> new BitSet()).set(slot);
         }
+    }
+
+    public long contentRevision() {
+        return contentRevision;
+    }
+
+    public boolean hasEmptySlots() {
+        return !emptySlots.isEmpty();
+    }
+
+    public boolean hasItem(Item item) {
+        return partialSlots.containsKey(item) || fullSlots.containsKey(item);
+    }
+
+    public boolean hasCompatiblePartialSlot(ItemStack stack) {
+        BitSet slots = partialSlots.get(stack.getItem());
+        if (slots == null) return false;
+        for (int slot = slots.nextSetBit(0); slot >= 0; slot = slots.nextSetBit(slot + 1)) {
+            if (!areTagsDifferentOrNull(ItemNbtUtil.getTag(getStackInSlot(slot)), ItemNbtUtil.getTag(stack))) return true;
+        }
+        return false;
+    }
+
+    public Set<Item> indexedItemTypes() {
+        var result = new HashSet<>(partialSlots.keySet());
+        result.addAll(fullSlots.keySet());
+        return result;
+    }
+
+    public Map<Item, Long> itemTotals() {
+        return Map.copyOf(itemTotals);
+    }
+
+    public int extractMatching(Item item, Predicate<ItemStack> filter, int count, boolean simulate) {
+        int remaining = extractMatching(partialSlots.get(item), filter, count, simulate);
+        if (remaining > 0) remaining = extractMatching(fullSlots.get(item), filter, remaining, simulate);
+        return remaining;
+    }
+
+    private int extractMatching(BitSet slots, Predicate<ItemStack> filter, int remaining, boolean simulate) {
+        if (slots == null) return remaining;
+        for (int slot = slots.nextSetBit(0); slot >= 0 && remaining > 0; slot = slots.nextSetBit(slot + 1)) {
+            ItemStack stack = getStackInSlot(slot);
+            if (!filter.test(stack)) continue;
+            remaining -= extractItem(slot, remaining, simulate).getCount();
+        }
+        return remaining;
     }
 
     public ItemStack insertStackFast(ItemStack stack, boolean simulate) {
@@ -318,29 +388,14 @@ public class ItemPortHandler extends ItemStackHandler {
     public int canInsert(ItemStack stack, int count) {
         if (stack == null || stack.isEmpty()) return count;
         int remainingToInsert = count;
-        Item stackItem = stack.getItem();
         CompoundTag stackTag = ItemNbtUtil.getTag(stack);
-
-        // Check all slots for available space
-        for (int slot = 0; slot < getSlots(); slot++) {
-            if (remainingToInsert <= 0) break;
-
-            ItemStack existing = getStackInSlot(slot);
-            if (existing.isEmpty()) {
-                // Empty slot - can place items
-                int limit = getSlotLimit(slot);
-                int toPlace = Math.min(limit, remainingToInsert);
-                remainingToInsert -= toPlace;
-            } else if (existing.getItem() == stackItem && !areTagsDifferentOrNull(ItemNbtUtil.getTag(existing), stackTag)) {
-                // Compatible existing stack - can merge
-                int limit = getSlotLimit(slot);
-                int actualCount = actualCounts[slot];
-                int space = limit - actualCount;
-                if (space > 0) {
-                    int toAdd = Math.min(space, remainingToInsert);
-                    remainingToInsert -= toAdd;
-                }
-            }
+        BitSet partial = partialSlots.get(stack.getItem());
+        if (partial != null) for (int slot = partial.nextSetBit(0); slot >= 0 && remainingToInsert > 0; slot = partial.nextSetBit(slot + 1)) {
+            if (!areTagsDifferentOrNull(ItemNbtUtil.getTag(getStackInSlot(slot)), stackTag))
+                remainingToInsert -= Math.min(getSlotLimit(slot) - actualCounts[slot], remainingToInsert);
+        }
+        for (int slot = emptySlots.nextSetBit(0); slot >= 0 && remainingToInsert > 0; slot = emptySlots.nextSetBit(slot + 1)) {
+            remainingToInsert -= Math.min(getSlotLimit(slot), remainingToInsert);
         }
 
         return remainingToInsert;
@@ -399,10 +454,7 @@ public class ItemPortHandler extends ItemStackHandler {
      * @return The number of items that could not be inserted
      */
     private int insertIntoEmptySlots(ItemStack template, int remainingToInsert, boolean checkNbt) {
-        for (int slot = 0; slot < getSlots(); slot++) {
-            if (remainingToInsert <= 0) break;
-            ItemStack existing = getStackInSlot(slot);
-            if (!existing.isEmpty()) continue;
+        for (int slot = emptySlots.nextSetBit(0); slot >= 0 && remainingToInsert > 0; slot = emptySlots.nextSetBit(slot + 1)) {
             int limit = getSlotLimit(slot);
             int maxPerSlot = Math.max(1, limit);
             int toPlace = Math.min(maxPerSlot, remainingToInsert);
@@ -428,11 +480,10 @@ public class ItemPortHandler extends ItemStackHandler {
      * @return The number of items that could not be inserted
      */
     private int mergeIntoExistingStacks(ItemStack template, int remainingToInsert, boolean checkNbt) {
-        for (int slot = 0; slot < getSlots(); slot++) {
-            if (remainingToInsert <= 0) break;
+        BitSet partial = partialSlots.get(template.getItem());
+        if (partial == null) return remainingToInsert;
+        for (int slot = partial.nextSetBit(0); slot >= 0 && remainingToInsert > 0; slot = partial.nextSetBit(slot + 1)) {
             ItemStack existing = getStackInSlot(slot);
-            if (existing.isEmpty()) continue;
-            if (existing.getItem() != template.getItem()) continue;
             if (checkNbt && areTagsDifferentOrNull(ItemNbtUtil.getTag(existing), ItemNbtUtil.getTag(template))) continue;
             int limit = getSlotLimit(slot);
             int space = limit - actualCounts[slot];
@@ -510,6 +561,7 @@ public class ItemPortHandler extends ItemStackHandler {
             actualCounts[i] = 0;
             reindexSlot(i);
         }
+        contentRevision++;
         changed.call();
     }
 

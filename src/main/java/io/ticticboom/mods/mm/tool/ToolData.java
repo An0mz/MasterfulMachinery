@@ -16,6 +16,7 @@ public final class ToolData {
     private static final String NETWORK_KEY = "Network";
     private static final String USE_ME_KEY = "UseMe";
     private static final String AUTOCRAFT_KEY = "AutoCraft";
+    private static final String INSTANT_BUILD_KEY = "InstantBuild";
 
     private ToolData() {
     }
@@ -113,5 +114,13 @@ public final class ToolData {
 
     public static void setAutoCraft(ItemStack stack, boolean value) {
         ToolComponents.update(stack, ToolComponents.SETTINGS, tag -> tag.putBoolean(AUTOCRAFT_KEY, value));
+    }
+
+    public static boolean instantBuild(ItemStack stack) {
+        return tag(stack).getBoolean(INSTANT_BUILD_KEY);
+    }
+
+    public static void setInstantBuild(ItemStack stack, boolean value) {
+        ToolComponents.update(stack, ToolComponents.SETTINGS, tag -> tag.putBoolean(INSTANT_BUILD_KEY, value));
     }
 }
