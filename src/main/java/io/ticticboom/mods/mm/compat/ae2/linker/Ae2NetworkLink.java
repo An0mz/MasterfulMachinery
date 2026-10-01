@@ -29,7 +29,11 @@ public final class Ae2NetworkLink {
 
     public static DeferredHolder<Item, Item> init(IEventBus modBus) {
         DeferredHolder<Item, Item> linker = MMRegisters.ITEMS.register("network_linker", () -> new LinkerItem(new Item.Properties().stacksTo(1)));
-        modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(() -> GridLinkables.register(linker.get(), new LinkerGridLinkable())));
+        modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(() -> {
+            var handler = new LinkerGridLinkable();
+            GridLinkables.register(linker.get(), handler);
+            GridLinkables.register(MMRegisters.MULTIBLOCK_TOOL.get(), handler);
+        }));
         NeoForge.EVENT_BUS.register(new NetworkLinkProtection());
         MeAccessFactory.setLookup(Ae2MeAccess::forTool, Ae2MeAccess::problem);
         return linker;

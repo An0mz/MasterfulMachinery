@@ -2,6 +2,7 @@ package io.ticticboom.mods.mm;
 
 import io.ticticboom.mods.mm.networklink.NetworkLink;
 import io.ticticboom.mods.mm.config.MMConfigSetup;
+import io.ticticboom.mods.mm.client.config.MMConfigClientSetup;
 import io.ticticboom.mods.mm.extra.MMExtraBlockRegistry;
 import io.ticticboom.mods.mm.controller.MMControllerRegistry;
 import io.ticticboom.mods.mm.datagen.DataGenManager;
@@ -33,12 +34,13 @@ public class ModRoot {
         MMStructurePieceRegistry.init();
         MMStructureAttachmentRegistry.init();
         DataGenManager.registerDataProviders();
-        registerClientPack();
+        registerClientPack(modContainer);
     }
 
-    private void registerClientPack() {
+    private void registerClientPack(ModContainer modContainer) {
         try {
             if (FMLEnvironment.dist == Dist.CLIENT) {
+                MMConfigClientSetup.register(modContainer);
                 Minecraft.getInstance().getResourcePackRepository()
                         .addPackFinder(new MMRepositorySource(MMRepoType.RESOURCES));
             }

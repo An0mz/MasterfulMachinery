@@ -38,8 +38,8 @@ public class MMRegisters {
     public static final DeferredHolder<Item, Item> PRIORITY_SETTER = ITEMS.register("priority_setter", PrioritySetterItem::new);
     public static final DeferredHolder<Item, MultiblockSaverItem> MULTIBLOCK_SAVER = ITEMS.register("multiblock_saver", MultiblockSaverItem::new);
 
-    public static final DeferredHolder<Item, MultiblockToolItem> MULTIBLOCK_TOOL = ITEMS.register("multiblock_tool", MultiblockToolItem::new);
-    public static final DeferredHolder<MenuType<?>, MenuType<MultiblockToolMenu>> MULTIBLOCK_TOOL_MENU = MENUS.register("multiblock_tool",
+    public static final DeferredHolder<Item, MultiblockToolItem> MULTIBLOCK_TOOL = ITEMS.register("structure_builder", MultiblockToolItem::new);
+    public static final DeferredHolder<MenuType<?>, MenuType<MultiblockToolMenu>> MULTIBLOCK_TOOL_MENU = MENUS.register("structure_builder",
             () -> IMenuTypeExtension.create(MultiblockToolMenu::new));
     public static final DeferredHolder<Item, WrenchItem> WRENCH = ITEMS.register("wrench", WrenchItem::new);
     public static final DeferredHolder<Block, InputGatewayBlock> INPUT_GATEWAY = BLOCKS.register("input_gateway", InputGatewayBlock::new);

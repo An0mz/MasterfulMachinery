@@ -2,6 +2,8 @@ package io.ticticboom.mods.mm.compat.jei;
 
 import com.google.common.collect.ImmutableList;
 import io.ticticboom.mods.mm.Ref;
+import io.ticticboom.mods.mm.client.tool.MultiblockToolScreen;
+import io.ticticboom.mods.mm.controller.machine.register.MachineControllerScreen;
 import io.ticticboom.mods.mm.compat.jei.category.MMRecipeCategory;
 import io.ticticboom.mods.mm.compat.jei.category.MMStructureCategory;
 import io.ticticboom.mods.mm.compat.jei.ingredient.MMJeiIngredients;
@@ -27,14 +29,20 @@ import io.ticticboom.mods.mm.structure.StructureManager;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
+import mezz.jei.api.gui.handlers.IGuiContainerHandler;
+import mezz.jei.api.gui.builder.IClickableIngredientFactory;
+import mezz.jei.api.runtime.IClickableIngredient;
+import mezz.jei.api.neoforge.NeoForgeTypes;
 import mezz.jei.api.registration.*;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.registries.BuiltInRegistries;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import io.ticticboom.mods.mm.compat.jei.ingredient.radiation.RadiationIngredientHelper;
 import io.ticticboom.mods.mm.compat.jei.ingredient.radiation.RadiationIngredientRenderer;
@@ -157,9 +165,40 @@ public class MMJeiPlugin implements IModPlugin {
 
     @Override
     public void registerItemSubtypes(ISubtypeRegistration registration) {
-        // JEI 19 replaced useNbtForSubtypes with component-based subtypes; the blueprint
-        // distinguishes itself by its custom_data component.
         registration.registerSubtypeInterpreter(MMRegisters.BLUEPRINT.get(),
                 (stack, ctx) -> String.valueOf(ItemNbtUtil.getTag(stack)));
+    }
+
+    @Override
+    public void registerGuiHandlers(@NotNull IGuiHandlerRegistration registration) {
+        registration.addGuiContainerHandler(MultiblockToolScreen.class, new IGuiContainerHandler<>() {
+            @Override
+            public @NotNull List<Rect2i> getGuiExtraAreas(@NotNull MultiblockToolScreen screen) {
+                return screen.getTabAreas();
+            }
+
+            @Override
+            public Optional<? extends IClickableIngredient<?>> getClickableIngredientUnderMouse(
+                    IClickableIngredientFactory factory, MultiblockToolScreen screen, double mouseX, double mouseY) {
+                ItemStack stack = screen.getJeiMaterialAt(mouseX, mouseY);
+                Rect2i area = screen.getJeiMaterialAreaAt(mouseX, mouseY);
+                if (stack == null || stack.isEmpty() || area == null) return Optional.empty();
+                return factory.createBuilder(stack).buildWithArea(area);
+            }
+        });
+        registration.addGuiContainerHandler(MachineControllerScreen.class, new IGuiContainerHandler<>() {
+            @Override
+            public Optional<? extends IClickableIngredient<?>> getClickableIngredientUnderMouse(
+                    IClickableIngredientFactory factory, MachineControllerScreen screen, double mouseX, double mouseY) {
+                var hovered = screen.getJeiIngredientAt(mouseX, mouseY);
+                if (hovered == null) return Optional.empty();
+                var content = hovered.content();
+                return switch (content.kind()) {
+                    case ITEM -> factory.createBuilder(content.item().copyWithCount(1)).buildWithArea(hovered.area());
+                    case FLUID -> factory.createBuilder(NeoForgeTypes.FLUID_STACK, content.fluid().copy()).buildWithArea(hovered.area());
+                    default -> Optional.empty();
+                };
+            }
+        });
     }
 }

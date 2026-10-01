@@ -119,7 +119,10 @@ public class SlottedContainerScreen<T extends AbstractContainerMenu & IPortMenu 
     protected void renderBg(GuiGraphics gfx, float partialTicks, int mouseX, int mouseY) {
         gfx.blit(Ref.UiTextures.PORT_GUI, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
         for (Vec2 slot : slots) {
-            gfx.blit(Ref.UiTextures.SLOT_PARTS, this.leftPos + (int) slot.x, this.topPos + (int) slot.y, 0, 26, 18, 18);
+            int x = this.leftPos + (int) slot.x;
+            int y = this.topPos + (int) slot.y;
+            if (x + 18 <= 0 || y + 18 <= 0 || x >= this.width || y >= this.height) continue;
+            gfx.blit(Ref.UiTextures.SLOT_PARTS, x, y, 0, 26, 18, 18);
         }
     }
 

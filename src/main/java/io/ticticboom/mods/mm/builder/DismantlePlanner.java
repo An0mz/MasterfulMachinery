@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.builder;
 
+import io.ticticboom.mods.mm.builder.structure.BuildableStructure;
+import io.ticticboom.mods.mm.builder.structure.BuildableStructureRegistry;
 import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
 import io.ticticboom.mods.mm.piece.type.StructurePiece;
 import io.ticticboom.mods.mm.piece.type.port.PortAnywhereStructurePiece;
@@ -10,9 +12,11 @@ import io.ticticboom.mods.mm.setup.MMRegisters;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import io.ticticboom.mods.mm.structure.layout.PositionedLayoutPiece;
 import io.ticticboom.mods.mm.structure.layout.StructureLayout;
+import io.ticticboom.mods.mm.tool.ToolData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.Rotation;
@@ -21,9 +25,12 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public final class DismantlePlanner {
@@ -33,6 +40,74 @@ public final class DismantlePlanner {
     }
 
     public record Target(BlockPos pos, Block block) {
+    }
+
+    public record BuilderMatch(BlockPos center, List<Target> positions) {
+    }
+
+    private record Candidate(Rotation rotation, BlockPos origin) {
+    }
+
+    public static @Nullable BuilderMatch matchBuilder(Level level, BlockPos clicked, ItemStack tool) {
+        var id = ToolData.builderStructure(tool);
+        if (id == null || !level.isLoaded(clicked)) return null;
+        BuildableStructure structure = (level.isClientSide ? BuildableStructureRegistry.CLIENT : BuildableStructureRegistry.SERVER).get(id);
+        if (structure == null || structure.blocks().isEmpty()) return null;
+        Block clickedBlock = level.getBlockState(clicked).getBlock();
+        Map<Block, Integer> frequency = new HashMap<>();
+        for (BuildableStructure.Placement placement : structure.blocks()) {
+            frequency.merge(placement.state().getBlock(), 1, Integer::sum);
+        }
+        List<BuildableStructure.Placement> probes = new ArrayList<>(structure.blocks());
+        probes.sort(Comparator.comparingInt(placement -> frequency.get(placement.state().getBlock())));
+        Set<Candidate> tried = new HashSet<>();
+        Set<BlockPos> matchedPositions = null;
+        int checks = 0;
+        for (Rotation rotation : Rotation.values()) {
+            for (BuildableStructure.Placement clickedPiece : structure.blocks()) {
+                if (clickedPiece.state().getBlock() != clickedBlock) continue;
+                BlockPos origin = clicked.subtract(clickedPiece.pos().rotate(rotation));
+                if (!tried.add(new Candidate(rotation, origin))) continue;
+                Set<BlockPos> candidate = new LinkedHashSet<>();
+                boolean complete = true;
+                for (BuildableStructure.Placement probe : probes) {
+                    if (++checks > 250_000) return null;
+                    BlockPos pos = origin.offset(probe.pos().rotate(rotation));
+                    if (!level.isLoaded(pos) || !level.getBlockState(pos).is(probe.state().getBlock())) {
+                        complete = false;
+                        break;
+                    }
+                    candidate.add(pos.immutable());
+                }
+                if (!complete) continue;
+                if (matchedPositions != null && !matchedPositions.equals(candidate)) return null;
+                matchedPositions = candidate;
+            }
+        }
+        if (matchedPositions == null) return null;
+        List<BlockPos> ordered = new ArrayList<>(matchedPositions);
+        ordered.sort(Comparator.<BlockPos>comparingInt(BlockPos::getY).reversed()
+                .thenComparingInt(BlockPos::getX).thenComparingInt(BlockPos::getZ));
+        int minX = ordered.stream().mapToInt(BlockPos::getX).min().orElseThrow();
+        int maxX = ordered.stream().mapToInt(BlockPos::getX).max().orElseThrow();
+        int minY = ordered.stream().mapToInt(BlockPos::getY).min().orElseThrow();
+        int maxY = ordered.stream().mapToInt(BlockPos::getY).max().orElseThrow();
+        int minZ = ordered.stream().mapToInt(BlockPos::getZ).min().orElseThrow();
+        int maxZ = ordered.stream().mapToInt(BlockPos::getZ).max().orElseThrow();
+        BlockPos middle = new BlockPos((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2);
+        BlockPos center = ordered.stream().min(Comparator.comparingDouble((BlockPos pos) -> pos.distSqr(middle))
+                .thenComparingInt(BlockPos::getY).thenComparingInt(BlockPos::getX).thenComparingInt(BlockPos::getZ)).orElseThrow();
+        ordered.remove(center);
+        ordered.add(center);
+        List<Target> targets = ordered.stream().map(pos -> new Target(pos, level.getBlockState(pos).getBlock())).toList();
+        return new BuilderMatch(center, targets);
+    }
+
+    public static List<BlockPos> previewPositions(Level level, BlockPos pos, ItemStack tool) {
+        List<BlockPos> mm = previewPositions(level, pos);
+        if (!mm.isEmpty()) return mm;
+        BuilderMatch builder = matchBuilder(level, pos, tool);
+        return builder == null ? List.of() : builder.positions().stream().map(Target::pos).toList();
     }
 
     public static @Nullable MachineControllerBlockEntity resolve(Level level, BlockPos pos) {

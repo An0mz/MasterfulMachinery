@@ -31,6 +31,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -66,14 +67,14 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
     private static final int MIN_HEIGHT = 246;
     private static final int MAX_WIDTH = 500;
     private static final int MAX_HEIGHT = 380;
-    private static final int WINDOW_MARGIN = 16;
+    private static final int WINDOW_MARGIN = 24;
     private static final int FRAME = 6;
     private static final int FRAME_BOTTOM = 7;
     private static final int INVENTORY_WIDTH = 162;
     private static final int INVENTORY_HEIGHT = 76;
     private static final int PANEL_GAP = 12;
     private static final int GREY = 0xFFC6C6C6;
-    private static final int WIDE_WIDTH = 400;
+    private static final int WIDE_WIDTH = 480;
     private static final int INFO_WIDTH = 190;
     private static final int COLUMN_GAP = 12;
     private static final int PANEL = 0xFF1C1C1C;
@@ -368,7 +369,10 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
     }
 
     private List<Row> rows() {
-        var rows = new ArrayList<>(List.of(Row.STRUCTURE, Row.TIER, Row.PARALLEL, Row.REDSTONE, Row.MODE, Row.SOUND));
+        var rows = new ArrayList<>(List.of(Row.STRUCTURE, Row.TIER, Row.PARALLEL, Row.REDSTONE, Row.MODE));
+        if (hasWorkingSound()) {
+            rows.add(Row.SOUND);
+        }
         if (NetworkLink.AVAILABLE) {
             rows.add(Row.LINK);
         }
@@ -433,7 +437,6 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         if (hasWorkingSound()) {
             int sy = y + rowY(Row.SOUND) - 2;
             drawButtonFrame(gfx, x + VALUE_X - 2, sy, valueRight - VALUE_X + 2, BUTTON_HEIGHT, isOnRow(Row.SOUND, mouseX, mouseY));
-            drawSmallItem(gfx, new ItemStack(Items.NOTE_BLOCK), x + VALUE_X, sy + 1, 8);
         }
 
         if (rows().contains(Row.RECIPE)) {
@@ -541,9 +544,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
                 VALUE_X + 1, rowY(Row.MODE), valueRight - VALUE_X - 3, TEXT);
         if (hasWorkingSound()) {
             drawClipped(gfx, Component.translatable(be.isSoundMuted() ? "gui.mm.controller.sound.off" : "gui.mm.controller.sound.on"),
-                    VALUE_X + 12, rowY(Row.SOUND), valueRight - VALUE_X - 14, be.isSoundMuted() ? LABEL : TEXT);
-        } else {
-            drawClipped(gfx, Component.translatable("gui.mm.controller.sound.none"), VALUE_X, rowY(Row.SOUND), valueRight - VALUE_X, LABEL);
+                    VALUE_X + 1, rowY(Row.SOUND), valueRight - VALUE_X - 3, TEXT);
         }
         if (rows().contains(Row.LINK)) {
             LinkData link = be.getNetworkLink();
@@ -812,6 +813,22 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
             if (WidgetUtils.isPointerWithinSized((int) mouseX, (int) mouseY, this.leftPos + s.x(), this.topPos + s.y(), 18, 18)) {
                 return s;
             }
+        }
+        return null;
+    }
+
+    @Nullable
+    public ControllerPortList.HoveredContent getJeiIngredientAt(double mouseX, double mouseY) {
+        Shown shown = hoveredSlot(mouseX, mouseY);
+        if (shown != null && (shown.content().kind() == PortContent.Kind.ITEM && !shown.content().item().isEmpty()
+                || shown.content().kind() == PortContent.Kind.FLUID && !shown.content().fluid().isEmpty())) {
+            return new ControllerPortList.HoveredContent(shown.content(),
+                    new Rect2i(this.leftPos + shown.x(), this.topPos + shown.y(), 18, 18));
+        }
+        if (onPortsPage() || wide) {
+            var input = portList.ingredientAt(be.getLevel(), mouseX, mouseY);
+            if (input != null) return input;
+            if (wide) return outputList.ingredientAt(be.getLevel(), mouseX, mouseY);
         }
         return null;
     }

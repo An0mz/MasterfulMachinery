@@ -92,7 +92,8 @@ public class MultiblockToolItem extends Item {
             if (NetworkLink.bindTool(serverPlayer, context)) {
                 return InteractionResult.SUCCESS;
             }
-            if (DismantlePlanner.resolve(context.getLevel(), context.getClickedPos()) != null) {
+            if (DismantlePlanner.resolve(context.getLevel(), context.getClickedPos()) != null
+                    || DismantlePlanner.matchBuilder(context.getLevel(), context.getClickedPos(), context.getItemInHand()) != null) {
                 ToolDismantles.shiftClick(serverPlayer, context.getItemInHand(), context.getClickedPos());
             } else {
                 openStore(serverPlayer, context.getItemInHand(), context.getHand());
@@ -169,20 +170,20 @@ public class MultiblockToolItem extends Item {
             structure = ToolData.builderStructure(stack);
         }
         if (structure != null) {
-            tooltip.add(Component.translatable("tooltip.mm.multiblock_tool.structure", structure.toString()).withStyle(ChatFormatting.GRAY));
+            tooltip.add(Component.translatable("tooltip.mm.structure_builder.structure", structure.toString()).withStyle(ChatFormatting.GRAY));
         } else {
-            tooltip.add(Component.translatable("tooltip.mm.multiblock_tool.no_structure").withStyle(ChatFormatting.DARK_GRAY));
+            tooltip.add(Component.translatable("tooltip.mm.structure_builder.no_structure").withStyle(ChatFormatting.DARK_GRAY));
         }
         int capacity = MMConfig.TOOL_ENERGY_CAPACITY;
         int energy = ToolEnergy.of(stack).getEnergyStored();
-        tooltip.add(Component.translatable("tooltip.mm.multiblock_tool.energy", energy, capacity).withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("tooltip.mm.structure_builder.energy", energy, capacity).withStyle(ChatFormatting.GRAY));
         var network = NetworkLink.AVAILABLE ? ToolData.network(stack) : null;
         if (network != null) {
-            tooltip.add(Component.translatable("tooltip.mm.multiblock_tool.network",
+            tooltip.add(Component.translatable("tooltip.mm.structure_builder.network",
                     network.pos().toShortString(), network.dimension().location().getPath()).withStyle(ChatFormatting.AQUA));
         } else if (NetworkLink.AVAILABLE) {
-            tooltip.add(Component.translatable("tooltip.mm.multiblock_tool.no_network").withStyle(ChatFormatting.DARK_GRAY));
+            tooltip.add(Component.translatable("tooltip.mm.structure_builder.no_network").withStyle(ChatFormatting.DARK_GRAY));
         }
-        tooltip.add(Component.translatable("tooltip.mm.multiblock_tool.usage", dismantleKeyName.get()).withStyle(ChatFormatting.DARK_GRAY));
+        tooltip.add(Component.translatable("tooltip.mm.structure_builder.usage", dismantleKeyName.get()).withStyle(ChatFormatting.DARK_GRAY));
     }
 }

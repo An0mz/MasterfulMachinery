@@ -11,7 +11,7 @@
       "item": "minecraft:diamond"
     },
     "B": {
-      "item": "mm:blueprint"
+      "item": "minecraft:paper"
     },
     "I": {
       "item": "minecraft:iron_ingot"
@@ -21,7 +21,7 @@
     }
   },
   "result": {
-    "id": "mm:multiblock_tool",
+    "id": "mm:structure_builder",
     "count": 1
   }
 }

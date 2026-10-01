@@ -44,7 +44,9 @@ public class InputGatewayBlock extends BaseEntityBlock {
 
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.translatable("block.mm.input_gateway.tooltip").withStyle(ChatFormatting.GRAY));
+        for (int line = 1; line <= 4; line++) {
+            tooltip.add(Component.translatable("block.mm.input_gateway.tooltip." + line).withStyle(ChatFormatting.GRAY));
+        }
     }
 
     @Override

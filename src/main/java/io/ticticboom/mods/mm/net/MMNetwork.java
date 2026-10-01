@@ -14,6 +14,11 @@ import io.ticticboom.mods.mm.net.packet.ProcessesSyncPkt;
 import io.ticticboom.mods.mm.net.packet.SelectRecipePkt;
 import io.ticticboom.mods.mm.net.packet.StructureSyncPkt;
 import io.ticticboom.mods.mm.net.packet.ToggleRedstoneModePkt;
+import io.ticticboom.mods.mm.net.packet.StructureCategoryEditPkt;
+import io.ticticboom.mods.mm.net.packet.StructureCategoriesSyncPkt;
+import io.ticticboom.mods.mm.net.packet.MMConfigRequestPkt;
+import io.ticticboom.mods.mm.net.packet.MMConfigEditPkt;
+import io.ticticboom.mods.mm.net.packet.MMConfigSyncPkt;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -45,5 +50,10 @@ public class MMNetwork {
         registrar.playToClient(BuildableStructureSyncPkt.TYPE, BuildableStructureSyncPkt.STREAM_CODEC, BuildableStructureSyncPkt::handle);
         registrar.playToServer(AssemblyPkt.TYPE, AssemblyPkt.STREAM_CODEC, AssemblyPkt::handle);
         registrar.playToServer(PortConfigPkt.TYPE, PortConfigPkt.STREAM_CODEC, PortConfigPkt::handle);
+        registrar.playToClient(StructureCategoriesSyncPkt.TYPE, StructureCategoriesSyncPkt.STREAM_CODEC, StructureCategoriesSyncPkt::handle);
+        registrar.playToServer(StructureCategoryEditPkt.TYPE, StructureCategoryEditPkt.STREAM_CODEC, StructureCategoryEditPkt::handle);
+        registrar.playToServer(MMConfigRequestPkt.TYPE, MMConfigRequestPkt.STREAM_CODEC, MMConfigRequestPkt::handle);
+        registrar.playToServer(MMConfigEditPkt.TYPE, MMConfigEditPkt.STREAM_CODEC, MMConfigEditPkt::handle);
+        registrar.playToClient(MMConfigSyncPkt.TYPE, MMConfigSyncPkt.STREAM_CODEC, MMConfigSyncPkt::handle);
     }
 }

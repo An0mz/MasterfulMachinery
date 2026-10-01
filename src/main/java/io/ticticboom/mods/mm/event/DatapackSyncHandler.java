@@ -2,10 +2,13 @@ package io.ticticboom.mods.mm.event;
 
 import io.ticticboom.mods.mm.builder.structure.BuildableStructureSync;
 import io.ticticboom.mods.mm.Ref;
+import io.ticticboom.mods.mm.net.packet.StructureCategoriesSyncPkt;
 import io.ticticboom.mods.mm.structure.StructureManager;
+import io.ticticboom.mods.mm.tool.StructureCategories;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 @EventBusSubscriber(bus = EventBusSubscriber.Bus.GAME)
 public class DatapackSyncHandler {
@@ -19,6 +22,8 @@ public class DatapackSyncHandler {
         }
         try {
             event.getRelevantPlayers().forEach(BuildableStructureSync::send);
+            var categories = new StructureCategoriesSyncPkt(StructureCategories.get(event.getPlayerList().getServer()).snapshot());
+            event.getRelevantPlayers().forEach(player -> PacketDistributor.sendToPlayer(player, categories));
         } catch (RuntimeException t) {
             Ref.LOG.error("Error syncing builder structures on datapack sync", t);
         }

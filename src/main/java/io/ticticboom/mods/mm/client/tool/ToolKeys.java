@@ -137,7 +137,7 @@ public class ToolKeys {
             }
             if (!target.equals(holdAim)) {
                 holdAim = target.immutable();
-                List<BlockPos> positions = DismantlePlanner.previewPositions(level, holdAim);
+                List<BlockPos> positions = DismantlePlanner.previewPositions(level, holdAim, heldTool(player));
                 BlockPos controller = positions.isEmpty() ? null : positions.get(positions.size() - 1);
                 if (!Objects.equals(controller, holdController)) {
                     holdTicks = 0;
@@ -184,7 +184,7 @@ public class ToolKeys {
                     || !(player.getItemInHand(event.getHand()).getItem() instanceof MultiblockToolItem)) {
                 return;
             }
-            List<BlockPos> positions = DismantlePlanner.previewPositions(level, event.getPos());
+            List<BlockPos> positions = DismantlePlanner.previewPositions(level, event.getPos(), player.getItemInHand(event.getHand()));
             if (positions.isEmpty()) {
                 pendingController = null;
                 return;
