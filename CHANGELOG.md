@@ -4,6 +4,95 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.9.0] - 2026-10-01
+
+Most of this release is ported from
+[BOLTMAGIC's Masterful Machinery for 1.20.1](https://github.com/BOLTMAGIC/MasterfulMachinery),
+versions 0.1.35 to 0.1.35.4. Thanks to **BOLTMAGIC** for maintaining it and to **Knozyy** for
+building most of these features: the controller and port screens, Assemble and the Structure Builder,
+the Network Linker, Machine Wrench and Input Gateway, weighted outputs, the new conditions, working
+sounds and particles, comparator output, the KubeJS recipe events, the Jade and JEI improvements, the
+in-game config and the faster item ports.
+
+### Added
+- **A new controller screen.** Rename the machine, see its status (Running, Idle, Stuck, Paused or
+  Not formed) and what is missing when it is not built, switch redstone and recipe mode, mute its
+  sound, and page through every input and output port with their contents. It opens large or small;
+  the button in the corner switches it.
+- **Assemble.** A button in the controller screen places the machine's missing blocks from your
+  inventory, with a choice of tier for each part.
+- **Structure Builder.** A powered tool that builds a whole structure in one go and takes machines
+  apart again. Pick a structure in its screen, right-click to build, shift+right-click to dismantle.
+  - Takes blocks from its own store, your inventory, and an ME network it is bound to, and can order
+    missing blocks from AE2.
+  - A Materials tab lists what the structure needs against what you have.
+  - **Instant build** in its Settings tab places everything in one tick.
+  - Builds structure files from datapacks (`mm_builder_structures/`) as well as MM machines, and
+    `MMEvents.builderStructures` adds or removes them from KubeJS.
+  - Operators can sort the structure list into categories from the Admin tab.
+- **Network Linker** (with AE2). Links a machine to an ME network without cables: outputs go straight
+  into ME as soon as a recipe finishes, and broken ports empty into ME. Use it with a normal Pattern
+  Provider and encoded patterns to autocraft with MM machines. See [`ae2.md`](docs/ae2.md).
+- **Linked machines belong to their network's owner.** Only the owner, their FTB Teams team and
+  operators can open or break them.
+- **Port side panel.** Each port's screen sets auto input/output per side, locks fluid and chemical
+  tanks to what is in them, and empties the port with Shift+click on Dump.
+- **Machine Wrench.** Right-click a port's side to toggle its auto input/output.
+- **Input Gateway.** Build it into a machine, or place it next to an input port, and pipe items,
+  fluids, energy and Mekanism chemicals into it.
+- **Weighted outputs.** `mm:output/weighted` gives one of several outputs each craft, by weight.
+- **More recipe conditions:** `mm:biome`, `mm:time` (day or night), `mm:height`, `mm:redstone` and
+  `mm:tier`. Structures can set a `tier`, or it is read from their name. All conditions now work from
+  KubeJS too, and JEI lists them.
+- **`requestOnly` recipes** only run when ordered from the Replication Terminal or AE2, or picked in
+  manual mode.
+- **One recipe for several structures** with `structureIds`.
+- **Working sounds and particles.** Controllers can set `workingSound`, `workingSoundInterval` and
+  `workingParticle`. Players can mute a machine, turn them all off in the client config, or change
+  them per machine in `config/mm/working_effects.json`.
+- **Screen colours per controller** with `unformedColor`, `idleColor` and `workingColor`, and a
+  status light on ports in the same colours.
+- **Comparator output.** A comparator next to a working controller gives 1–15 by recipe progress.
+- **KubeJS recipe events.** `MMEvents.recipeStarted` (can be cancelled) and
+  `MMEvents.recipeFinished`.
+- **In-game config screen**, from the Mods menu or the Structure Builder. Operators can change server
+  settings while playing.
+- **ME connector patterns can carry more types** with the AE2 addons installed: energy (Applied
+  Flux), chemicals (Applied Mekanistics), Source (Ars Énergistique), air (Applied Pneumatics) and
+  matter (Replication AE2 Bridge). `exclude` leaves a type out.
+- **Item ports work as ME storage**, so a Pattern Provider fills them in whole batches and a Storage
+  Bus can read them.
+- **Jade** shows a controller's progress, running recipes, redstone mode and owner, and on ports their
+  machine and auto I/O.
+- **JEI structure preview:** view one layer at a time, connected textures join up, and a blue "i"
+  shows the controls. Big recipes scroll instead of running off the screen.
+- **JEI lookups** from the controller screen and the Structure Builder's materials.
+- **Blueprint paste preview** shows the structure as see-through blocks, with blocked spots in red,
+  like the Structure Builder.
+
+### Changed
+- **Autocrafting with AE2:** the Network Linker with a Pattern Provider is now the normal way. The
+  ME Pattern Connector still works, for packs that want every recipe offered without encoding.
+- **Structure preview controls:** drag rotates, the scroll wheel or right-drag zooms, shift+drag
+  moves.
+- **Ports with more slots than fit on screen get pages** instead of drawing over the inventory.
+- **Outputs fill a port that already holds the item** before starting on an empty slot elsewhere.
+- **Item ports take items faster**, which helps machines with large ports.
+
+### Removed
+- **The built-in Pulverizer machine.** Packs that used it need to define their own.
+- **The `asyncValidation` config option.** Structures are now always checked on the main thread.
+
+### Fixed
+- **Ordering from the Replication Terminal made items forever** when the machine was also connected
+  to AE2. It now makes exactly what was ordered.
+- **Cancelled Terminal orders** no longer keep the machine working on them.
+- **Machines losing crafts.** A finished recipe whose outputs do not fit now waits until they do.
+- **Crashes after making a port smaller** in its config, with items still inside.
+- **Chemicals in JEI** now show in their slot, and unknown chemical ids are named in the log.
+- **Replication matter in JEI** shows its type icon. Light matter like metallic looked like an empty
+  slot.
+
 ## [1.21.1-0.8.1] - 2026-09-21
 
 ### Changed
