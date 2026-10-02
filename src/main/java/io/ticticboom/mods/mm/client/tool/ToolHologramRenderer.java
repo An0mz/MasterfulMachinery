@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.client.tool;
 
+import io.ticticboom.mods.mm.client.structure.GhostBlocks;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -15,11 +16,9 @@ import io.ticticboom.mods.mm.tool.ToolBuilds;
 import io.ticticboom.mods.mm.tool.ToolData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
-import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
@@ -33,18 +32,18 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
-import net.neoforged.neoforge.client.model.data.ModelData;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Set;
 
 @EventBusSubscriber(modid = Ref.ID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.GAME)
 public final class ToolHologramRenderer {
-    private static final float GHOST_ALPHA = 0.4F;
     private static final int REFRESH_TICKS = 10;
 
     private static BlockPos keyPos;
@@ -182,60 +181,10 @@ public final class ToolHologramRenderer {
     }
 
     private static void renderGhosts(PoseStack poseStack, MultiBufferSource.BufferSource buffers, BlockRenderDispatcher dispatcher) {
-        if (ghosts.isEmpty()) {
-            return;
-        }
-        VertexConsumer ghost = new AlphaVertexConsumer(buffers.getBuffer(RenderType.translucent()), GHOST_ALPHA);
+        Map<BlockPos, BlockState> blocks = new LinkedHashMap<>();
         for (AssemblyPlanner.Planned step : ghosts) {
-            BlockPos pos = step.pos();
-            poseStack.pushPose();
-            poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
-            poseStack.translate(0.5D, 0.5D, 0.5D);
-            poseStack.scale(0.98F, 0.98F, 0.98F);
-            poseStack.translate(-0.5D, -0.5D, -0.5D);
-            BlockState state = step.state();
-            dispatcher.getModelRenderer().renderModel(poseStack.last(), ghost, state, dispatcher.getBlockModel(state),
-                    1.0F, 1.0F, 1.0F, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, ModelData.EMPTY, null);
-            poseStack.popPose();
+            blocks.put(step.pos(), step.state());
         }
-        buffers.endBatch(RenderType.translucent());
-    }
-
-    private record AlphaVertexConsumer(VertexConsumer delegate, float alpha) implements VertexConsumer {
-        @Override
-        public VertexConsumer addVertex(float x, float y, float z) {
-            delegate.addVertex(x, y, z);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setColor(int r, int g, int b, int a) {
-            delegate.setColor(r, g, b, (int) (alpha * 255));
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setUv(float u, float v) {
-            delegate.setUv(u, v);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setUv1(int u, int v) {
-            delegate.setUv1(u, v);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setUv2(int u, int v) {
-            delegate.setUv2(u, v);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setNormal(float x, float y, float z) {
-            delegate.setNormal(x, y, z);
-            return this;
-        }
+        GhostBlocks.render(poseStack, buffers, dispatcher, blocks);
     }
 }
