@@ -22,7 +22,7 @@ import io.ticticboom.mods.mm.port.IControllerAwareStorage;
 import io.ticticboom.mods.mm.port.IPortBlockEntity;
 import io.ticticboom.mods.mm.port.IRecipeDemandListener;
 import io.ticticboom.mods.mm.port.common.AbstractPortBlockEntity;
-import io.ticticboom.mods.mm.port.energy.EnergyPortIngredient;
+import io.ticticboom.mods.mm.port.ITickSpreadIngredient;
 import io.ticticboom.mods.mm.port.energy.EnergyPortStorage;
 import io.ticticboom.mods.mm.port.entity.EntityPortStorage;
 import io.ticticboom.mods.mm.port.entity.EntityPortStorageModel;
@@ -665,8 +665,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         for (var input : recipe.inputs().inputs()) {
             if (input instanceof ConsumeRecipeIngredientEntry entry && entry.isPerTick()) {
                 var ingredient = entry.getIngredient();
-                if (ingredient instanceof EnergyPortIngredient energy) {
-                    if (!drawTickEnergy(recipe, state, energy)) {
+                if (ingredient instanceof ITickSpreadIngredient spread) {
+                    if (!drawTickSpread(recipe, state, spread)) {
                         return false;
                     }
                     continue;
@@ -680,31 +680,17 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         return true;
     }
 
-    private boolean drawTickEnergy(RecipeModel recipe, RecipeStateModel state, EnergyPortIngredient energy) {
-        long total = energy.resolveAmount(state);
+    private boolean drawTickSpread(RecipeModel recipe, RecipeStateModel state, ITickSpreadIngredient spread) {
+        long total = spread.resolveAmount(state);
         int ticks = Math.max(1, recipe.ticks());
         long toExtract = total / ticks + (state.getTickProgress() == ticks - 1 ? total % ticks : 0);
         if (toExtract <= 0) {
             return true;
         }
-        var storages = portStorages.getInputStorages(EnergyPortStorage.class);
-        long available = 0;
-        for (EnergyPortStorage storage : storages) {
-            available += storage.internalExtract(toExtract - available, true);
-            if (available >= toExtract) {
-                break;
-            }
-        }
-        if (available < toExtract) {
+        if (spread.extractFromInputs(portStorages, toExtract, true) < toExtract) {
             return false;
         }
-        long remaining = toExtract;
-        for (EnergyPortStorage storage : storages) {
-            remaining -= storage.internalExtract(remaining, false);
-            if (remaining <= 0) {
-                break;
-            }
-        }
+        spread.extractFromInputs(portStorages, toExtract, false);
         return true;
     }
 

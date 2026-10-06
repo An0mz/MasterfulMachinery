@@ -7,7 +7,7 @@ import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.compat.jei.SlotGrid;
 import io.ticticboom.mods.mm.compat.jei.ingredient.MMJeiIngredients;
 import io.ticticboom.mods.mm.compat.jei.ingredient.energy.EnergyStack;
-import io.ticticboom.mods.mm.port.IPortIngredient;
+import io.ticticboom.mods.mm.port.ITickSpreadIngredient;
 import io.ticticboom.mods.mm.recipe.RecipeModel;
 import io.ticticboom.mods.mm.recipe.RecipeStateModel;
 import io.ticticboom.mods.mm.recipe.RecipeStorages;
@@ -18,7 +18,7 @@ import mezz.jei.api.helpers.IJeiHelpers;
 import mezz.jei.api.recipe.IFocusGroup;
 import net.minecraft.world.level.Level;
 
-public class EnergyPortIngredient implements IPortIngredient {
+public class EnergyPortIngredient implements ITickSpreadIngredient {
 
     private final LongAmountRange amount;
 
@@ -35,8 +35,21 @@ public class EnergyPortIngredient implements IPortIngredient {
         return this.amount.max();
     }
 
+    @Override
     public long resolveAmount(RecipeStateModel state) {
         return this.amount.resolve(state);
+    }
+
+    @Override
+    public long extractFromInputs(RecipeStorages storages, long amount, boolean simulate) {
+        long extracted = 0;
+        for (EnergyPortStorage storage : storages.getInputStorages(EnergyPortStorage.class)) {
+            extracted += storage.internalExtract(amount - extracted, simulate);
+            if (extracted >= amount) {
+                break;
+            }
+        }
+        return extracted;
     }
 
     @Override
