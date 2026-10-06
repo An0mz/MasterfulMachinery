@@ -48,6 +48,8 @@ import io.ticticboom.mods.mm.compat.jei.ingredient.radiation.RadiationIngredient
 import io.ticticboom.mods.mm.compat.jei.ingredient.radiation.RadiationIngredientRenderer;
 import io.ticticboom.mods.mm.compat.jei.ingredient.source.ArsSourceIngredientHelper;
 import io.ticticboom.mods.mm.compat.jei.ingredient.source.ArsSourceIngredientRenderer;
+import io.ticticboom.mods.mm.compat.jei.ingredient.emc.EmcIngredientHelper;
+import io.ticticboom.mods.mm.compat.jei.ingredient.emc.EmcIngredientRenderer;
 import io.ticticboom.mods.mm.util.ItemNbtUtil;
 
 @SuppressWarnings("unused")
@@ -139,6 +141,7 @@ public class MMJeiPlugin implements IModPlugin {
         registration.register(MMJeiIngredients.NUCLEAR_RADIATION, ImmutableList.of(), new RadiationIngredientHelper(), new RadiationIngredientRenderer());
         registration.register(MMJeiIngredients.ENTITY, ImmutableList.of(), new EntityIngredientHelper(), new EntityIngredientRenderer());
         registration.register(MMJeiIngredients.ARS_SOURCE, ImmutableList.of(), new ArsSourceIngredientHelper(), new ArsSourceIngredientRenderer());
+        registration.register(MMJeiIngredients.PROJECTE_EMC, ImmutableList.of(), new EmcIngredientHelper(), new EmcIngredientRenderer());
     }
 
     @Override

@@ -1,0 +1,37 @@
+package io.ticticboom.mods.mm.compat.jei.ingredient.emc;
+
+import io.ticticboom.mods.mm.util.NumberText;
+import mezz.jei.api.ingredients.IIngredientRenderer;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
+
+public class EmcIngredientRenderer implements IIngredientRenderer<EmcStack> {
+
+    private static final ResourceLocation ICON = ResourceLocation.fromNamespaceAndPath("projecte", "klein_star_ein");
+
+    private ItemStack icon;
+
+    @Override
+    public void render(GuiGraphics guiGraphics, @NotNull EmcStack stack) {
+        if (icon == null) {
+            icon = BuiltInRegistries.ITEM.get(ICON).getDefaultInstance();
+        }
+        guiGraphics.renderFakeItem(icon, 0, 0);
+    }
+
+    @SuppressWarnings("removal")
+    @Override
+    public @NotNull List<Component> getTooltip(EmcStack stack, @NotNull TooltipFlag tooltipFlag) {
+        var amount = stack.min() == stack.max()
+                ? Component.translatable("jei.mm.ingredient.projecte_emc.amount", NumberText.grouped(stack.max()))
+                : Component.translatable("jei.mm.ingredient.projecte_emc.range", NumberText.grouped(stack.min()), NumberText.grouped(stack.max()));
+        return List.of(Component.translatable("jei.mm.ingredient.projecte_emc.title"), amount);
+    }
+}
