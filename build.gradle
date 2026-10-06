@@ -211,6 +211,9 @@ dependencies {
     // (TerraBlender, Lucene, Infiniverse) stays off the compile classpath.
     compileOnly("com.hollingsworth.ars_nouveau:ars_nouveau-${mc_version}:${ars_nouveau_version}") { transitive = false }
 
+    //PROJECTE
+    compileOnly "curse.maven:projecte-226410:${projecte_id}"
+
     //AE2
     // The bridge is what gives Replication matter an AE2 key, so MM compiles against it to accept
     // that key rather than building its own link between the two mods.
@@ -287,6 +290,9 @@ dependencies {
     // where the rest of the runtime comes from. Its own mods.toml only requires GeckoLib and
     // Curios, and Curios is already declared above.
     runtimeOnly("com.hollingsworth.ars_nouveau:ars_nouveau-${mc_version}:${ars_nouveau_version}") { transitive = false }
+
+    // PROJECTE
+    runtimeOnly "curse.maven:projecte-226410:${projecte_id}"
 
     // AE2
     // GuideME is AE2's own dependency and is already declared further down.
