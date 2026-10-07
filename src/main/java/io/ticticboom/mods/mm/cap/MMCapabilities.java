@@ -93,6 +93,9 @@ public class MMCapabilities {
         if (ModList.get().isLoaded("ars_nouveau")) {
             result.add(ArsCapabilities.SOURCE);
         }
+        if (ModList.get().isLoaded("projecte")) {
+            result.add(ProjectECapabilities.EMC_STORAGE);
+        }
         return result;
     }
 

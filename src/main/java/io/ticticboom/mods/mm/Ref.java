@@ -35,6 +35,7 @@ public class Ref {
         public static final ResourceLocation CREATE_KINETIC = id("create/kinetic");
         public static final ResourceLocation BOTANIA_MANA = id("botania/mana");
         public static final ResourceLocation ARS_SOURCE = id("ars_nouveau/source");
+        public static final ResourceLocation PROJECTE_EMC = id("projecte/emc");
         public static final ResourceLocation AE2_PATTERN = id("ae2/pattern");
         public static final ResourceLocation NUCLEAR_RADIATION = id("nuclear_radiation/radiation");
 
@@ -130,6 +131,9 @@ public class Ref {
 
         public static final ResourceLocation INPUT_ARS_SOURCE_PORT_OVERLAY = id("block/compat_ports/ars_source_input_cutout");
         public static final ResourceLocation OUTPUT_ARS_SOURCE_PORT_OVERLAY = id("block/compat_ports/ars_source_output_cutout");
+
+        public static final ResourceLocation INPUT_PROJECTE_EMC_PORT_OVERLAY = id("block/compat_ports/projecte_emc_input_cutout");
+        public static final ResourceLocation OUTPUT_PROJECTE_EMC_PORT_OVERLAY = id("block/compat_ports/projecte_emc_output_cutout");
 
         public static final ResourceLocation INPUT_NUCLEAR_RADIATION_PORT_OVERLAY = id("block/compat_ports/nuclear_radiation_input_cutout");
         public static final ResourceLocation OUTPUT_NUCLEAR_RADIATION_PORT_OVERLAY = id("block/compat_ports/nuclear_radiation_output_cutout");

@@ -16,6 +16,7 @@ import io.ticticboom.mods.mm.port.mekanism.chemical.MekanismChemicalPortType;
 import io.ticticboom.mods.mm.port.mekanism.heat.MekanismHeatPortType;
 import io.ticticboom.mods.mm.port.nuclear.radiation.NuclearRadiationPortType;
 import io.ticticboom.mods.mm.port.pneumaticcraft.air.PneumaticAirPortType;
+import io.ticticboom.mods.mm.port.projecte.emc.ProjectEEmcPortType;
 import io.ticticboom.mods.mm.port.replication.link.ReplicationLinkPortType;
 import io.ticticboom.mods.mm.port.replication.matter.ReplicationMatterPortType;
 import io.ticticboom.mods.mm.port.replication.matter.feature.ReplicationMatterPipeHook;
@@ -65,6 +66,10 @@ public class MMPortRegistry {
 
         if (ModList.get().isLoaded("ars_nouveau")) {
             register(Ref.Ports.ARS_SOURCE, new ArsSourcePortType());
+        }
+
+        if (ModList.get().isLoaded("projecte")) {
+            register(Ref.Ports.PROJECTE_EMC, new ProjectEEmcPortType());
         }
 
         if (ModList.get().isLoaded("nuclear_radiation")) {

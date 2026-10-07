@@ -17,6 +17,7 @@ import snownee.jade.api.IWailaCommonRegistration;
 import snownee.jade.api.IWailaPlugin;
 import snownee.jade.api.WailaPlugin;
 import io.ticticboom.mods.mm.port.ars.source.register.ArsSourcePortBlock;
+import io.ticticboom.mods.mm.port.projecte.emc.register.ProjectEEmcPortBlock;
 import io.ticticboom.mods.mm.port.entity.register.EntityPortBlock;
 import io.ticticboom.mods.mm.port.mekanism.chemical.register.MekanismChemicalPortBlock;
 import io.ticticboom.mods.mm.port.mekanism.heat.register.MekanismHeatPortBlock;
@@ -60,6 +61,9 @@ public class MMWailaPlugin implements IWailaPlugin {
         }
         if (ModList.get().isLoaded("ars_nouveau")) {
             registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, ArsSourcePortBlock.class);
+        }
+        if (ModList.get().isLoaded("projecte")) {
+            registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, ProjectEEmcPortBlock.class);
         }
         if (ModList.get().isLoaded("nuclear_radiation")) {
             registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, NuclearRadiationPortBlock.class);
