@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.builder;
 
+import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.model.PortModel;
 import io.ticticboom.mods.mm.port.IPortBlock;
 import io.ticticboom.mods.mm.port.MMPortRegistry;
@@ -26,13 +27,24 @@ public final class PortTiers {
 
     public static int rankOf(PortModel model) {
         int rank = model.config().getModel().getTierRank();
-        try {
-            if (rank <= 0 && model.jsonConfig() != null && model.jsonConfig().has("tierRank")) {
-                rank = model.jsonConfig().get("tierRank").getAsInt();
+        var json = model.jsonConfig();
+        if (rank <= 0 && json != null) {
+            if (json.has("config") && json.get("config").isJsonObject()) {
+                rank = readRank(json.getAsJsonObject("config"));
             }
-        } catch (Exception ignored) {
+            if (rank <= 0) {
+                rank = readRank(json);
+            }
         }
         return rank <= 0 ? 1 : rank;
+    }
+
+    private static int readRank(JsonObject json) {
+        try {
+            return json.has("tierRank") ? json.get("tierRank").getAsInt() : 0;
+        } catch (Exception ignored) {
+            return 0;
+        }
     }
 
     public static String key(ResourceLocation portTypeId, boolean input) {

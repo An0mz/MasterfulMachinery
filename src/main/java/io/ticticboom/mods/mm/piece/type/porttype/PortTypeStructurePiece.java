@@ -101,16 +101,7 @@ public class PortTypeStructurePiece extends StructurePiece implements TieredPort
             if (!PortUtils.sideMatches(pbe.getModel().type(), pbe.getModel().input(), input)) {
                 return false;
             }
-            // check tier compatibility
-            var storageModel = pbe.getModel().config().getModel();
-            int candidateRank = storageModel.getTierRank();
-            try {
-                if (candidateRank <= 0 && pbe.getModel().jsonConfig() != null && pbe.getModel().jsonConfig().has("tierRank")) {
-                    candidateRank = pbe.getModel().jsonConfig().get("tierRank").getAsInt();
-                }
-            } catch (Exception ignored) {}
-            // treat unspecified/zero tier as 1 (backwards-compatible default for ports without tierRank)
-            if (candidateRank <= 0) candidateRank = 1;
+            int candidateRank = PortTiers.rankOf(pbe.getModel());
             if (candidateRank < minTier) return false;
             return maxTier == Integer.MAX_VALUE || candidateRank <= maxTier;
         }

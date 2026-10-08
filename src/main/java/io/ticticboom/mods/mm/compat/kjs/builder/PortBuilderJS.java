@@ -125,13 +125,18 @@ public class PortBuilderJS {
     @HideFromJS
     public List<PortModel> build() {
         var portType = MMPortRegistry.requirePortType(type);
-        var storageFactory = portType.createStorageFactory(builder);
+        int[] tierRank = {0};
+        var storageFactory = portType.createStorageFactory(config -> {
+            builder.accept(config);
+            tierRank[0] = config.getTierRank();
+        });
         IdList controllerIds = new IdList(controllers);
         var built = new ArrayList<PortModel>(2);
         if (!PortUtils.sided(type)) {
             var spec = outputNameSpec != null ? outputNameSpec : inputNameSpec;
             built.add(PortModel.createStyled(id, nameSpec, spec, controllerIds, type, storageFactory, false));
             built.forEach(port -> textures.forEach((key, value) -> port.jsonConfig().addProperty(key, value)));
+            built.forEach(port -> recordTierRank(port, tierRank[0]));
             return built;
         }
         if (sides.hasInput()) {
@@ -141,6 +146,19 @@ public class PortBuilderJS {
             built.add(PortModel.createStyled(id, nameSpec, outputNameSpec, controllerIds, type, storageFactory, false));
         }
         built.forEach(port -> textures.forEach((key, value) -> port.jsonConfig().addProperty(key, value)));
+        built.forEach(port -> recordTierRank(port, tierRank[0]));
         return built;
+    }
+
+    private static void recordTierRank(PortModel port, int tierRank) {
+        if (tierRank <= 0) {
+            return;
+        }
+        var json = port.jsonConfig();
+        if (json.has("config") && json.get("config").isJsonObject()) {
+            json.getAsJsonObject("config").addProperty("tierRank", tierRank);
+        } else {
+            json.addProperty("tierRank", tierRank);
+        }
     }
 }
