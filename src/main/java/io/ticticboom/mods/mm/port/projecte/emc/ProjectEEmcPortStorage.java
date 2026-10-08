@@ -65,7 +65,18 @@ public class ProjectEEmcPortStorage implements IPortStorage {
         };
     }
 
+    public boolean hasKleinSlot() {
+        return model.kleinSlot();
+    }
+
+    private long kleinLimit(long amount) {
+        return model.kleinRate() > 0 ? Math.min(amount, model.kleinRate()) : amount;
+    }
+
     public void tickKlein() {
+        if (!model.kleinSlot()) {
+            return;
+        }
         var stack = klein.getStackInSlot(0);
         if (stack.isEmpty()) {
             return;
@@ -77,16 +88,18 @@ public class ProjectEEmcPortStorage implements IPortStorage {
         if (input) {
             long room = capacity - stored;
             if (room > 0) {
-                receive(holder.extractEmc(stack, room, IEmcStorage.EmcAction.EXECUTE), false);
+                receive(holder.extractEmc(stack, kleinLimit(room), IEmcStorage.EmcAction.EXECUTE), false);
             }
         } else if (stored > 0) {
-            extract(holder.insertEmc(stack, stored, IEmcStorage.EmcAction.EXECUTE), false);
+            extract(holder.insertEmc(stack, kleinLimit(stored), IEmcStorage.EmcAction.EXECUTE), false);
         }
     }
 
     @Override
     public void setupContainer(AbstractContainerMenu container, Inventory inv, PortModel portModel) {
-        container.addSlot(new SlotItemHandler(klein, 0, KLEIN_SLOT_X + 1, KLEIN_SLOT_Y + 1));
+        if (model.kleinSlot()) {
+            container.addSlot(new SlotItemHandler(klein, 0, KLEIN_SLOT_X + 1, KLEIN_SLOT_Y + 1));
+        }
         IPortStorage.super.setupContainer(container, inv, portModel);
     }
 
@@ -189,6 +202,8 @@ public class ProjectEEmcPortStorage implements IPortStorage {
         json.addProperty("uid", uid.toString());
         json.addProperty("stored", stored);
         json.addProperty("capacity", capacity);
+        json.addProperty("kleinSlot", model.kleinSlot());
+        json.addProperty("kleinRate", model.kleinRate());
         return json;
     }
 }

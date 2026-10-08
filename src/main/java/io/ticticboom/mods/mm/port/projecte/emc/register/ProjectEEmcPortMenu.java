@@ -15,7 +15,7 @@ public class ProjectEEmcPortMenu extends MMContainerMenu implements IPortMenu {
     private final ProjectEEmcPortBlockEntity be;
 
     public ProjectEEmcPortMenu(PortModel model, RegistryGroupHolder groupHolder, int windowId, Inventory inv, ProjectEEmcPortBlockEntity be) {
-        super(groupHolder.getMenu().get(), groupHolder.getBlock().get(), windowId, MenuUtils.createAccessFromBlockEntity(be), 1);
+        super(groupHolder.getMenu().get(), groupHolder.getBlock().get(), windowId, MenuUtils.createAccessFromBlockEntity(be), be.getEmcStorage().hasKleinSlot() ? 1 : 0);
         this.model = model;
         this.be = be;
         be.getStorage().setupContainer(this, inv, model);

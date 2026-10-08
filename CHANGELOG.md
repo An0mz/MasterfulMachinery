@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.10.0] - 2026-10-07
+
+### Added
+- **ProjectE EMC ports** (`mm:projecte/emc`, needs ProjectE). Set `capacity` in the port config.
+  - Recipes consume or produce EMC with `{ "type": "mm:projecte/emc", "emc": 2048 }`. A `min`/`max`
+    range works too, and `per_tick` spreads the cost over the recipe like energy.
+  - Relays and collectors next to an input port fill it. An output port sends its EMC into the blocks
+    around it, such as relays.
+  - `kleinSlot: true` gives the port a Klein Star slot: the input port empties the star into the
+    machine, the output port charges it. `kleinRate` limits how much EMC moves per tick.
+  - EMC shows in JEI and Jade, and KubeJS ports use `capacity()`, `kleinSlot()` and `kleinRate()`.
+
+### Fixed
+- **`tierRank` was ignored on most port types**, including Mekanism chemical, PneumaticCraft air,
+  Create kinetic, Ars Source and Nuclear Radiation ports. Structures with `minTier`/`maxTier` on
+  those ports never formed. It now works on every port type, from KubeJS and from `config` in JSON.
+
 ## [1.21.1-0.9.0] - 2026-10-01
 
 Most of this release is ported from

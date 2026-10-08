@@ -23,6 +23,8 @@ public class ProjectEEmcPortStorageFactory implements IPortStorageFactory {
     public JsonObject serialize() {
         var json = new JsonObject();
         json.addProperty("capacity", model.capacity());
+        json.addProperty("kleinSlot", model.kleinSlot());
+        json.addProperty("kleinRate", model.kleinRate());
         return json;
     }
 

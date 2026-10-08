@@ -10,7 +10,10 @@ public class ProjectEEmcPortParser implements IPortParser {
 
     @Override
     public IPortStorageFactory parseStorage(JsonObject json) {
-        return new ProjectEEmcPortStorageFactory(new ProjectEEmcPortStorageModel(json.get("capacity").getAsLong()));
+        var capacity = json.get("capacity").getAsLong();
+        var kleinSlot = json.has("kleinSlot") && json.get("kleinSlot").getAsBoolean();
+        var kleinRate = json.has("kleinRate") ? json.get("kleinRate").getAsLong() : 0;
+        return new ProjectEEmcPortStorageFactory(new ProjectEEmcPortStorageModel(capacity, kleinSlot, kleinRate));
     }
 
     @Override

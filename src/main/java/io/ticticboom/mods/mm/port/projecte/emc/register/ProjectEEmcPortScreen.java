@@ -28,7 +28,10 @@ public class ProjectEEmcPortScreen extends AbstractContainerScreen<ProjectEEmcPo
     @Override
     protected void renderBg(GuiGraphics gfx, float partialTicks, int mouseX, int mouseY) {
         gfx.blit(Ref.UiTextures.PORT_GUI, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
-        gfx.blit(Ref.UiTextures.SLOT_PARTS, this.leftPos + ProjectEEmcPortStorage.KLEIN_SLOT_X, this.topPos + ProjectEEmcPortStorage.KLEIN_SLOT_Y, 0, 26, 18, 18);
+        ProjectEEmcPortBlockEntity be = menu.getBlockEntity();
+        if (be.getEmcStorage().hasKleinSlot()) {
+            gfx.blit(Ref.UiTextures.SLOT_PARTS, this.leftPos + ProjectEEmcPortStorage.KLEIN_SLOT_X, this.topPos + ProjectEEmcPortStorage.KLEIN_SLOT_Y, 0, 26, 18, 18);
+        }
     }
 
     @Override
