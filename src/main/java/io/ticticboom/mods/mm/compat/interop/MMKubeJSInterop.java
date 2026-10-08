@@ -47,21 +47,21 @@ public class MMKubeJSInterop implements IKubeJSInterop {
     public List<ControllerModel> postRegisterControllers() {
         ControllerEventJS event = new ControllerEventJS();
         MMKubeEvents.CONTROLLERS.post(event);
-        return event.getControllers().stream().map(ControllerBuilderJS::build).toList();
+        return event.getControllers().stream().filter(c -> c.getType() != null).map(ControllerBuilderJS::build).toList();
     }
 
     @Override
     public List<PortModel> postRegisterPorts() {
         var event = new PortEventJS();
         MMKubeEvents.PORTS.post(event);
-        return event.getPorts().stream().flatMap(a -> a.build().stream()).toList();
+        return event.getPorts().stream().filter(p -> p.getType() != null).flatMap(a -> a.build().stream()).toList();
     }
 
     @Override
     public List<ExtraBlockModel> postRegisterExtraBlocks() {
         var event = new ExtraBlockEventJS();
         MMKubeEvents.EXTRA.post(event);
-        return event.getBuilder().stream().map(ExtraBlockBuilderJS::build).toList();
+        return event.getBuilder().stream().filter(b -> b.getType() != null).map(ExtraBlockBuilderJS::build).toList();
     }
 
     @Override
