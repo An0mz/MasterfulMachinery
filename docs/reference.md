@@ -177,6 +177,7 @@ shows its machine's state, in the screen colours.
 | `mm:replication/matter` | Replication | see [`replication.md`](replication.md) | `matter`, `amount` |
 | `mm:nuclear_radiation/radiation` | Nuclear Radiation | see [`radiation.md`](radiation.md) | `isotope` (optional), `amount` (Bq) |
 | `mm:ars_nouveau/source` | Ars Nouveau | see [`ars-nouveau.md`](ars-nouveau.md) | `source` |
+| `mm:projecte/emc` | ProjectE | see [`projecte.md`](projecte.md) | `emc` |
 | `mm:replication/link` | Replication | none — see [`replication.md`](replication.md) | cannot be used in recipes |
 | `mm:ae2/pattern` | AE2 | see [`ae2.md`](ae2.md) | cannot be used in recipes |
 
@@ -233,6 +234,7 @@ Config methods per type:
 | `mm:pneumaticcraft/air` | `volume`, `danger`, `critical` |
 | `mm:botania/mana` | `capacity` |
 | `mm:ars_nouveau/source` | `capacity`, `range` |
+| `mm:projecte/emc` | `capacity`, `kleinSlot`, `kleinRate` |
 | `mm:ae2/pattern` | `patternPriority` |
 
 The entity, Mekanism and Replication methods are in their own docs. Call `.controllerId(...)` once

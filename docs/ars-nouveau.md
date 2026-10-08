@@ -86,3 +86,4 @@ MMEvents.registerPorts(event => {
 
 - [`reference.md`](reference.md) — every key and option.
 - [`replication.md`](replication.md) — Replication matter.
+- [`projecte.md`](projecte.md) — ProjectE EMC.

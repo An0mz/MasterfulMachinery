@@ -405,3 +405,4 @@ the name.
 - [`replication.md`](replication.md) — Replication matter.
 - [`ae2.md`](ae2.md) — AE2 autocrafting and the Network Linker.
 - [`ars-nouveau.md`](ars-nouveau.md) — Ars Nouveau Source.
+- [`projecte.md`](projecte.md) — ProjectE EMC.
