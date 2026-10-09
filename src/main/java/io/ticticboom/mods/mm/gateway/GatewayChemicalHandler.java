@@ -5,21 +5,26 @@ import io.ticticboom.mods.mm.port.IPortStorage;
 import mekanism.api.Action;
 import mekanism.api.chemical.ChemicalStack;
 import mekanism.api.chemical.IChemicalHandler;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
 public class GatewayChemicalHandler implements IChemicalHandler {
     private final Supplier<List<IPortStorage>> inputs;
+    private final Supplier<List<IPortStorage>> outputs;
 
     public GatewayChemicalHandler(Supplier<List<IPortStorage>> inputs) {
-        this.inputs = inputs;
+        this(inputs, List::of);
     }
 
-    private List<IChemicalHandler> handlers() {
+    public GatewayChemicalHandler(Supplier<List<IPortStorage>> inputs, Supplier<List<IPortStorage>> outputs) {
+        this.inputs = inputs;
+        this.outputs = outputs;
+    }
+
+    private static List<IChemicalHandler> handlers(List<IPortStorage> storages) {
         var result = new ArrayList<IChemicalHandler>();
-        for (IPortStorage storage : inputs.get()) {
+        for (IPortStorage storage : storages) {
             var handler = storage.getCapability(MekCapabilities.CHEMICAL);
             if (handler != null) {
                 result.add(handler);
@@ -28,10 +33,16 @@ public class GatewayChemicalHandler implements IChemicalHandler {
         return result;
     }
 
+    private List<IChemicalHandler> all() {
+        var result = handlers(inputs.get());
+        result.addAll(handlers(outputs.get()));
+        return result;
+    }
+
     @Override
     public int getChemicalTanks() {
         int tanks = 1;
-        for (var handler : handlers()) {
+        for (var handler : all()) {
             tanks += handler.getChemicalTanks();
         }
         return tanks;
@@ -39,7 +50,7 @@ public class GatewayChemicalHandler implements IChemicalHandler {
 
     @Override
     public ChemicalStack getChemicalInTank(int tank) {
-        for (var handler : handlers()) {
+        for (var handler : all()) {
             if (tank < handler.getChemicalTanks()) {
                 return handler.getChemicalInTank(tank);
             }
@@ -54,7 +65,7 @@ public class GatewayChemicalHandler implements IChemicalHandler {
 
     @Override
     public long getChemicalTankCapacity(int tank) {
-        for (var handler : handlers()) {
+        for (var handler : all()) {
             if (tank < handler.getChemicalTanks()) {
                 return handler.getChemicalTankCapacity(tank);
             }
@@ -76,7 +87,7 @@ public class GatewayChemicalHandler implements IChemicalHandler {
     @Override
     public ChemicalStack insertChemical(ChemicalStack stack, Action action) {
         ChemicalStack remainder = stack;
-        for (var handler : handlers()) {
+        for (var handler : handlers(inputs.get())) {
             if (remainder.isEmpty()) {
                 break;
             }
@@ -87,16 +98,40 @@ public class GatewayChemicalHandler implements IChemicalHandler {
 
     @Override
     public ChemicalStack extractChemical(int tank, long amount, Action action) {
+        for (var handler : handlers(inputs.get())) {
+            tank -= handler.getChemicalTanks();
+        }
+        if (tank < 0) {
+            return ChemicalStack.EMPTY;
+        }
+        for (var handler : handlers(outputs.get())) {
+            if (tank < handler.getChemicalTanks()) {
+                return handler.extractChemical(tank, amount, action);
+            }
+            tank -= handler.getChemicalTanks();
+        }
         return ChemicalStack.EMPTY;
     }
 
     @Override
     public ChemicalStack extractChemical(long amount, Action action) {
+        for (var handler : handlers(outputs.get())) {
+            var extracted = handler.extractChemical(amount, action);
+            if (!extracted.isEmpty()) {
+                return extracted;
+            }
+        }
         return ChemicalStack.EMPTY;
     }
 
     @Override
     public ChemicalStack extractChemical(ChemicalStack stack, Action action) {
+        for (var handler : handlers(outputs.get())) {
+            var extracted = handler.extractChemical(stack, action);
+            if (!extracted.isEmpty()) {
+                return extracted;
+            }
+        }
         return ChemicalStack.EMPTY;
     }
 }

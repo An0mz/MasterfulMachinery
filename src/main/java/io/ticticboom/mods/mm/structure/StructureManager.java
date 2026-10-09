@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.structure;
 
+import io.ticticboom.mods.mm.controller.single.SingleMachines;
 import com.google.gson.JsonElement;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.compat.interop.MMInteropManager;
@@ -87,9 +88,17 @@ public class StructureManager extends SimpleJsonResourceReloadListener {
                 }
                 Ref.LCTX.pop();
             }
+            for (var entry : SingleMachines.implicitStructures().entrySet()) {
+                STRUCTURES.put(entry.getKey(), entry.getValue());
+                STRUCTURES_BY_CONTROLLER.computeIfAbsent(entry.getKey(), x -> new ArrayList<>()).add(entry.getValue());
+            }
         } catch (Exception e) {
             Ref.LCTX.doThrow(e);
         }
+    }
+
+    public static List<StructureModel> buildableStructures() {
+        return STRUCTURES.values().stream().filter(s -> !SingleMachines.isImplicitStructure(s.id())).toList();
     }
 
     private static void storeStructure(ResourceLocation id, StructureModel structure) {

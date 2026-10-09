@@ -2,6 +2,7 @@ package io.ticticboom.mods.mm.controller;
 
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.controller.machine.MachineControllerType;
+import io.ticticboom.mods.mm.controller.single.SingleMachineControllerType;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
@@ -15,6 +16,7 @@ public class MMControllerRegistry {
 
     public static void init() {
         register(Ref.Controller.MACHINE, new MachineControllerType());
+        register(Ref.Controller.SINGLE, new SingleMachineControllerType());
     }
 
     public static ControllerType get(ResourceLocation id) {

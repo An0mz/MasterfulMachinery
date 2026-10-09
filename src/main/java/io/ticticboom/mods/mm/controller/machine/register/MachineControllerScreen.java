@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.controller.machine.register;
 
+import io.ticticboom.mods.mm.controller.single.register.SingleMachineBlockEntity;
+import io.ticticboom.mods.mm.net.packet.OpenMachineScreenPkt;
 import io.ticticboom.mods.mm.client.builder.AssemblyScreen;
 import io.ticticboom.mods.mm.networklink.LinkData;
 import io.ticticboom.mods.mm.networklink.NetworkLink;
@@ -120,6 +122,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
     private EditBox nameBox;
 
     private final MachineControllerBlockEntity be;
+    private final boolean single;
     private final ControllerPortList portList;
     private final ControllerPortList outputList;
     private int cycle = 0;
@@ -141,10 +144,11 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
     public MachineControllerScreen(MachineControllerMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
         this.be = (MachineControllerBlockEntity) menu.getBe();
+        this.single = be instanceof SingleMachineBlockEntity;
         this.imageHeight = MIN_HEIGHT;
         this.imageWidth = MIN_WIDTH;
-        this.portList = new ControllerPortList(menu.getPortPositions());
-        this.outputList = new ControllerPortList(menu.getPortPositions());
+        this.portList = single ? new ControllerPortList(this::slotEntries) : new ControllerPortList(menu.getPortPositions());
+        this.outputList = single ? new ControllerPortList(this::slotEntries) : new ControllerPortList(menu.getPortPositions());
         this.outputList.showInputs(false);
     }
 
@@ -207,6 +211,19 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         gfx.blit(texture, x + inventoryX, y + inventoryY, 6, 139, INVENTORY_WIDTH, INVENTORY_HEIGHT);
     }
 
+    private List<ControllerPortList.Entry> slotEntries() {
+        var machine = (SingleMachineBlockEntity) be;
+        var icon = new ItemStack(machine.getBlockState().getBlock());
+        var entries = new ArrayList<ControllerPortList.Entry>();
+        for (int i = 0; i < machine.getSlots().size(); i++) {
+            var slot = machine.getSlots().get(i);
+            String id = slot.id().replace('_', ' ');
+            var name = Component.literal(id.isEmpty() ? id : Character.toUpperCase(id.charAt(0)) + id.substring(1));
+            entries.add(new ControllerPortList.Entry(name, icon, slot.input(), machine.getStorages().get(i)));
+        }
+        return entries;
+    }
+
     private static boolean bigScreen() {
         return MMConfigSetup.CLIENT.bigControllerScreen.get();
     }
@@ -243,7 +260,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         int bx = this.leftPos + assembleBtnX;
         int by = this.topPos + PAGE_BTN_Y;
         drawButtonFrame(gfx, bx, by, PAGE_BTN, PAGE_BTN, isOnAssembleButton(mouseX, mouseY));
-        drawSmallItem(gfx, new ItemStack(Items.BRICKS), bx + 1, by + 1, 10);
+        drawSmallItem(gfx, new ItemStack(single ? Items.CHEST : Items.BRICKS), bx + 1, by + 1, 10);
     }
 
     private void toggleSize() {
@@ -722,7 +739,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
             return;
         }
         if (isOnAssembleButton(mouseX, mouseY)) {
-            gfx.renderComponentTooltip(this.font, List.of(Component.translatable("gui.mm.controller.assemble")), mouseX, mouseY);
+            gfx.renderComponentTooltip(this.font, List.of(Component.translatable(single ? "gui.mm.single.slots" : "gui.mm.controller.assemble")), mouseX, mouseY);
             return;
         }
         if (isOnSizeButton(mouseX, mouseY)) {
@@ -874,7 +891,11 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         }
         if (isOnAssembleButton(mouseX, mouseY)) {
             playClick();
-            Minecraft.getInstance().setScreen(new AssemblyScreen(this, be));
+            if (single) {
+                PacketDistributor.sendToServer(new OpenMachineScreenPkt(be.getBlockPos(), false));
+            } else {
+                Minecraft.getInstance().setScreen(new AssemblyScreen(this, be));
+            }
             return true;
         }
         if (isOnSizeButton(mouseX, mouseY)) {

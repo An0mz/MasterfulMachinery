@@ -123,7 +123,7 @@ public class MMJeiPlugin implements IModPlugin {
             registration.addRecipes(MMRecipeCategory.RECIPE_TYPE, sorted);
         }
 
-        var sortedStructures = StructureManager.STRUCTURES.values().stream()
+        var sortedStructures = StructureManager.buildableStructures().stream()
                 .sorted(java.util.Comparator.comparing(s -> s.id().toString()))
                 .collect(Collectors.toList());
         registration.addRecipes(MMStructureCategory.RECIPE_TYPE, sortedStructures);

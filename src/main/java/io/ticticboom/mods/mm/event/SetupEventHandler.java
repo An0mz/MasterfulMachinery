@@ -1,6 +1,9 @@
 package io.ticticboom.mods.mm.event;
 
 import io.ticticboom.mods.mm.controller.MMControllerRegistry;
+import io.ticticboom.mods.mm.controller.single.register.SingleMachineScreen;
+import io.ticticboom.mods.mm.setup.MMRegisters;
+import net.minecraft.client.gui.screens.MenuScreens;
 import io.ticticboom.mods.mm.datagen.PackEventHandler;
 import io.ticticboom.mods.mm.port.MMPortRegistry;
 import io.ticticboom.mods.mm.recipe.MachineRecipeManager;
@@ -40,6 +43,7 @@ public class SetupEventHandler {
                 ResourceLocation type = port.getRegistryId();
                 MMPortRegistry.get(type).registerScreen(port);
             }
+            MenuScreens.register(MMRegisters.SINGLE_MACHINE_MENU.get(), SingleMachineScreen::new);
             MachineRecipeManager.init();
         });
     }

@@ -150,7 +150,7 @@ public class MultiblockToolScreen extends AbstractContainerScreen<MultiblockTool
         this.tierRows = new StructureTierRows(selected);
         var font = Minecraft.getInstance().font;
         var entries = new ArrayList<GalleryList.Entry>();
-        for (StructureModel model : StructureManager.STRUCTURES.values()) {
+        for (StructureModel model : StructureManager.buildableStructures()) {
             entries.add(GalleryList.Entry.of(model));
         }
         for (BuildableStructure structure : BuildableStructureRegistry.CLIENT.all()) {

@@ -3,6 +3,9 @@ package io.ticticboom.mods.mm.client.gui.widgets;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.client.util.CountFormat;
 import io.ticticboom.mods.mm.port.IPortBlockEntity;
+import java.util.function.Supplier;
+import java.util.function.Function;
+import io.ticticboom.mods.mm.port.IPortStorage;
 import io.ticticboom.mods.mm.port.PortContent;
 import io.ticticboom.mods.mm.util.WidgetUtils;
 import net.minecraft.ChatFormatting;
@@ -37,7 +40,7 @@ public class ControllerPortList {
     private static final int NAME = 0xBBBBBB;
     private static final int ENERGY_TEXTURE_W = 160;
 
-    private final List<BlockPos> positions;
+    private final Function<Level, List<Entry>> source;
     private int x;
     private int y;
     private int width;
@@ -45,7 +48,10 @@ public class ControllerPortList {
     private double scroll;
     private boolean inputs = true;
 
-    private record Row(@Nullable Component header, @Nullable IPortBlockEntity port, List<PortContent> contents,
+    public record Entry(Component name, ItemStack icon, boolean input, IPortStorage storage) {
+    }
+
+    private record Row(@Nullable Component header, @Nullable Entry port, List<PortContent> contents,
                        List<Component> text, int top, int h) {
     }
 
@@ -53,7 +59,19 @@ public class ControllerPortList {
     }
 
     public ControllerPortList(List<BlockPos> positions) {
-        this.positions = positions;
+        this.source = level -> {
+            var entries = new ArrayList<Entry>();
+            for (BlockPos pos : positions) {
+                if (level.getBlockEntity(pos) instanceof IPortBlockEntity port) {
+                    entries.add(new Entry(port.getModel().displayName(), portIcon(port), port.isInput(), port.getStorage()));
+                }
+            }
+            return entries;
+        };
+    }
+
+    public ControllerPortList(Supplier<List<Entry>> entries) {
+        this.source = level -> entries.get();
     }
 
     public void showInputs(boolean inputs) {
@@ -94,10 +112,10 @@ public class ControllerPortList {
         if (level == null) {
             return rows;
         }
-        var shown = new ArrayList<IPortBlockEntity>();
-        for (BlockPos pos : positions) {
-            if (level.getBlockEntity(pos) instanceof IPortBlockEntity port && port.isInput() == inputs) {
-                shown.add(port);
+        var shown = new ArrayList<Entry>();
+        for (Entry entry : source.apply(level)) {
+            if (entry.input() == inputs) {
+                shown.add(entry);
             }
         }
         if (shown.isEmpty()) {
@@ -108,9 +126,9 @@ public class ControllerPortList {
         rows.add(new Row(Component.translatable(inputs ? "gui.mm.controller.ports.inputs" : "gui.mm.controller.ports.outputs", shown.size()),
                 null, List.of(), List.of(), 0, HEADER_H));
         int top = HEADER_H;
-        for (IPortBlockEntity port : shown) {
-            var contents = port.getStorage().contents();
-            List<Component> text = contents.isEmpty() ? port.getStorage().describeContents() : List.of();
+        for (Entry port : shown) {
+            var contents = port.storage().contents();
+            List<Component> text = contents.isEmpty() ? port.storage().describeContents() : List.of();
             int h = NAME_H + contentHeight(contents, text) + GAP;
             rows.add(new Row(null, port, contents, text, top, h));
             top += h;
@@ -167,9 +185,9 @@ public class ControllerPortList {
         pose.pushPose();
         pose.translate(x, top, 0);
         pose.scale(9f / 16f, 9f / 16f, 1);
-        gfx.renderItem(portIcon(row.port()), 0, 0);
+        gfx.renderItem(row.port().icon(), 0, 0);
         pose.popPose();
-        var name = font.ellipsize(row.port().getModel().displayName(), listWidth() - 12);
+        var name = font.ellipsize(row.port().name(), listWidth() - 12);
         gfx.drawString(font, Language.getInstance().getVisualOrder(name), x + 12, top + 1, NAME, false);
 
         int cy = top + NAME_H;
@@ -299,10 +317,10 @@ public class ControllerPortList {
             if (row.port() == null) continue;
             int top = y + row.top() - (int) scroll;
             if (mouseY < top || mouseY >= top + row.h()) continue;
-            IPortBlockEntity port = row.port();
+            Entry port = row.port();
             if (mouseY < top + NAME_H) {
-                return List.of(port.getModel().displayName(),
-                        Component.translatable(port.isInput() ? "gui.mm.controller.ports.input" : "gui.mm.controller.ports.output")
+                return List.of(port.name(),
+                        Component.translatable(port.input() ? "gui.mm.controller.ports.input" : "gui.mm.controller.ports.output")
                                 .withStyle(ChatFormatting.GRAY));
             }
             var contents = row.contents();

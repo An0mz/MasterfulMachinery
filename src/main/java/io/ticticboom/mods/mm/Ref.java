@@ -48,6 +48,7 @@ public class Ref {
 
     public static class Controller {
         public static final ResourceLocation MACHINE = id("machine");
+        public static final ResourceLocation SINGLE = id("single");
     }
 
     public static class RecipeEntries {

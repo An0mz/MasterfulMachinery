@@ -66,7 +66,7 @@ public abstract class MMContainerMenu extends AbstractContainerMenu {
                     try {
                         if (quickMovedSlot.container instanceof ItemPortContainer ipc) {
                             var handler = ipc.getHandler();
-                            int handlerIndex = i; // storage slots are added first in setup
+                            int handlerIndex = quickMovedSlot.getContainerSlot();
 
                             // Simulate extracting the full available amount
                             int available = handler.getActualCount(handlerIndex);
@@ -131,7 +131,7 @@ public abstract class MMContainerMenu extends AbstractContainerMenu {
             Slot dest = this.slots.get(idx);
             if (dest == null) continue;
             ItemStack destStack = dest.getItem();
-            if (destStack.isEmpty()) continue;
+            if (destStack.isEmpty() || !dest.mayPlace(source)) continue;
             if (!ItemStack.isSameItemSameComponents(destStack, source)) continue;
             int space = dest.getMaxStackSize(source) - destStack.getCount();
             if (space <= 0) continue;
@@ -151,7 +151,7 @@ public abstract class MMContainerMenu extends AbstractContainerMenu {
             Slot dest = this.slots.get(idx);
             if (dest == null) continue;
             ItemStack destStack = dest.getItem();
-            if (!destStack.isEmpty()) continue; // skip non-empty slots
+            if (!destStack.isEmpty() || !dest.mayPlace(source)) continue; // skip non-empty slots
             // determine how many we can place
             int limit = dest.getMaxStackSize(source);
             int toMove = Math.min(source.getCount(), limit);

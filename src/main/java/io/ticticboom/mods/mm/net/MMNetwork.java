@@ -2,6 +2,7 @@ package io.ticticboom.mods.mm.net;
 
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.net.packet.AssemblyPkt;
+import io.ticticboom.mods.mm.net.packet.OpenMachineScreenPkt;
 import io.ticticboom.mods.mm.net.packet.BuildableStructureSyncPkt;
 import io.ticticboom.mods.mm.net.packet.ToolDismantlePkt;
 import io.ticticboom.mods.mm.net.packet.ToolHudPkt;
@@ -40,6 +41,7 @@ public class MMNetwork {
         registrar.playToClient(StructureSyncPkt.TYPE, StructureSyncPkt.STREAM_CODEC, StructureSyncPkt::handle);
         registrar.playToClient(ProcessesSyncPkt.TYPE, ProcessesSyncPkt.STREAM_CODEC, ProcessesSyncPkt::handle);
         registrar.playToServer(ToggleRedstoneModePkt.TYPE, ToggleRedstoneModePkt.STREAM_CODEC, ToggleRedstoneModePkt::handle);
+        registrar.playToServer(OpenMachineScreenPkt.TYPE, OpenMachineScreenPkt.STREAM_CODEC, OpenMachineScreenPkt::handle);
         registrar.playToServer(SelectRecipePkt.TYPE, SelectRecipePkt.STREAM_CODEC, SelectRecipePkt::handle);
         registrar.playToServer(ControllerSettingsPkt.TYPE, ControllerSettingsPkt.STREAM_CODEC, ControllerSettingsPkt::handle);
         registrar.playToServer(CycleLinkerModePkt.TYPE, CycleLinkerModePkt.STREAM_CODEC, CycleLinkerModePkt::handle);

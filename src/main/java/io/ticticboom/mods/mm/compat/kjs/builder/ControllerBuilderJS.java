@@ -7,10 +7,18 @@ import io.ticticboom.mods.mm.compat.kjs.KubeJsValues;
 import io.ticticboom.mods.mm.model.ControllerModel;
 import io.ticticboom.mods.mm.model.RecipeSelectionMode;
 import io.ticticboom.mods.mm.util.ParserUtils;
+import io.ticticboom.mods.mm.Ref;
+import io.ticticboom.mods.mm.controller.single.SingleMachineSlot;
+import io.ticticboom.mods.mm.controller.single.SingleMachines;
+import io.ticticboom.mods.mm.port.MMPortRegistry;
+import lombok.AccessLevel;
 import lombok.Getter;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.function.Consumer;
 import java.util.Map;
 
 @Getter
@@ -23,6 +31,11 @@ public class ControllerBuilderJS {
     private int maxParallelRecipes = -1;
     private RecipeSelectionMode recipeSelectionMode = RecipeSelectionMode.DEFAULT;
     private final Map<String, String> textures = new LinkedHashMap<>();
+    @Getter(AccessLevel.NONE)
+    private final List<PendingSlot> slots = new ArrayList<>();
+
+    private record PendingSlot(String id, ResourceLocation type, boolean input, Consumer<PortConfigBuilderJS> config) {
+    }
 
     @HideFromJS
     public ControllerBuilderJS(String id) {
@@ -34,6 +47,18 @@ public class ControllerBuilderJS {
         if (rl == null) throw new IllegalArgumentException("Invalid resource location: " + id);
         this.type = rl;
         return this;
+    }
+
+    public ControllerBuilderJS slot(String id, String type, boolean input, Consumer<PortConfigBuilderJS> config) {
+        var rl = ResourceLocation.tryParse(type);
+        if (rl == null) throw new IllegalArgumentException("Invalid resource location: " + type);
+        slots.add(new PendingSlot(id, rl, input, config));
+        return this;
+    }
+
+    public ControllerBuilderJS slot(String id, String type, boolean input) {
+        return slot(id, type, input, config -> {
+        });
     }
 
     public ControllerBuilderJS overlay(String texture) {
@@ -117,6 +142,13 @@ public class ControllerBuilderJS {
 
     @HideFromJS
     public ControllerModel build() {
+        if (Ref.Controller.SINGLE.equals(type)) {
+            var defined = new ArrayList<SingleMachineSlot>();
+            for (PendingSlot slot : slots) {
+                defined.add(new SingleMachineSlot(slot.id(), slot.type(), slot.input(), MMPortRegistry.requirePortType(slot.type()).createStorageFactory(slot.config())));
+            }
+            SingleMachines.define(id, defined);
+        }
         var model = ControllerModel.createStyled(id, type, nameSpec, parallelProcessingDefault, maxParallelRecipes, recipeSelectionMode);
         textures.forEach(model.config()::addProperty);
         return model;

@@ -1,5 +1,8 @@
 package io.ticticboom.mods.mm.cap;
 
+import io.ticticboom.mods.mm.Ref;
+import io.ticticboom.mods.mm.controller.MMControllerRegistry;
+import io.ticticboom.mods.mm.controller.single.register.SingleMachineBlockEntity;
 import io.ticticboom.mods.mm.tool.ToolEnergy;
 import net.neoforged.neoforge.capabilities.ItemCapability;
 import io.ticticboom.mods.mm.setup.MMRegisters;
@@ -58,6 +61,18 @@ public class MMCapabilities {
             if (ModList.get().isLoaded("ae2")) {
                 Ae2Capabilities.registerNodeHost(event, beType);
                 Ae2Capabilities.registerItemPortStorage(event, beType);
+            }
+        }
+        for (var holder : MMControllerRegistry.CONTROLLERS) {
+            if (Ref.Controller.SINGLE.equals(holder.getRegistryId())) {
+                @SuppressWarnings("unchecked")
+                var single = (BlockEntityType<SingleMachineBlockEntity>) holder.getBe().get();
+                event.registerBlockEntity(ITEM, single, (be, side) -> be.itemHandler());
+                event.registerBlockEntity(FLUID, single, (be, side) -> be.fluidHandler());
+                event.registerBlockEntity(ENERGY, single, (be, side) -> be.energyHandler());
+                if (ModList.get().isLoaded("mekanism")) {
+                    MekCapabilities.registerSingle(event, single);
+                }
             }
         }
         event.registerItem(ENERGY_ITEM, (stack, context) -> ToolEnergy.of(stack), MMRegisters.MULTIBLOCK_TOOL.get());

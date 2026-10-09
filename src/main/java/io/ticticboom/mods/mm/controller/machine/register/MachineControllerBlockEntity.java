@@ -199,7 +199,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         pendingValidation = true;
     }
 
-    private void markChanged() {
+    protected void markChanged() {
         setChanged();
         syncPending = true;
     }
@@ -229,12 +229,16 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
 
     private void formed(Rotation rotation) {
         formedRotation = rotation;
-        portStorages = structure.getStorages(level, getBlockPos(), rotation);
+        portStorages = collectStorages(rotation);
         speedStorages = resolveSpeedStorages();
         if (!isFormed) {
             isFormed = true;
             markChanged();
         }
+    }
+
+    protected RecipeStorages collectStorages(Rotation rotation) {
+        return structure.getStorages(level, getBlockPos(), rotation);
     }
 
     private void unformed() {

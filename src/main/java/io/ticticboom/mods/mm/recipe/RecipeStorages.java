@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongSupplier;
 
 public final class RecipeStorages {
 
@@ -22,12 +23,22 @@ public final class RecipeStorages {
     private final Map<Class<?>, List<?>> outputsByType = new HashMap<>();
     private final ItemPortIndex inputItemPortIndex;
     private final ItemPortIndex outputItemPortIndex;
+    private final LongSupplier changes;
 
     public RecipeStorages(List<IPortStorage> inputStorages, List<IPortStorage> outputStorages) {
         this(inputStorages, outputStorages, List.of());
     }
 
     public RecipeStorages(List<IPortStorage> inputStorages, List<IPortStorage> outputStorages, List<IPortBlockEntity> sources) {
+        this(inputStorages, outputStorages, sources, () -> 0);
+    }
+
+    public RecipeStorages(List<IPortStorage> inputStorages, List<IPortStorage> outputStorages, LongSupplier changes) {
+        this(inputStorages, outputStorages, List.of(), changes);
+    }
+
+    private RecipeStorages(List<IPortStorage> inputStorages, List<IPortStorage> outputStorages, List<IPortBlockEntity> sources, LongSupplier changes) {
+        this.changes = changes;
         this.inputStorages = List.copyOf(inputStorages);
         this.outputStorages = List.copyOf(outputStorages);
         this.sources = List.copyOf(sources);
@@ -66,7 +77,7 @@ public final class RecipeStorages {
     }
 
     public long changeCount() {
-        long total = 0;
+        long total = changes.getAsLong();
         for (IPortBlockEntity source : sources) {
             total += source.changeCount();
         }
