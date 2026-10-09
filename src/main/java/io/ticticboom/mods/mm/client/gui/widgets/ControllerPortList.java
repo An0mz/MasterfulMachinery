@@ -245,7 +245,9 @@ public class ControllerPortList {
                 } else if (tank.sprite() != null) {
                     sprite = atlas(tank.sprite());
                 }
-                if (sprite != null) {
+                if (sprite == null && tank.kind() != PortContent.Kind.FLUID) {
+                    gfx.fill(fx, fy, fx + filled, fy + innerH, 0xFF000000 | tint);
+                } else if (sprite != null) {
                     float alpha = ((tint >> 24) & 0xFF) / 255f;
                     gfx.setColor((tint >> 16 & 0xFF) / 255f, (tint >> 8 & 0xFF) / 255f, (tint & 0xFF) / 255f, alpha == 0 ? 1 : alpha);
                     gfx.enableScissor(fx, fy, fx + filled, fy + innerH);
@@ -257,9 +259,9 @@ public class ControllerPortList {
                 }
             }
         }
-        String amounts = CountFormat.compact(tank.amount()) + " / " + CountFormat.compact(tank.capacity()) + " " + tank.unit();
+        String amounts = CountFormat.compact(tank.amount()) + " / " + CountFormat.compact(tank.capacity()) + (tank.unit().isEmpty() ? "" : " " + tank.unit());
         Component label = Component.literal(amounts);
-        if (tank.name() != null) {
+        if (tank.name() != null && (tank.kind() == PortContent.Kind.FLUID || tank.sprite() != null)) {
             Component named = tank.name().copy().append("  " + amounts);
             if (font.width(named) <= innerW - 4) {
                 label = named;

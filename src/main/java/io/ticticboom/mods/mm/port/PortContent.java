@@ -28,6 +28,10 @@ public record PortContent(Kind kind, ItemStack item, FluidStack fluid, @Nullable
         return new PortContent(Kind.ENERGY, ItemStack.EMPTY, FluidStack.EMPTY, null, 0xFFFFFFFF, null, amount, capacity, "FE");
     }
 
+    public static PortContent gauge(Component name, int color, long amount, long capacity, String unit) {
+        return new PortContent(Kind.CHEMICAL, ItemStack.EMPTY, FluidStack.EMPTY, null, color, name, amount, capacity, unit);
+    }
+
     public boolean isTank() {
         return kind != Kind.ITEM;
     }

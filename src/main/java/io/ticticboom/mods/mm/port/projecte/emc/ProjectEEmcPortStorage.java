@@ -5,6 +5,7 @@ import io.ticticboom.mods.mm.cap.ProjectECapabilities;
 import io.ticticboom.mods.mm.model.PortModel;
 import io.ticticboom.mods.mm.port.IPortStorage;
 import io.ticticboom.mods.mm.port.IPortStorageModel;
+import io.ticticboom.mods.mm.port.PortContent;
 import io.ticticboom.mods.mm.port.common.INotifyChangeFunction;
 import lombok.Getter;
 import lombok.Setter;
@@ -184,6 +185,11 @@ public class ProjectEEmcPortStorage implements IPortStorage {
     @Override
     public UUID getStorageUid() {
         return uid;
+    }
+
+    @Override
+    public List<PortContent> contents() {
+        return List.of(PortContent.gauge(Component.translatable("port.mm.projecte_emc.name"), 0xE0B020, stored, capacity, "EMC"));
     }
 
     @Override
