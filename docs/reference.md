@@ -52,7 +52,7 @@ An event in the wrong folder silently never runs.
 | Key | Required | Meaning |
 |---|---|---|
 | `id` | yes | Block id, registered as `mm:<id>` |
-| `type` | yes | Always `mm:machine` |
+| `type` | yes | `mm:machine`, or `mm:single` for a machine in one block — see [`single-block.md`](single-block.md) |
 | `name` | yes | Display name — see [Names and colours](#names-and-colours) |
 | `texture` | no | Base texture, e.g. `kubejs:block/kiln_base` |
 | `overlay` | no | Texture drawn on top of the base |
@@ -166,7 +166,7 @@ shows its machine's state, in the screen colours.
 | Type | Needs | `config` | Recipe ingredient |
 |---|---|---|---|
 | `mm:item` | — | `rows`, `columns`, `slotCapacity`, `autoPush` | `item` or `tag`, `count` |
-| `mm:fluid` | — | `rows`, `columns`, `slotCapacity`, `autoPush` | `fluid`, `amount` (mB) |
+| `mm:fluid` | — | `rows`, `columns`, `slotCapacity`, `autoPush`, `fluids` | `fluid`, `amount` (mB) |
 | `mm:energy` | — | `capacity`, `maxReceive`, `maxExtract`, `autoPush` | `amount` (FE) |
 | `mm:entity` | — | see [`entity.md`](entity.md) | `entity` or `tag`, `amount` |
 | `mm:mekanism/chemical` | Mekanism | see [`mekanism.md`](mekanism.md) | `chemical`, `amount` |
@@ -185,6 +185,8 @@ Notes on the config keys:
 
 - **`slotCapacity`** — on item ports it is how many items fit in one slot; leave it out for the
   normal stack size. On fluid ports it is required and is the mB each tank holds.
+- **`fluids`** — on fluid ports, the fluids the port takes, as one id or tag (`#c:oil`) or a list of
+  them. Pipes and recipe outputs can not put anything else in. Leave it out to take any fluid.
 - **`autoPush`** — the port pushes its contents into neighbouring blocks on its own. Off by default;
   the default can be changed in the config.
 - **Energy above 2.1 billion** — `capacity`, `maxReceive`, `maxExtract` and recipe amounts can go
@@ -228,7 +230,7 @@ Config methods per type:
 | Type | Methods |
 |---|---|
 | `mm:item` | `rows`, `columns`, `slotCapacity`, `autoPush`, `tierRank` |
-| `mm:fluid` | `rows`, `columns`, `slotCapacity`, `autoPush`, `tierRank` |
+| `mm:fluid` | `rows`, `columns`, `slotCapacity`, `autoPush`, `fluids`, `tierRank` |
 | `mm:energy` | `capacity`, `maxReceive`, `maxExtract`, `autoPush`, `tierRank` |
 | `mm:create/kinetic` | `stress` |
 | `mm:pneumaticcraft/air` | `volume`, `danger`, `critical` |

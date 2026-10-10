@@ -20,3 +20,4 @@ It allows modpack developers to create custom multiblock machines through data/c
 - Entity ports: [docs/entity.md](docs/entity.md)
 - Nuclear Radiation: [docs/radiation.md](docs/radiation.md)
 - ProjectE EMC: [docs/projecte.md](docs/projecte.md)
+- Single-block machines: [docs/single-block.md](docs/single-block.md)

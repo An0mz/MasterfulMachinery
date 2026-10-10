@@ -406,3 +406,4 @@ the name.
 - [`ae2.md`](ae2.md) — AE2 autocrafting and the Network Linker.
 - [`ars-nouveau.md`](ars-nouveau.md) — Ars Nouveau Source.
 - [`projecte.md`](projecte.md) — ProjectE EMC.
+- [`single-block.md`](single-block.md) — machines in one block, like a furnace.
