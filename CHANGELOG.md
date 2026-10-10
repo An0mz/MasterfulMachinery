@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.11.0] - 2026-10-09
+
+### Added
+- **Single-block machines** (`"type": "mm:single"`). A whole machine in one block, like a furnace,
+  with no structure or ports. List what it holds under `slots`: item, fluid, energy and Mekanism
+  chemical slots, each with the same options as a port of that type. Recipes use the controller id
+  as their `structureId`. See [`single-block.md`](docs/single-block.md).
+  - Its screen is built from the slots: energy on the outside, then tanks, then item slots around
+    the progress bar. A button opens the controller screen for its name, redstone mode and the rest.
+  - Pipes, hoppers and cables fill its inputs and take from its outputs, from any side.
+  - From KubeJS, `.type('mm:single')` and `.slot(id, type, input, config)`.
+  - Each fluid stays in one tank of a fluid slot, so one fluid can not fill them all.
+- **`fluids` on fluid ports and slots** limits them to certain fluids, as ids or tags
+  (`"fluids": ["minecraft:lava", "#c:oil"]`). From KubeJS, `.fluids(...)`.
+- **EMC ports show a bar** on the controller screen, like energy.
+
+### Fixed
+- **A typo in a KubeJS port or controller script** no longer crashes the game with
+  `Unknown port type 'null'`. The KubeJS error that names the file and line is shown instead.
+- **Shift-clicking into a port** no longer puts items into slots that do not take them.
+
 ## [1.21.1-0.10.0] - 2026-10-07
 
 ### Added
