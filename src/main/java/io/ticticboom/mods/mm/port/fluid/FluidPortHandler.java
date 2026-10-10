@@ -27,6 +27,7 @@ public class FluidPortHandler implements IFluidHandler {
     @Getter
     private boolean locked = false;
     private Predicate<Fluid> filter = fluid -> true;
+    private boolean oneFluidPerTank = false;
 
     // OPTIONAL_CODEC, not CODEC: the strict codec rejects empty stacks, and empty tanks are
     // serialised on every block update. Same split as ItemStack in 1.20.5.
@@ -45,6 +46,10 @@ public class FluidPortHandler implements IFluidHandler {
 
     public void setFilter(Predicate<Fluid> filter) {
         this.filter = filter;
+    }
+
+    public void setOneFluidPerTank(boolean oneFluidPerTank) {
+        this.oneFluidPerTank = oneFluidPerTank;
     }
 
     public void setLocked(boolean locked) {
@@ -124,13 +129,34 @@ public class FluidPortHandler implements IFluidHandler {
         }
 
         int filled = 0;
-        for (int slot = 0; slot < stacks.size() && filled < stack.getAmount(); slot++) {
-            filled += innerFill(slot, stack.getFluid(), stack.getAmount() - filled, action.simulate());
+        if (oneFluidPerTank) {
+            int slot = tankFor(stack);
+            if (slot >= 0) {
+                filled = innerFill(slot, stack.getFluid(), stack.getAmount(), action.simulate());
+            }
+        } else {
+            for (int slot = 0; slot < stacks.size() && filled < stack.getAmount(); slot++) {
+                filled += innerFill(slot, stack.getFluid(), stack.getAmount() - filled, action.simulate());
+            }
         }
         if (action.execute() && filled > 0) {
             changed.call();
         }
         return filled;
+    }
+
+    private int tankFor(FluidStack stack) {
+        for (int slot = 0; slot < stacks.size(); slot++) {
+            if (!stacks.get(slot).isEmpty() && stacks.get(slot).isFluidEqual(stack)) {
+                return slot;
+            }
+        }
+        for (int slot = 0; slot < stacks.size(); slot++) {
+            if (stacks.get(slot).isEmpty() && isFluidValid(slot, stack)) {
+                return slot;
+            }
+        }
+        return -1;
     }
 
     private int innerFill(int slot, Fluid fluid, int amount, boolean simulate) {

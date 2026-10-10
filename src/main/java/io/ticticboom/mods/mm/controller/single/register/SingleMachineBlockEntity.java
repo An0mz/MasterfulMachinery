@@ -10,6 +10,7 @@ import io.ticticboom.mods.mm.gateway.GatewayFluidHandler;
 import io.ticticboom.mods.mm.gateway.GatewayItemHandler;
 import io.ticticboom.mods.mm.model.ControllerModel;
 import io.ticticboom.mods.mm.port.IPortStorage;
+import io.ticticboom.mods.mm.port.fluid.FluidPortStorage;
 import io.ticticboom.mods.mm.port.item.ItemPortStorage;
 import io.ticticboom.mods.mm.recipe.RecipeStorages;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
@@ -52,6 +53,9 @@ public class SingleMachineBlockEntity extends MachineControllerBlockEntity {
         this.slots = SingleMachines.slots(model);
         for (SingleMachineSlot slot : slots) {
             var storage = slot.factory().createPortStorage(this::storageChanged);
+            if (storage instanceof FluidPortStorage fluids) {
+                fluids.getHandler().setOneFluidPerTank(true);
+            }
             storages.add(storage);
             (slot.input() ? inputs : outputs).add(storage);
         }
