@@ -1,6 +1,8 @@
 package io.ticticboom.mods.mm.port.fluid;
 
 import com.google.gson.JsonElement;
+import java.util.ArrayList;
+import java.util.List;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.config.MMConfig;
 import io.ticticboom.mods.mm.port.IPortIngredient;
@@ -22,7 +24,16 @@ public class FluidPortParser implements IPortParser {
                 tierRank = json.get("tierRank").getAsInt();
             } catch (Exception ignored) {}
         }
-        return new FluidPortStorageFactory(new FluidPortStorageModel(rows, columns, slotCapacity, autoPush, tierRank));
+        var fluids = new ArrayList<String>();
+        if (json.has("fluids")) {
+            var element = json.get("fluids");
+            if (element.isJsonArray()) {
+                element.getAsJsonArray().forEach(entry -> fluids.add(entry.getAsString()));
+            } else {
+                fluids.add(element.getAsString());
+            }
+        }
+        return new FluidPortStorageFactory(new FluidPortStorageModel(rows, columns, slotCapacity, autoPush, tierRank, List.copyOf(fluids)));
     }
 
     @Override

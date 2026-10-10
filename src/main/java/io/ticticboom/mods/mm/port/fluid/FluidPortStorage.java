@@ -42,6 +42,7 @@ public class FluidPortStorage implements IPortStorage, ILockablePortStorage {
     public FluidPortStorage(FluidPortStorageModel model, INotifyChangeFunction changed) {
         this.model = model;
         handler = new FluidPortHandler(model.rows() * model.columns(), model.slotCapacity(), changed);
+        handler.setFilter(model::accepts);
     }
 
     public IFluidHandler getWrappedHandler() {

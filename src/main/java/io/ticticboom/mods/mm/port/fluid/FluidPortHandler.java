@@ -13,6 +13,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 public class FluidPortHandler implements IFluidHandler {
 
@@ -25,6 +26,7 @@ public class FluidPortHandler implements IFluidHandler {
     private final Fluid[] lockedFluids;
     @Getter
     private boolean locked = false;
+    private Predicate<Fluid> filter = fluid -> true;
 
     // OPTIONAL_CODEC, not CODEC: the strict codec rejects empty stacks, and empty tanks are
     // serialised on every block update. Same split as ItemStack in 1.20.5.
@@ -39,6 +41,10 @@ public class FluidPortHandler implements IFluidHandler {
             stacks.add(FluidStack.EMPTY);
         }
         lockedFluids = new Fluid[tanks];
+    }
+
+    public void setFilter(Predicate<Fluid> filter) {
+        this.filter = filter;
     }
 
     public void setLocked(boolean locked) {
@@ -100,6 +106,9 @@ public class FluidPortHandler implements IFluidHandler {
 
     @Override
     public boolean isFluidValid(int i, @NotNull FluidStack fluidStack) {
+        if (!fluidStack.isEmpty() && !filter.test(fluidStack.getFluid())) {
+            return false;
+        }
         Fluid lockedFluid = lockedFluids[i];
         if (lockedFluid != null && lockedFluid != fluidStack.getFluid()) {
             return false;
