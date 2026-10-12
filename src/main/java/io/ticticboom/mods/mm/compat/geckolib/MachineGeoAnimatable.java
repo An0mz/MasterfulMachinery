@@ -1,0 +1,60 @@
+package io.ticticboom.mods.mm.compat.geckolib;
+
+import io.ticticboom.mods.mm.client.geo.GeoModelConfig;
+import io.ticticboom.mods.mm.controller.machine.register.ControllerState;
+import org.jetbrains.annotations.Nullable;
+import software.bernie.geckolib.animatable.GeoAnimatable;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.animation.AnimationController;
+import software.bernie.geckolib.animation.PlayState;
+import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.util.GeckoLibUtil;
+import software.bernie.geckolib.util.RenderUtil;
+
+public class MachineGeoAnimatable implements GeoAnimatable {
+    private static final int TRANSITION_TICKS = 5;
+
+    private final GeoModelConfig config;
+    @Nullable
+    private final RawAnimation idle;
+    @Nullable
+    private final RawAnimation working;
+    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
+    private ControllerState state = ControllerState.IDLE;
+
+    public MachineGeoAnimatable(GeoModelConfig config, @Nullable String idleName, @Nullable String workingName) {
+        this.config = config;
+        this.idle = idleName == null ? null : RawAnimation.begin().thenLoop(idleName);
+        this.working = workingName == null ? null : RawAnimation.begin().thenLoop(workingName);
+    }
+
+    public GeoModelConfig config() {
+        return config;
+    }
+
+    public void setState(ControllerState state) {
+        this.state = state;
+    }
+
+    @Override
+    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+        if (idle == null && working == null) {
+            return;
+        }
+        controllers.add(new AnimationController<>(this, "machine", TRANSITION_TICKS, animState -> {
+            RawAnimation animation = state == ControllerState.WORKING ? working : idle;
+            return animation == null ? PlayState.STOP : animState.setAndContinue(animation);
+        }));
+    }
+
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return cache;
+    }
+
+    @Override
+    public double getTick(Object object) {
+        return RenderUtil.getCurrentTick();
+    }
+}

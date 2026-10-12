@@ -3,6 +3,7 @@ package io.ticticboom.mods.mm.compat.kjs.builder;
 import io.ticticboom.mods.mm.util.ColorUtil;
 import com.google.gson.JsonElement;
 import dev.latvian.mods.rhino.util.HideFromJS;
+import io.ticticboom.mods.mm.client.geo.GeoModelConfig;
 import io.ticticboom.mods.mm.compat.kjs.KubeJsValues;
 import io.ticticboom.mods.mm.model.ControllerModel;
 import io.ticticboom.mods.mm.model.RecipeSelectionMode;
@@ -33,6 +34,7 @@ public class ControllerBuilderJS {
     private final Map<String, String> textures = new LinkedHashMap<>();
     @Getter(AccessLevel.NONE)
     private final List<PendingSlot> slots = new ArrayList<>();
+    private JsonElement geoModel;
 
     private record PendingSlot(String id, ResourceLocation type, boolean input, Consumer<PortConfigBuilderJS> config) {
     }
@@ -88,6 +90,11 @@ public class ControllerBuilderJS {
     public ControllerBuilderJS workingSoundInterval(int ticks) {
         if (ticks < 1) throw new IllegalArgumentException("workingSoundInterval must be at least 1 tick: " + ticks);
         textures.put("workingSoundInterval", Integer.toString(ticks));
+        return this;
+    }
+
+    public ControllerBuilderJS geoModel(JsonElement geoModel) {
+        this.geoModel = geoModel;
         return this;
     }
 
@@ -151,6 +158,9 @@ public class ControllerBuilderJS {
         }
         var model = ControllerModel.createStyled(id, type, nameSpec, parallelProcessingDefault, maxParallelRecipes, recipeSelectionMode);
         textures.forEach(model.config()::addProperty);
+        if (geoModel != null) {
+            model.config().add(GeoModelConfig.KEY, geoModel);
+        }
         return model;
     }
 }

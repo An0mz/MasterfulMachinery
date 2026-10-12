@@ -2,6 +2,10 @@ package io.ticticboom.mods.mm.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
+import io.ticticboom.mods.mm.client.geo.GeoBridge;
+import io.ticticboom.mods.mm.client.geo.GeoModelConfig;
+import io.ticticboom.mods.mm.controller.machine.register.ControllerState;
 import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
 import io.ticticboom.mods.mm.structure.attachment.visuals.FluidVolumeState;
 import net.minecraft.client.Minecraft;
@@ -14,6 +18,7 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 
@@ -30,6 +35,39 @@ public class ControllerVisualsRenderer implements BlockEntityRenderer<MachineCon
                 renderFluidVolume(be, volume, pose, buffers);
             }
         }
+        renderGeoModel(be, pose, buffers, light, partialTick);
+    }
+
+    private void renderGeoModel(MachineControllerBlockEntity be, PoseStack pose, MultiBufferSource buffers, int light, float partialTick) {
+        var blockState = be.getBlockState();
+        if (!blockState.hasProperty(ControllerState.PROPERTY) || !blockState.hasProperty(HorizontalDirectionalBlock.FACING)) {
+            return;
+        }
+        ControllerState state = blockState.getValue(ControllerState.PROPERTY);
+        if (state == ControllerState.UNFORMED) {
+            return;
+        }
+        GeoModelConfig config = be.geoModel();
+        GeoBridge bridge = GeoBridge.get();
+        if (config == null || bridge == null) {
+            return;
+        }
+        Direction facing = blockState.getValue(HorizontalDirectionalBlock.FACING);
+        double[] offset = config.worldOffset(facing);
+        int modelLight = light;
+        if (config.glow()) {
+            modelLight = LightTexture.FULL_BRIGHT;
+        } else {
+            var at = BlockPos.containing(be.getBlockPos().getX() + 0.5 + offset[0], be.getBlockPos().getY() + offset[1], be.getBlockPos().getZ() + 0.5 + offset[2]);
+            modelLight = LevelRenderer.getLightColor(be.getLevel(), at);
+        }
+        pose.pushPose();
+        pose.translate(0.5 + offset[0], offset[1], 0.5 + offset[2]);
+        pose.mulPose(Axis.YP.rotationDegrees(config.modelYRot(facing)));
+        pose.scale(config.scale(), config.scale(), config.scale());
+        pose.translate(-0.5, -0.51, -0.5);
+        bridge.render(be, config, state, pose, buffers, modelLight, partialTick);
+        pose.popPose();
     }
 
     private void renderFluidVolume(MachineControllerBlockEntity be, FluidVolumeState volume, PoseStack pose, MultiBufferSource buffers) {
@@ -124,11 +162,19 @@ public class ControllerVisualsRenderer implements BlockEntityRenderer<MachineCon
 
     @Override
     public boolean shouldRenderOffScreen(MachineControllerBlockEntity be) {
-        return be.getVisualBounds() != null;
+        return be.getVisualBounds() != null || be.geoModel() != null;
+    }
+
+    @Override
+    public int getViewDistance() {
+        return 96;
     }
 
     @Override
     public AABB getRenderBoundingBox(MachineControllerBlockEntity be) {
+        if (be.geoModel() != null) {
+            return AABB.INFINITE;
+        }
         var bounds = be.getVisualBounds();
         return bounds != null ? bounds : BlockEntityRenderer.super.getRenderBoundingBox(be);
     }

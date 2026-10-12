@@ -1,6 +1,8 @@
 package io.ticticboom.mods.mm.compat.kjs.builder;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import io.ticticboom.mods.mm.client.geo.GeoModelConfig;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import io.ticticboom.mods.mm.model.IdList;
 import io.ticticboom.mods.mm.structure.StructureModel;
@@ -24,6 +26,7 @@ public class StructureBuilderJS {
     private Consumer<StructureLayoutBuilderJS> layoutConsumer;
     private int maxParallelRecipes = -1;
     private final List<FluidVolumeVisual> fluidVolumes = new ArrayList<>();
+    private JsonElement geoModel;
 
     public StructureBuilderJS(String id) {
         this.id = ResourceLocation.tryParse(id);
@@ -59,6 +62,11 @@ public class StructureBuilderJS {
         return this;
     }
 
+    public StructureBuilderJS geoModel(JsonElement geoModel) {
+        this.geoModel = geoModel;
+        return this;
+    }
+
     public StructureBuilderJS fluidArea(String area) {
         return fluidArea(area, null);
     }
@@ -83,6 +91,9 @@ public class StructureBuilderJS {
             var visuals = new JsonArray();
             fluidVolumes.forEach(volume -> visuals.add(volume.toJson()));
             json.add("visuals", visuals);
+        }
+        if (geoModel != null) {
+            json.add(GeoModelConfig.KEY, geoModel);
         }
         return new StructureModel(id, name, controllerIds, layout, StructureAttachments.parse(json), json);
     }

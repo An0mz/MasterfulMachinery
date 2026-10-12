@@ -68,6 +68,12 @@ config="mixins.mm.compat.json"
     ordering="BEFORE"
     side="BOTH"
 [[dependencies.mm]]
+    modId="geckolib"
+    type="optional"
+    versionRange="[4.5,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.mm]]
     modId="create"
     type="optional"
     versionRange="[6.0.10,6.1.0)"

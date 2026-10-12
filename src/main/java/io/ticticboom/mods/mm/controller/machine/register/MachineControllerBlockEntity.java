@@ -65,6 +65,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import io.ticticboom.mods.mm.client.geo.GeoModelConfig;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -164,6 +165,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private AABB visualBounds = null;
     private RecipeStorages visualStorages = null;
     private long lastVisualChangeCount = -1;
+    @Nullable
+    private Object geoAnimatable;
 
     public MachineControllerBlockEntity(ControllerModel model, RegistryGroupHolder groupHolder, BlockPos pos, BlockState state) {
         super(groupHolder.getBe().get(), pos, state);
@@ -812,6 +815,20 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             switchStructure(newStructure);
         }
         scheduleValidation();
+    }
+
+    @Nullable
+    public GeoModelConfig geoModel() {
+        return GeoModelConfig.resolve(model == null ? null : model.config(), structure == null ? null : structure.getConfig());
+    }
+
+    @Nullable
+    public Object getGeoAnimatable() {
+        return geoAnimatable;
+    }
+
+    public void setGeoAnimatable(@Nullable Object geoAnimatable) {
+        this.geoAnimatable = geoAnimatable;
     }
 
     @Override
