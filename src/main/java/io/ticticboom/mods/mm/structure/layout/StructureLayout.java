@@ -173,6 +173,19 @@ public class StructureLayout {
         return positions;
     }
 
+    public int[] chunkBounds(BlockPos worldControllerPos, Rotation rotation) {
+        int minX = worldControllerPos.getX() >> 4, maxX = minX;
+        int minZ = worldControllerPos.getZ() >> 4, maxZ = minZ;
+        for (PositionedLayoutPiece piece : rotatedPositionedPieces.get(rotation)) {
+            BlockPos pos = piece.findAbsolutePos(worldControllerPos);
+            minX = Math.min(minX, pos.getX() >> 4);
+            maxX = Math.max(maxX, pos.getX() >> 4);
+            minZ = Math.min(minZ, pos.getZ() >> 4);
+            maxZ = Math.max(maxZ, pos.getZ() >> 4);
+        }
+        return new int[]{minX, minZ, maxX, maxZ};
+    }
+
     public boolean contains(BlockPos worldControllerPos, Rotation rotation, BlockPos pos) {
         var pieces = rotatedPositionedPieces.get(rotation);
         if (pieces == null) {

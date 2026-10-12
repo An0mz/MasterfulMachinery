@@ -98,6 +98,9 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     @Getter
     private StructureModel structure = null;
     private Rotation formedRotation = null;
+    private int[] structureChunks = null;
+    private StructureModel structureChunksOf = null;
+    private Rotation structureChunksRotation = null;
     private boolean isFormed = false;
     private boolean pendingValidation = true;
     private long lastTick = Long.MIN_VALUE;
@@ -185,11 +188,15 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             return;
         }
         lastTick = gameTime;
-        if (pendingValidation || (gameTime + validationOffset) % COMMON.structureValidationRate.get() == 0) {
+        boolean loaded = !isFormed || structureChunksLoaded();
+        if (loaded && (pendingValidation || (gameTime + validationOffset) % COMMON.structureValidationRate.get() == 0)) {
             pendingValidation = false;
             validateStructure();
         }
-        if (isFormed) {
+        if (isFormed && loaded) {
+            if (portsReplaced()) {
+                formed(formedRotation);
+            }
             runRecipe(gameTime);
         }
         updateVisuals();
@@ -278,10 +285,41 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         formedRotation = rotation;
         portStorages = collectStorages(rotation);
         speedStorages = resolveSpeedStorages();
+        if (structure != structureChunksOf || rotation != structureChunksRotation) {
+            structureChunks = structure.layout().chunkBounds(getBlockPos(), rotation);
+            structureChunksOf = structure;
+            structureChunksRotation = rotation;
+        }
         if (!isFormed) {
             isFormed = true;
             markChanged();
         }
+    }
+
+    private boolean structureChunksLoaded() {
+        if (structureChunks == null) {
+            return true;
+        }
+        for (int x = structureChunks[0]; x <= structureChunks[2]; x++) {
+            for (int z = structureChunks[1]; z <= structureChunks[3]; z++) {
+                if (!level.hasChunk(x, z)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private boolean portsReplaced() {
+        if (portStorages == null || formedRotation == null) {
+            return false;
+        }
+        for (var source : portStorages.sources()) {
+            if (source instanceof BlockEntity port && port.isRemoved()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     protected RecipeStorages collectStorages(Rotation rotation) {
