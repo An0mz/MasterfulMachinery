@@ -93,7 +93,7 @@ public class StructureManager extends SimpleJsonResourceReloadListener {
             }
             for (var entry : SingleMachines.implicitStructures().entrySet()) {
                 STRUCTURES.put(entry.getKey(), entry.getValue());
-                STRUCTURES_BY_CONTROLLER.computeIfAbsent(entry.getKey(), x -> new ArrayList<>()).add(entry.getValue());
+                indexByController(entry.getKey(), entry.getValue());
             }
         } catch (Exception e) {
             Ref.LCTX.doThrow(e);
@@ -108,8 +108,14 @@ public class StructureManager extends SimpleJsonResourceReloadListener {
         STRUCTURES.put(id, structure);
         STRUCTURE_BLUEPRINTS.put(id, MMRegisters.BLUEPRINT.get().getStructureInstance(id));
         for (ResourceLocation controllerId : structure.controllerIds().getIds()) {
-            STRUCTURES_BY_CONTROLLER.computeIfAbsent(controllerId, x -> new ArrayList<>()).add(structure);
+            indexByController(controllerId, structure);
         }
+    }
+
+    private static void indexByController(ResourceLocation controllerId, StructureModel structure) {
+        var list = STRUCTURES_BY_CONTROLLER.computeIfAbsent(controllerId, x -> new ArrayList<>());
+        list.removeIf(existing -> existing.id().equals(structure.id()));
+        list.add(structure);
     }
 
 }
