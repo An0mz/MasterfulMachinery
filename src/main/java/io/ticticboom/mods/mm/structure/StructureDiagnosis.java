@@ -18,7 +18,7 @@ public record StructureDiagnosis(int total, List<Missing> missing) {
     public static final int MAX_SENT = 32;
     public static final StructureDiagnosis NONE = new StructureDiagnosis(0, List.of());
 
-    public record Missing(BlockPos pos, ItemStack icon, Component required, @Nullable Component found) {
+    public record Missing(BlockPos pos, ItemStack icon, Component required, @Nullable Component found, List<Component> options) {
     }
 
     public static StructureDiagnosis diagnose(Level level, BlockPos controllerPos, Iterable<StructureModel> structures) {
@@ -45,8 +45,9 @@ public record StructureDiagnosis(int total, List<Missing> missing) {
             } else {
                 required = Component.translatable("gui.mm.controller.missing.one_of", blocks.get(0).getName(), blocks.size() - 1);
             }
+            List<Component> options = blocks.size() > 1 ? blocks.stream().map(b -> (Component) b.getName()).toList() : List.of();
             var state = level.getBlockState(pos);
-            result.add(new Missing(pos, icon, required, state.isAir() ? null : state.getBlock().getName()));
+            result.add(new Missing(pos, icon, required, state.isAir() ? null : state.getBlock().getName(), options));
         }
         return new StructureDiagnosis(best.size(), result);
     }
@@ -59,6 +60,7 @@ public record StructureDiagnosis(int total, List<Missing> missing) {
             ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, m.icon());
             ComponentSerialization.STREAM_CODEC.encode(buf, m.required());
             ByteBufCodecs.optional(ComponentSerialization.STREAM_CODEC).encode(buf, java.util.Optional.ofNullable(m.found()));
+            ComponentSerialization.STREAM_CODEC.apply(ByteBufCodecs.list()).encode(buf, m.options());
         }
     }
 
@@ -69,7 +71,8 @@ public record StructureDiagnosis(int total, List<Missing> missing) {
         for (int i = 0; i < size; i++) {
             missing.add(new Missing(buf.readBlockPos(), ItemStack.OPTIONAL_STREAM_CODEC.decode(buf),
                     ComponentSerialization.STREAM_CODEC.decode(buf),
-                    ByteBufCodecs.optional(ComponentSerialization.STREAM_CODEC).decode(buf).orElse(null)));
+                    ByteBufCodecs.optional(ComponentSerialization.STREAM_CODEC).decode(buf).orElse(null),
+                    ComponentSerialization.STREAM_CODEC.apply(ByteBufCodecs.list()).decode(buf)));
         }
         return new StructureDiagnosis(total, missing);
     }
