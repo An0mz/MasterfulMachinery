@@ -59,7 +59,7 @@ public class ItemPortStorage implements IPortStorage {
 
     @Override
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
-        Tag compoundTag = handler.serializeStacks();
+        Tag compoundTag = handler.serializeStacks(registries);
         tag.put("handler", compoundTag);
         // save priority
         tag.putInt("Priority", this.priority);
@@ -70,7 +70,7 @@ public class ItemPortStorage implements IPortStorage {
     public void load(CompoundTag tag, HolderLookup.Provider registries) {
         Tag compoundTag = tag.get("handler");
         if (compoundTag != null) {
-            handler.deserializeStacks(compoundTag);
+            handler.deserializeStacks(compoundTag, registries);
         }
         if (tag.contains("Priority")) {
             this.priority = Math.max(0, Math.min(10, tag.getInt("Priority")));

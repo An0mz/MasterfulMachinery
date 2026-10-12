@@ -1,6 +1,5 @@
 package io.ticticboom.mods.mm.port.item;
 
-import io.ticticboom.mods.mm.util.ItemNbtUtil;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -12,9 +11,11 @@ import java.util.Map;
 import java.util.List;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DynamicOps;
 
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.port.common.INotifyChangeFunction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
@@ -23,6 +24,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class ItemPortHandler extends ItemStackHandler {
 
@@ -69,7 +71,7 @@ public class ItemPortHandler extends ItemStackHandler {
         return slotCapacity;
     }
 
-    public Tag serializeStacks() {
+    public Tag serializeStacks(@Nullable HolderLookup.Provider registries) {
         // store both display stacks and actualCounts into a compound
         var compound = new CompoundTag();
         var encodable = new ArrayList<ItemStack>(stacks.size());
@@ -82,18 +84,18 @@ public class ItemPortHandler extends ItemStackHandler {
                 encodable.add(stack);
             }
         }
-        var tag = NbtOps.INSTANCE.withEncoder(STACKS_CODEC).apply(encodable);
+        var tag = ops(registries).withEncoder(STACKS_CODEC).apply(encodable);
         compound.put("stacks", tag.getOrThrow(__msg -> { Ref.LOG.error(__msg); return new IllegalStateException(__msg); }));
         compound.putIntArray("counts", actualCounts);
         return compound;
     }
 
-    public void deserializeStacks(Tag nbt) {
+    public void deserializeStacks(Tag nbt, @Nullable HolderLookup.Provider registries) {
         if (!(nbt instanceof CompoundTag ct)) return;
         // read stacks
         Tag stacksTag = ct.get("stacks");
         if (stacksTag != null) {
-            var res = NbtOps.INSTANCE.withDecoder(STACKS_CODEC).apply(stacksTag);
+            var res = ops(registries).withDecoder(STACKS_CODEC).apply(stacksTag);
             var pair = res.getOrThrow(__msg -> { Ref.LOG.error(__msg); return new IllegalStateException(__msg); });
             this.stacks.clear();
             List<ItemStack> list = pair.getFirst();
@@ -119,6 +121,10 @@ public class ItemPortHandler extends ItemStackHandler {
             reindexSlot(i);
         }
         contentRevision++;
+    }
+
+    private static DynamicOps<Tag> ops(@Nullable HolderLookup.Provider registries) {
+        return registries == null ? NbtOps.INSTANCE : registries.createSerializationContext(NbtOps.INSTANCE);
     }
 
     private void restoreDisplayCounts() {
@@ -196,7 +202,7 @@ public class ItemPortHandler extends ItemStackHandler {
         BitSet slots = partialSlots.get(stack.getItem());
         if (slots == null) return false;
         for (int slot = slots.nextSetBit(0); slot >= 0; slot = slots.nextSetBit(slot + 1)) {
-            if (!areTagsDifferentOrNull(ItemNbtUtil.getTag(getStackInSlot(slot)), ItemNbtUtil.getTag(stack))) return true;
+            if (ItemStack.isSameItemSameComponents(getStackInSlot(slot), stack)) return true;
         }
         return false;
     }
@@ -249,9 +255,8 @@ public class ItemPortHandler extends ItemStackHandler {
         long capacity = 0;
         BitSet partial = partialSlots.get(stack.getItem());
         if (partial != null) {
-            CompoundTag tag = ItemNbtUtil.getTag(stack);
             for (int slot = partial.nextSetBit(0); slot >= 0; slot = partial.nextSetBit(slot + 1)) {
-                if (!areTagsDifferentOrNull(ItemNbtUtil.getTag(getStackInSlot(slot)), tag)) {
+                if (ItemStack.isSameItemSameComponents(getStackInSlot(slot), stack)) {
                     capacity += getSlotLimit(slot) - actualCounts[slot];
                 }
             }
@@ -336,9 +341,8 @@ public class ItemPortHandler extends ItemStackHandler {
             if (existing.getItem() != item) {
                 return stack; // different item
             }
-            // respect NBT: only merge when tags are equal or both null
-            if (areTagsDifferentOrNull(ItemNbtUtil.getTag(existing), ItemNbtUtil.getTag(stack))) {
-                return stack; // different tag -> do not merge here
+            if (!ItemStack.isSameItemSameComponents(existing, stack)) {
+                return stack;
             }
             int existingCount = actualCounts[slot];
             int space = limit - existingCount;
@@ -388,10 +392,9 @@ public class ItemPortHandler extends ItemStackHandler {
     public int canInsert(ItemStack stack, int count) {
         if (stack == null || stack.isEmpty()) return count;
         int remainingToInsert = count;
-        CompoundTag stackTag = ItemNbtUtil.getTag(stack);
         BitSet partial = partialSlots.get(stack.getItem());
         if (partial != null) for (int slot = partial.nextSetBit(0); slot >= 0 && remainingToInsert > 0; slot = partial.nextSetBit(slot + 1)) {
-            if (!areTagsDifferentOrNull(ItemNbtUtil.getTag(getStackInSlot(slot)), stackTag))
+            if (ItemStack.isSameItemSameComponents(getStackInSlot(slot), stack))
                 remainingToInsert -= Math.min(getSlotLimit(slot) - actualCounts[slot], remainingToInsert);
         }
         for (int slot = emptySlots.nextSetBit(0); slot >= 0 && remainingToInsert > 0; slot = emptySlots.nextSetBit(slot + 1)) {
@@ -484,7 +487,7 @@ public class ItemPortHandler extends ItemStackHandler {
         if (partial == null) return remainingToInsert;
         for (int slot = partial.nextSetBit(0); slot >= 0 && remainingToInsert > 0; slot = partial.nextSetBit(slot + 1)) {
             ItemStack existing = getStackInSlot(slot);
-            if (checkNbt && areTagsDifferentOrNull(ItemNbtUtil.getTag(existing), ItemNbtUtil.getTag(template))) continue;
+            if (checkNbt && !ItemStack.isSameItemSameComponents(existing, template)) continue;
             int limit = getSlotLimit(slot);
             int space = limit - actualCounts[slot];
             if (space <= 0) continue;
@@ -497,13 +500,6 @@ public class ItemPortHandler extends ItemStackHandler {
             remainingToInsert -= toMove;
         }
         return remainingToInsert;
-    }
-
-    private boolean areTagsDifferentOrNull(CompoundTag a, CompoundTag b) {
-        // Direct comparison - no cache overhead
-        if (a == b) return false;
-        if (a == null || b == null) return true;
-        return !a.equals(b);
     }
 
     @Override
