@@ -65,6 +65,9 @@ public class StructureManager extends SimpleJsonResourceReloadListener {
             // port from an uninstalled integration mod should not make the world unloadable.
             int skipped = 0;
             for (Map.Entry<ResourceLocation, JsonElement> entry : jsons.entrySet()) {
+                if (SingleMachines.isImplicitStructure(entry.getKey())) {
+                    continue;
+                }
                 Ref.LCTX.push(String.format("Loading Structure: %s", entry.getKey().toString()));
                 try {
                     var model = StructureModel.parse(entry.getValue().getAsJsonObject(), entry.getKey());
