@@ -142,16 +142,33 @@ repositories {
         }
     } // Replication
 
-    // Unfiltered, this mirror also answers for org.projectlombok and wins over Maven Central,
-    // which silently costs every Lombok-generated accessor in the mod.
     maven {
         url = "https://maven.blamejared.com"
         content {
             includeGroup 'com.hollingsworth.ars_nouveau'
         }
     } // Ars Nouveau
+
     maven { url = "https://maven.createmod.net" } // Create, Ponder, Flywheel
     maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // ForgeConfigAPIPort
+    maven {
+        url = "https://maven.theillusivec4.top/"
+        content {
+            includeGroup 'top.theillusivec4.curios'
+        }
+    }
+    maven {
+        url = "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/"
+        content {
+            includeGroup 'software.bernie.geckolib'
+        }
+    }
+    maven {
+        url = "https://maven.blakesmods.com/"
+        content {
+            includeGroupByRegex 'com\\.blakebr0\\..*'
+        }
+    }
 
     mavenCentral()
     maven { url = "https://jitpack.io" }
@@ -170,164 +187,102 @@ dependencies {
     // COMPILE MOD-ADDONS
     // ========================
 
-    //JEI
+    // BlameJared
     compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"
     compileOnly "mezz.jei:jei-${mc_version}-neoforge-api:${jei_version}"
-
-    //JADE (WAILA)
-    compileOnly "curse.maven:jade-324717:${jade_id}"
-
-    // MEKANISM
-    compileOnly "curse.maven:mekanism-268560:${mekanism_id}"
-    compileOnly "curse.maven:nuclear-radiation-1148833:${nuclear_radiation_id}"
-
-    //PNEUMATICCRAFT (PNCR)
-    compileOnly "curse.maven:pneumaticcraft-repressurized-281849:${pneumaticcraft_id}"
-
-    //REPLICATION
-    // Replication's matter network is built on Titanium's block_network package, so Titanium has
-    // to be on the compile classpath next to it: MM's port registers a NetworkElement of its own.
-    compileOnly "maven.modrinth:replication:${replication_version}"
     compileOnly "com.hrznstudio:titanium:${titanium_version}"
-
-    //KUBEJS
-    compileOnly "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
-    // The Rhino artifact dropped its loader suffix on 1.21.1: rhino-forge -> rhino.
-    compileOnly "dev.latvian.mods:rhino:${rhino_version}"
-    compileOnly "dev.architectury:architectury-neoforge:${architectury_version}"
-
-    // CREATE MOD
-    // MM imports no Registrate classes, so it is not needed to compile, and transitive = false
-    // keeps the rest of Create's dependency graph off the compile classpath. It is still required
-    // at runtime -- see the runtime block below.
-    compileOnly("com.simibubi.create:create-${mc_version}:${create_version}:slim") { transitive = false }
-    // Ponder is required at compile time even though MM imports nothing from it: MM extends
-    // Create's GeneratingKineticBlockEntity, whose supertype chain reaches
-    // net.createmod.ponder.api.VirtualBlockEntity, and javac must resolve it.
-    compileOnly "net.createmod.ponder:ponder-neoforge:${ponder_version}"
-
-    //ARS NOUVEAU
-    // Only the source API is compiled against, so the rest of Ars Nouveau's dependency graph
-    // (TerraBlender, Lucene, Infiniverse) stays off the compile classpath.
     compileOnly("com.hollingsworth.ars_nouveau:ars_nouveau-${mc_version}:${ars_nouveau_version}") { transitive = false }
 
-    //PROJECTE
-    compileOnly "curse.maven:projecte-226410:${projecte_id}"
+    // ModMaven
+    compileOnly "mekanism:Mekanism:${mekanism_version}"
+    compileOnly "me.desht.pneumaticcraft:pneumaticcraft-repressurized:${pneumaticcraft_version}"
 
-    //AE2
-    // The bridge is what gives Replication matter an AE2 key, so MM compiles against it to accept
-    // that key rather than building its own link between the two mods.
+    // Create
+    compileOnly("com.simibubi.create:create-${mc_version}:${create_version}:slim") { transitive = false }
+    compileOnly "net.createmod.ponder:ponder-neoforge:${ponder_version}"
+
+    // Latvian, Architectury, FTB
+    compileOnly "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
+    compileOnly "dev.latvian.mods:rhino:${rhino_version}"
+    compileOnly "dev.architectury:architectury-neoforge:${architectury_version}"
+    compileOnly("dev.ftb.mods:ftb-teams-neoforge:${ftb_teams_version}") { transitive = false }
+
+    // Modrinth
+    compileOnly "maven.modrinth:replication:${replication_version}"
     compileOnly "maven.modrinth:ae2:${ae2_version}"
     compileOnly "maven.modrinth:replication-ae2-bridge:${replication_ae2_bridge_version}"
+
+    // CurseForge
+    compileOnly "curse.maven:jade-324717:${jade_id}"
+    compileOnly "curse.maven:nuclear-radiation-1148833:${nuclear_radiation_id}"
+    compileOnly "curse.maven:projecte-226410:${projecte_id}"
     compileOnly "curse.maven:applied-flux-965012:${appflux_id}"
     compileOnly "curse.maven:applied-mekanistics-574300:${appmek_id}"
-    compileOnly("dev.ftb.mods:ftb-teams-neoforge:${ftb_teams_version}") { transitive = false }
     compileOnly "curse.maven:ars-energistique-905641:${arseng_id}"
     compileOnly "curse.maven:applied-pneumatics-1355087:${appliedpneumatics_id}"
-    runtimeOnly("curse.maven:geckolib-388172:8893490")
 
-    //MYSTICAL AGRICULTURE
-    compileOnly "curse.maven:mystical-agriculture-246640:8344249"
-
-    //INDUSTRIAL FOREGOING
-    compileOnly "curse.maven:industrial-foregoing-266515:7600395"
-
-    //BOTANIA
-    // No 1.21.1 release upstream yet, only a work-in-progress branch. Re-enable alongside
-    // io/ticticboom/mods/mm/cap/BotaniaCapabilities.java and
-    // io/ticticboom/mods/mm/port/botania/mana/register/BotaniaManaPortBlockEntity.java,
-    // the only two files in the mod that touch the Botania API.
+    // Botania has no 1.21.1 release yet
     //compileOnly "vazkii.botania:Botania:${botania_version}"
 
     // ========================
     // RUNTIME MOD-ADDONS
     // ========================
 
-    // PATCHOULI
-    runtimeOnly "curse.maven:patchouli-306770:${patchouli_version}"
+    // BlameJared
+    runtimeOnly "mezz.jei:jei-${mc_version}-neoforge:${jei_version}"
+    runtimeOnly "com.hrznstudio:titanium:${titanium_version}"
+    runtimeOnly("com.hollingsworth.ars_nouveau:ars_nouveau-${mc_version}:${ars_nouveau_version}") { transitive = false }
+    runtimeOnly "vazkii.patchouli:Patchouli:${patchouli_version}"
+    runtimeOnly "blusunrize.immersiveengineering:ImmersiveEngineering:${immersive_engineering_version}"
 
-    // CURIOS
-    runtimeOnly "curse.maven:curios-309927:${curios_version}"
-
-    // CREATE MOD
-    runtimeOnly("com.simibubi.create:create-${mc_version}:${create_version}:slim") { transitive = false }
-    // Create needs Registrate at runtime even though MM never touches it: Create's
-    // LavaSwimmingMixin references com.tterrag.registrate.util.entry.ItemEntry, and mixin
-    // application fails hard during client startup without it.
+    // ModMaven
+    runtimeOnly "mekanism:Mekanism:${mekanism_version}"
+    runtimeOnly "me.desht.pneumaticcraft:pneumaticcraft-repressurized:${pneumaticcraft_version}"
+    runtimeOnly("com.buuz135:industrialforegoing:${industrial_foregoing_version}") { transitive = false }
     runtimeOnly "com.tterrag.registrate:Registrate:${registrate_version}"
-    // Ponder and Flywheel renamed their artifacts for NeoForge:
-    //   Ponder-Forge-1.20.1        -> ponder-neoforge (version carries the +mc1.21.1 suffix)
-    //   flywheel-forge-1.20.1      -> flywheel-neoforge-1.21.1
+
+    // Create
+    runtimeOnly("com.simibubi.create:create-${mc_version}:${create_version}:slim") { transitive = false }
     runtimeOnly "net.createmod.ponder:ponder-neoforge:${ponder_version}"
     runtimeOnly "dev.engine-room.flywheel:flywheel-neoforge-${mc_version}:${flywheel_version}"
 
-    // JEI
-    runtimeOnly "mezz.jei:jei-${mc_version}-neoforge:${jei_version}"
+    // Latvian, Architectury
+    runtimeOnly "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
+    runtimeOnly "dev.latvian.mods:rhino:${rhino_version}"
+    runtimeOnly "dev.architectury:architectury-neoforge:${architectury_version}"
 
-    //JADE (WAILA)
-    runtimeOnly "curse.maven:jade-324717:${jade_id}"
+    // TheIllusiveC4, GeckoLib, BlakeBR0, Maven Central
+    runtimeOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}"
+    runtimeOnly "software.bernie.geckolib:geckolib-neoforge-${mc_version}:${geckolib_version}"
+    runtimeOnly "com.blakebr0.mysticalagriculture:MysticalAgriculture:${mystical_agriculture_version}"
+    runtimeOnly "com.blakebr0.cucumber:Cucumber:${cucumber_version}"
+    runtimeOnly "org.appliedenergistics:guideme:${guideme_version}"
 
-    // MYSTICAL AGRICULTURE and INDUSTRIAL FOREGOING
-    // Runtime only, and dev only: MM has no code referencing either mod. They are here so pack
-    // content built on them -- the Essenceforge, which uses mysticalagriculture farmland and
-    // seeds and industrialforegoing:ether_gas -- can actually be tested in the dev client.
-    runtimeOnly "curse.maven:mystical-agriculture-246640:8344249"
-    runtimeOnly "curse.maven:industrial-foregoing-266515:7600395"
-
-    // MEKANISM
-    runtimeOnly "curse.maven:mekanism-268560:${mekanism_id}"
-    runtimeOnly "curse.maven:nuclear-radiation-1148833:${nuclear_radiation_id}"
-
-    //PNEUMATICCRAFT (PNCR)
-    runtimeOnly "curse.maven:pneumaticcraft-repressurized-281849:${pneumaticcraft_id}"
-
-    // REPLICATION
+    // Modrinth
     runtimeOnly "maven.modrinth:replication:${replication_version}"
-    runtimeOnly "com.hrznstudio:titanium:${titanium_version}"
-
-    // ARS NOUVEAU
-    // Ars Nouveau's pom pulls in build-time extras (TerraBlender, Lucene) that are not published
-    // where the rest of the runtime comes from. Its own mods.toml only requires GeckoLib and
-    // Curios, and Curios is already declared above.
-    runtimeOnly("com.hollingsworth.ars_nouveau:ars_nouveau-${mc_version}:${ars_nouveau_version}") { transitive = false }
-
-    // PROJECTE
-    runtimeOnly "curse.maven:projecte-226410:${projecte_id}"
-
-    // AE2
-    // GuideME is AE2's own dependency and is already declared further down.
     runtimeOnly "maven.modrinth:ae2:${ae2_version}"
     runtimeOnly "maven.modrinth:replication-ae2-bridge:${replication_ae2_bridge_version}"
+
+    // CurseForge
+    runtimeOnly "curse.maven:jade-324717:${jade_id}"
+    runtimeOnly "curse.maven:nuclear-radiation-1148833:${nuclear_radiation_id}"
+    runtimeOnly "curse.maven:projecte-226410:${projecte_id}"
     runtimeOnly "curse.maven:applied-flux-965012:${appflux_id}"
     runtimeOnly "curse.maven:glodium-957920:${glodium_id}"
     runtimeOnly "curse.maven:applied-mekanistics-574300:${appmek_id}"
     runtimeOnly "curse.maven:ars-energistique-905641:${arseng_id}"
     runtimeOnly "curse.maven:applied-pneumatics-1355087:${appliedpneumatics_id}"
+    runtimeOnly "curse.maven:probejs-585406:${probejs_id}"
+    runtimeOnly "curse.maven:spark-361579:${spark_id}"
+    runtimeOnly "curse.maven:factory-blocks-640001:${factory_blocks_id}"
+    runtimeOnly "curse.maven:chisel-chipped-integration-971089:${chisel_chipped_id}"
+    runtimeOnly "curse.maven:cryonicconfig-1208896:${cryonicconfig_id}"
+    runtimeOnly "curse.maven:configured-457570:${configured_id}"
+    runtimeOnly "curse.maven:modern-industrialization-405388:${modern_industrialization_id}"
+    runtimeOnly "curse.maven:elemental-craft-395158:${elemental_craft_id}"
+    runtimeOnly "curse.maven:datapack-anvil-432817:${dpanvil_id}"
 
-    // KUBEJS
-    runtimeOnly "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
-    runtimeOnly "dev.latvian.mods:rhino:${rhino_version}"
-    runtimeOnly "dev.architectury:architectury-neoforge:${architectury_version}"
-
-    //BOTANIA
     //runtimeOnly "vazkii.botania:Botania:${botania_version}"
-
-    // Dev-only conveniences carried over from 1.20.1. These are pinned to CurseForge file ids
-    // that only exist for 1.20.1, so they are disabled until someone picks 1.21.1 ids for them.
-    // None of them are compiled against, so nothing in the mod depends on them.
-    runtimeOnly "curse.maven:probejs-585406:8304356"                    // ProbeJS (KubeJS)
-    //runtimeOnly "curse.maven:emi-580555:8081408"                        // EMI
-    runtimeOnly "curse.maven:immersive-engineering-231951:6733669"      // Immersive Engineering
-    runtimeOnly "curse.maven:spark-361579:6225208"                     // Spark profiler
-    runtimeOnly "curse.maven:cucumber-272335:8035802"
-    runtimeOnly "curse.maven:factory-blocks-640001:6266334"
-    runtimeOnly "curse.maven:chisel-chipped-integration-971089:6693853"
-    runtimeOnly "curse.maven:cryonicconfig-1208896:7344729"
-    runtimeOnly "curse.maven:configured-457570:7276577"
-    runtimeOnly "curse.maven:modern-industrialization-405388:8597392"
-    runtimeOnly "curse.maven:elemental-craft-395158:7789218"
-    runtimeOnly "curse.maven:datapack-anvil-432817:7380481"
-    runtimeOnly "curse.maven:guideme-1173950:8420861"
 }
 
 // Expands the declared properties in neoforge.mods.toml so versions live in one place.
