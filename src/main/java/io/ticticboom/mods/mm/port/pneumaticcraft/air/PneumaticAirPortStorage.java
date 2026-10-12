@@ -17,6 +17,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import org.jetbrains.annotations.Nullable;
 import net.neoforged.neoforge.items.ItemStackHandler;
@@ -80,6 +81,13 @@ public class PneumaticAirPortStorage implements IPortStorage {
     }
 
 
+
+    @Override
+    public List<Component> describeContents() {
+        return List.of(
+                Component.translatable("gui.mm.port.pneumaticcraft_air.pressure", String.format(Locale.ROOT, "%.2f", getPressure())),
+                Component.translatable("gui.mm.port.pneumaticcraft_air.air", getAir()));
+    }
 
     public float getPressure(){
         return airhandler.getPressure();
