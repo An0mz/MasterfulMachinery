@@ -119,6 +119,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private final Map<ResourceLocation, Long> recipeNextCheckTime = new HashMap<>();
 
     private List<RecipeModel> cachedStructureRecipes = null;
+    private int cachedRecipeVersion = -1;
     private final Map<ResourceLocation, RecipeRequirements> requirements = new HashMap<>();
     private int nextRecipeCheckIndex = 0;
     private ResourceLocation lastStartedRecipeId = null;
@@ -497,9 +498,12 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     private void scanAndStartRecipes(long gameTime) {
-        if (cachedStructureRecipes == null) {
+        if (cachedStructureRecipes == null || cachedRecipeVersion != MachineRecipeManager.RECIPE_VERSION) {
             cachedStructureRecipes = new ArrayList<>(MachineRecipeManager.getRecipesByStrucutreId(structure.id()));
+            cachedRecipeVersion = MachineRecipeManager.RECIPE_VERSION;
             requirements.clear();
+            failedRecipes.clear();
+            recipeNextCheckTime.clear();
         }
         int total = cachedStructureRecipes.size();
         if (total == 0) {
