@@ -82,7 +82,7 @@ public class EnergyPortIngredient implements ITickSpreadIngredient {
     @Override
     public boolean canOutput(Level level, RecipeStorages storages, RecipeStateModel state) {
         long remaining = resolveAmount(state);
-        for (EnergyPortStorage storage : storages.getOutputStorages(EnergyPortStorage.class)) {
+        for (EnergyPortStorage storage : storages.getOutputStoragesByPriority(EnergyPortStorage.class)) {
             remaining -= storage.internalInsert(remaining, true);
         }
         return remaining <= 0;
@@ -91,7 +91,7 @@ public class EnergyPortIngredient implements ITickSpreadIngredient {
     @Override
     public void output(Level level, RecipeStorages storages, RecipeStateModel state) {
         long remaining = resolveAmount(state);
-        for (EnergyPortStorage storage : storages.getOutputStorages(EnergyPortStorage.class)) {
+        for (EnergyPortStorage storage : storages.getOutputStoragesByPriority(EnergyPortStorage.class)) {
             remaining -= storage.internalInsert(remaining, false);
         }
     }
@@ -131,7 +131,7 @@ public class EnergyPortIngredient implements ITickSpreadIngredient {
         json.addProperty("ingredientType", Ref.Ports.ENERGY.toString());
         json.addProperty("amountToInsert", amount.max());
         long remaining = amount.max();
-        for (EnergyPortStorage storage : storages.getOutputStorages(EnergyPortStorage.class)) {
+        for (EnergyPortStorage storage : storages.getOutputStoragesByPriority(EnergyPortStorage.class)) {
             var iterJson = new JsonObject();
             long inserted = storage.internalInsert(remaining, true);
             remaining -= inserted;

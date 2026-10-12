@@ -37,6 +37,7 @@ public class MekanismChemicalPortStorage implements IPortStorage, ILockablePortS
     private boolean locked = false;
     @Nullable
     private Chemical lockedType = null;
+    private int priority = 0;
 
     public MekanismChemicalPortStorage(MekanismChemicalPortStorageModel model, INotifyChangeFunction changed) {
         this.model = model;
@@ -103,6 +104,7 @@ public class MekanismChemicalPortStorage implements IPortStorage, ILockablePortS
     @Override
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         tag.put("handler", chemicalTank.serializeNBT(registries));
+        tag.putInt("Priority", priority);
         if (locked) {
             tag.putBoolean("Locked", true);
             var id = lockedType == null ? null : MekanismAPI.CHEMICAL_REGISTRY.getKey(lockedType);
@@ -116,6 +118,7 @@ public class MekanismChemicalPortStorage implements IPortStorage, ILockablePortS
     @Override
     public void load(CompoundTag tag, HolderLookup.Provider registries) {
         locked = tag.getBoolean("Locked");
+        priority = Math.max(0, Math.min(10, tag.getInt("Priority")));
         lockedType = null;
         chemicalTank.deserializeNBT(registries, tag.getCompound("handler"));
         if (locked && tag.contains("LockedType")) {
@@ -123,6 +126,16 @@ public class MekanismChemicalPortStorage implements IPortStorage, ILockablePortS
             var chemical = id == null ? null : MekanismAPI.CHEMICAL_REGISTRY.get(id);
             lockedType = chemical == null || chemical.isEmptyType() ? null : chemical;
         }
+    }
+
+    @Override
+    public int getPriority() {
+        return priority;
+    }
+
+    @Override
+    public void setPriority(int priority) {
+        this.priority = Math.max(0, Math.min(10, priority));
     }
 
     @Override
@@ -141,6 +154,7 @@ public class MekanismChemicalPortStorage implements IPortStorage, ILockablePortS
         json.addProperty("uid", uid.toString());
         json.addProperty("amount", model.amount());
         json.add("stack", debugStack(chemicalTank.getStack()));
+        json.addProperty("priority", priority);
         return json;
     }
 

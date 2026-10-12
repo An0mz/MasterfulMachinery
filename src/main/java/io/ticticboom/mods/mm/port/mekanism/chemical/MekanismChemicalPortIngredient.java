@@ -112,7 +112,7 @@ public class MekanismChemicalPortIngredient implements IPortIngredient {
 
     @Override
     public boolean canOutput(Level level, RecipeStorages storages, RecipeStateModel state) {
-        var outputStorages = storages.getOutputStorages(getStorageClass());
+        var outputStorages = storages.getOutputStoragesByPriority(getStorageClass());
         long remaining = amount;
         for (MekanismChemicalPortStorage storage : outputStorages) {
             var inserted = storage.insert(createStack(this.chemical, remaining), Action.SIMULATE);
@@ -123,7 +123,7 @@ public class MekanismChemicalPortIngredient implements IPortIngredient {
 
     @Override
     public void output(Level level, RecipeStorages storages, RecipeStateModel state) {
-        var outputStorages = storages.getOutputStorages(getStorageClass());
+        var outputStorages = storages.getOutputStoragesByPriority(getStorageClass());
         long remaining = amount;
         for (MekanismChemicalPortStorage storage : outputStorages) {
             var inserted = storage.insert(createStack(this.chemical, remaining), Action.EXECUTE);
@@ -156,7 +156,7 @@ public class MekanismChemicalPortIngredient implements IPortIngredient {
 
     @Override
     public JsonObject debugOutput(Level level, RecipeStorages storages, JsonObject json) {
-        var outputStorages = storages.getOutputStorages(getStorageClass());
+        var outputStorages = storages.getOutputStoragesByPriority(getStorageClass());
         var searchedStoragesJson = new JsonArray();
 
         json.addProperty("ingredientType", getTypeId().toString());

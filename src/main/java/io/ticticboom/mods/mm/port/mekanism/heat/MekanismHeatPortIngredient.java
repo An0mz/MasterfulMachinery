@@ -70,7 +70,7 @@ public class MekanismHeatPortIngredient implements IPortIngredient {
 
     @Override
     public boolean canOutput(Level level, RecipeStorages storages, RecipeStateModel state) {
-        var outputStorages = storages.getOutputStorages(MekanismHeatPortStorage.class);
+        var outputStorages = storages.getOutputStoragesByPriority(MekanismHeatPortStorage.class);
         int remaining = resolveAmount(state);
         for (MekanismHeatPortStorage storage : outputStorages) {
             remaining -= storage.internalInsert(remaining, true);
@@ -80,7 +80,7 @@ public class MekanismHeatPortIngredient implements IPortIngredient {
 
     @Override
     public void output(Level level, RecipeStorages storages, RecipeStateModel state) {
-        var outputStorages = storages.getOutputStorages(MekanismHeatPortStorage.class);
+        var outputStorages = storages.getOutputStoragesByPriority(MekanismHeatPortStorage.class);
         int remaining = resolveAmount(state);
         for (MekanismHeatPortStorage storage : outputStorages) {
             remaining -= storage.internalInsert(remaining, false);
@@ -122,7 +122,7 @@ public class MekanismHeatPortIngredient implements IPortIngredient {
 
     @Override
     public JsonObject debugOutput(Level level, RecipeStorages storages, JsonObject json) {
-        var outputStorages = storages.getOutputStorages(MekanismHeatPortStorage.class);
+        var outputStorages = storages.getOutputStoragesByPriority(MekanismHeatPortStorage.class);
         var searchedStoragesJson = new JsonArray();
         var searchIterationsJson = new JsonArray();
         json.addProperty("ingredientType", Ref.Ports.MEK_HEAT.toString());

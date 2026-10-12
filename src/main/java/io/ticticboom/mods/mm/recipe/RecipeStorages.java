@@ -8,6 +8,7 @@ import io.ticticboom.mods.mm.port.item.ItemPortStorage;
 import net.minecraft.world.item.Item;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -74,6 +75,16 @@ public final class RecipeStorages {
 
     public <T extends IPortStorage> List<T> getOutputStorages(Class<T> clz) {
         return getStorages(clz, outputStorages, outputsByType);
+    }
+
+    public <T extends IPortStorage> List<T> getOutputStoragesByPriority(Class<T> clz) {
+        var storages = getOutputStorages(clz);
+        if (storages.size() < 2) {
+            return storages;
+        }
+        var sorted = new ArrayList<>(storages);
+        sorted.sort(Comparator.comparingInt(IPortStorage::getPriority).reversed());
+        return sorted;
     }
 
     public long changeCount() {
