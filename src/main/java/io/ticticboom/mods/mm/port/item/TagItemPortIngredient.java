@@ -25,6 +25,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
+import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.nbt.CompoundTag;
 import io.ticticboom.mods.mm.util.NbtMatchUtils;
 
@@ -33,8 +34,8 @@ public class TagItemPortIngredient extends BaseItemPortIngredient {
     private final TagKey<Item> tag;
     private final ConditionalLazy<List<ItemStack>> stacks;
 
-    public TagItemPortIngredient(ResourceLocation tagId, AmountRange count, CompoundTag requiredNbt, boolean nbtStrong) {
-        super(count, createPredicate(tagId), requiredNbt, nbtStrong);
+    public TagItemPortIngredient(ResourceLocation tagId, AmountRange count, CompoundTag requiredNbt, boolean nbtStrong, DataComponentPatch components) {
+        super(count, createPredicate(tagId), requiredNbt, nbtStrong, components);
         this.tag = ItemTags.create(tagId);
         // Registry.getTag returns an Optional<HolderSet.Named<Item>> of holders rather than
         // Forge's ITag of values, so an absent tag yields an empty list instead of a null.
@@ -43,6 +44,7 @@ public class TagItemPortIngredient extends BaseItemPortIngredient {
                     // use display stacks with the real required count so external transfer/encode handlers
                     // that read the ItemStack count (rather than the JEI badge) get the correct amount.
                     var s = new ItemStack(holder.value(), count.max());
+                    s.applyComponents(components);
                     if (requiredNbt != null) ItemNbtUtil.setTag(s, requiredNbt.copy());
                     return s;
                 }).toList())

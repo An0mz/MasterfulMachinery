@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import io.ticticboom.mods.mm.recipe.MachineRecipeManager;
 import io.ticticboom.mods.mm.recipe.RecipeModel;
+import io.ticticboom.mods.mm.util.ItemComponentUtil;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -56,7 +57,10 @@ public class ProcessesSyncPkt implements CustomPacketPayload {
     }
 
     public static void handle(ProcessesSyncPkt packet, IPayloadContext context) {
-        context.enqueueWork(() -> handler(packet));
+        context.enqueueWork(() -> {
+            ItemComponentUtil.setRegistries(context.player().registryAccess());
+            handler(packet);
+        });
     }
 
     @Override

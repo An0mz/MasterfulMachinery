@@ -25,6 +25,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 
 import java.util.List;
 import java.util.function.Predicate;
+import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.nbt.CompoundTag;
 import io.ticticboom.mods.mm.util.NbtMatchUtils;
 
@@ -40,8 +41,8 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
         return item;
     }
 
-    public SingleItemPortIngredient(ResourceLocation itemId, AmountRange count, CompoundTag requiredNbt, boolean nbtStrong) {
-        super(count, createPredicate(itemId), requiredNbt, nbtStrong);
+    public SingleItemPortIngredient(ResourceLocation itemId, AmountRange count, CompoundTag requiredNbt, boolean nbtStrong, DataComponentPatch components) {
+        super(count, createPredicate(itemId), requiredNbt, nbtStrong, components);
         this.itemId = itemId;
         item = BuiltInRegistries.ITEM.get(itemId);
         if (item == null) {
@@ -50,6 +51,7 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
         // use a display stack with the real required count so external transfer/encode handlers
         // that read the ItemStack count (rather than the JEI badge) get the correct amount.
         stack = new ItemStack(item, count.max());
+        stack.applyComponents(components);
         if (requiredNbt != null) {
             ItemNbtUtil.setTag(stack, requiredNbt.copy());
         }
@@ -99,6 +101,7 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
 
     private ItemStack outputProbe() {
         ItemStack probe = new ItemStack(item, 1);
+        probe.applyComponents(components);
         if (requiredNbt != null) ItemNbtUtil.setTag(probe, requiredNbt.copy());
         return probe;
     }

@@ -8,6 +8,7 @@ import io.ticticboom.mods.mm.net.packet.StructureSyncPkt;
 import io.ticticboom.mods.mm.recipe.MachineRecipeManager;
 import io.ticticboom.mods.mm.structure.StructureManager;
 import net.minecraft.server.level.ServerPlayer;
+import io.ticticboom.mods.mm.util.ItemComponentUtil;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
@@ -24,6 +25,7 @@ public class ForgeEventsListener {
 
     @SubscribeEvent
     public static void registerReloadListeners(AddReloadListenerEvent event) {
+        ItemComponentUtil.setRegistries(event.getRegistryAccess());
         event.addListener(new StructureManager());
         event.addListener(new MachineRecipeManager());
         event.addListener(new BuildableStructureLoader());

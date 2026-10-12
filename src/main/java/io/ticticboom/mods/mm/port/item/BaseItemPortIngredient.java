@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.item;
 
+import io.ticticboom.mods.mm.util.ItemComponentUtil;
 import io.ticticboom.mods.mm.util.ItemNbtUtil;
 
 import com.google.gson.JsonArray;
@@ -11,6 +12,7 @@ import io.ticticboom.mods.mm.recipe.RecipeStorages;
 import io.ticticboom.mods.mm.util.AmountRange;
 import io.ticticboom.mods.mm.util.NbtMatchUtils;
 import lombok.Getter;
+import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Item;
@@ -34,6 +36,7 @@ public abstract class BaseItemPortIngredient implements IPortIngredient {
 
     protected final Predicate<ItemStack> filter;
     protected final CompoundTag requiredNbt;
+    protected final DataComponentPatch components;
     /**
      * -- GETTER --
      *  Whether NBT matching is strong (exact equality) for this ingredient.
@@ -43,11 +46,14 @@ public abstract class BaseItemPortIngredient implements IPortIngredient {
 
     @SuppressWarnings("unused")
     public BaseItemPortIngredient(AmountRange count, Predicate<ItemStack> filter) {
-        this(count, filter, null, false);
+        this(count, filter, null, false, DataComponentPatch.EMPTY);
     }
 
-    public BaseItemPortIngredient(AmountRange count, Predicate<ItemStack> filter, CompoundTag requiredNbt, boolean nbtStrong) {
+    public BaseItemPortIngredient(AmountRange count, Predicate<ItemStack> filter, CompoundTag requiredNbt, boolean nbtStrong, DataComponentPatch components) {
         this.count = count;
+        if (!components.isEmpty()) {
+            filter = filter.and(s -> ItemComponentUtil.matches(s, components));
+        }
         // wrap the provided filter to include NBT-check if requiredNbt present
         if (requiredNbt != null) {
             this.filter = filter.and(s -> {
@@ -64,6 +70,7 @@ public abstract class BaseItemPortIngredient implements IPortIngredient {
         }
         this.requiredNbt = requiredNbt != null ? requiredNbt.copy() : null;
         this.nbtStrong = nbtStrong;
+        this.components = components;
     }
 
     @Override

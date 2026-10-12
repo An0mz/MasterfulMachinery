@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.port.item;
 
+import io.ticticboom.mods.mm.util.ItemComponentUtil;
+import net.minecraft.core.component.DataComponentPatch;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.config.MMConfig;
@@ -53,6 +55,7 @@ public class ItemPortParser implements IPortParser {
             } catch (Exception e) {
             }
         }
+        DataComponentPatch components = json.has("components") ? ItemComponentUtil.parse(json.get("components")) : DataComponentPatch.EMPTY;
         if (json.has("nbt_match")) {
             try {
                 var v = json.get("nbt_match").getAsString();
@@ -63,10 +66,10 @@ public class ItemPortParser implements IPortParser {
 
         if (json.has("item")) {
             var itemId = ParserUtils.parseId(json, "item");
-            return new SingleItemPortIngredient(itemId, count, requiredNbt, nbtStrong);
+            return new SingleItemPortIngredient(itemId, count, requiredNbt, nbtStrong, components);
         } else if (json.has("tag")) {
             var tagId = ParserUtils.parseId(json, "tag");
-            return new TagItemPortIngredient(tagId, count, requiredNbt, nbtStrong);
+            return new TagItemPortIngredient(tagId, count, requiredNbt, nbtStrong, components);
         }
         throw new RuntimeException("Invalid recipe item ingredient, neither item, not tag was found.");
     }
