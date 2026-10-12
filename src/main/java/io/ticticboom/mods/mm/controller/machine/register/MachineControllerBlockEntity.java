@@ -36,12 +36,16 @@ import io.ticticboom.mods.mm.recipe.input.consume.ConsumeRecipeIngredientEntry;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
 import io.ticticboom.mods.mm.structure.StructureManager;
 import io.ticticboom.mods.mm.structure.StructureModel;
+import io.ticticboom.mods.mm.structure.attachment.visuals.FluidVolumeState;
+import io.ticticboom.mods.mm.structure.attachment.visuals.VisualsStructureAttachment;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -150,6 +154,12 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private ResourceLocation assemblyStructureId = null;
     private boolean wasActive = false;
     private long lastSync = Long.MIN_VALUE / 2;
+    @Getter
+    private List<FluidVolumeState> fluidVolumes = List.of();
+    @Getter
+    private AABB visualBounds = null;
+    private RecipeStorages visualStorages = null;
+    private long lastVisualChangeCount = -1;
 
     public MachineControllerBlockEntity(ControllerModel model, RegistryGroupHolder groupHolder, BlockPos pos, BlockState state) {
         super(groupHolder.getBe().get(), pos, state);
@@ -181,6 +191,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (isFormed) {
             runRecipe(gameTime);
         }
+        updateVisuals();
         updateControllerState();
         NetworkLink.tickController((ServerLevel) level, this);
         boolean active = !activeRecipes.isEmpty();
@@ -193,6 +204,41 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             lastSync = gameTime;
             level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
         }
+    }
+
+    private void updateVisuals() {
+        var visuals = structure == null ? null : structure.getAttachments().get(Ref.StructureAttachments.VISUALS, VisualsStructureAttachment.class);
+        if (!isFormed || portStorages == null || formedRotation == null || visuals == null) {
+            visualStorages = null;
+            if (!fluidVolumes.isEmpty()) {
+                fluidVolumes = List.of();
+                markChanged();
+            }
+            return;
+        }
+        long changeCount = portStorages.changeCount();
+        if (portStorages == visualStorages && changeCount == lastVisualChangeCount) {
+            return;
+        }
+        visualStorages = portStorages;
+        lastVisualChangeCount = changeCount;
+        var next = visuals.snapshot(level, getBlockPos(), structure, formedRotation, portStorages);
+        if (!FluidVolumeState.same(fluidVolumes, next)) {
+            fluidVolumes = next;
+            markChanged();
+        }
+    }
+
+    private void loadFluidVolumes(CompoundTag tag, HolderLookup.Provider registries) {
+        fluidVolumes = tag.contains("FluidVolumes") ? FluidVolumeState.loadAll(tag.getList("FluidVolumes", Tag.TAG_COMPOUND), registries) : List.of();
+        AABB bounds = null;
+        for (FluidVolumeState volume : fluidVolumes) {
+            if (volume.getBounds() != null) {
+                var box = volume.getBounds().move(getBlockPos());
+                bounds = bounds == null ? box : bounds.minmax(box);
+            }
+        }
+        visualBounds = bounds == null ? null : bounds.minmax(new AABB(getBlockPos()));
     }
 
     public void scheduleValidation() {
@@ -984,6 +1030,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     @Override
     protected void loadAdditional(@NotNull CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
+        loadFluidVolumes(tag, registries);
         activeRecipes.clear();
         CompoundTag recipesTag = tag.getCompound("activeRecipes");
         for (String key : recipesTag.getAllKeys()) {
@@ -1024,6 +1071,9 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         var tag = new CompoundTag();
         saveAdditional(tag, registries);
+        if (!fluidVolumes.isEmpty()) {
+            tag.put("FluidVolumes", FluidVolumeState.saveAll(fluidVolumes, registries));
+        }
         return tag;
     }
 

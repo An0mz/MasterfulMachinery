@@ -1,11 +1,14 @@
 package io.ticticboom.mods.mm.compat.kjs.builder;
 
+import com.google.gson.JsonArray;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import io.ticticboom.mods.mm.model.IdList;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import io.ticticboom.mods.mm.structure.attachment.StructureAttachments;
+import io.ticticboom.mods.mm.structure.attachment.visuals.FluidVolumeVisual;
 import io.ticticboom.mods.mm.structure.layout.StructureLayout;
 import lombok.Getter;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
@@ -20,6 +23,7 @@ public class StructureBuilderJS {
     private String name;
     private Consumer<StructureLayoutBuilderJS> layoutConsumer;
     private int maxParallelRecipes = -1;
+    private final List<FluidVolumeVisual> fluidVolumes = new ArrayList<>();
 
     public StructureBuilderJS(String id) {
         this.id = ResourceLocation.tryParse(id);
@@ -46,13 +50,40 @@ public class StructureBuilderJS {
         return this;
     }
 
+    public StructureBuilderJS fluidVolume(List<Number> from, List<Number> to) {
+        return fluidVolume(from, to, null);
+    }
+
+    public StructureBuilderJS fluidVolume(List<Number> from, List<Number> to, String port) {
+        fluidVolumes.add(new FluidVolumeVisual(toPos(from), toPos(to), null, port));
+        return this;
+    }
+
+    public StructureBuilderJS fluidArea(String area) {
+        return fluidArea(area, null);
+    }
+
+    public StructureBuilderJS fluidArea(String area, String port) {
+        fluidVolumes.add(new FluidVolumeVisual(null, null, area, port));
+        return this;
+    }
+
+    private static BlockPos toPos(List<Number> values) {
+        return new BlockPos(values.get(0).intValue(), values.get(1).intValue(), values.get(2).intValue());
+    }
+
     @HideFromJS
     public StructureModel build() {
         var event = new StructureLayoutBuilderJS(this);
         layoutConsumer.accept(event);
         IdList controllerIds = new IdList(controllers);
         StructureLayout layout = event.build();
-        // TODO: create real structure attachment js builders
-        return new StructureModel(id, name, controllerIds, layout, new StructureAttachments(List.of()), StructureModel.paramsToJson(id, name, controllerIds, layout, maxParallelRecipes));
+        var json = StructureModel.paramsToJson(id, name, controllerIds, layout, maxParallelRecipes);
+        if (!fluidVolumes.isEmpty()) {
+            var visuals = new JsonArray();
+            fluidVolumes.forEach(volume -> visuals.add(volume.toJson()));
+            json.add("visuals", visuals);
+        }
+        return new StructureModel(id, name, controllerIds, layout, StructureAttachments.parse(json), json);
     }
 }

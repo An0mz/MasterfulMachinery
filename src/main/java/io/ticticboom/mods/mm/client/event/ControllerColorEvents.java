@@ -1,11 +1,13 @@
 package io.ticticboom.mods.mm.client.event;
 
 import io.ticticboom.mods.mm.Ref;
+import io.ticticboom.mods.mm.client.render.ControllerVisualsRenderer;
 import io.ticticboom.mods.mm.client.render.PortStatusLightRenderer;
 import io.ticticboom.mods.mm.config.MMConfigSetup;
 import io.ticticboom.mods.mm.controller.MMControllerRegistry;
 import io.ticticboom.mods.mm.controller.machine.register.ControllerState;
 import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlock;
+import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
 import io.ticticboom.mods.mm.port.MMPortRegistry;
 import io.ticticboom.mods.mm.util.ColorUtil;
 import net.minecraft.world.level.block.Block;
@@ -32,6 +34,12 @@ public final class ControllerColorEvents {
             var type = holder.getBe().get();
             if (type != null) {
                 event.registerBlockEntityRenderer((BlockEntityType<BlockEntity>) type, ctx -> new PortStatusLightRenderer());
+            }
+        }
+        for (var holder : MMControllerRegistry.CONTROLLERS) {
+            var type = holder.getBe().get();
+            if (type != null) {
+                event.registerBlockEntityRenderer((BlockEntityType<MachineControllerBlockEntity>) type, ctx -> new ControllerVisualsRenderer());
             }
         }
     }

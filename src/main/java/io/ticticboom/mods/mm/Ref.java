@@ -69,6 +69,7 @@ public class Ref {
 
     public static class StructureAttachments {
         public static final ResourceLocation STATE_LISTS = id("state_lists");
+        public static final ResourceLocation VISUALS = id("visuals");
     }
 
     public static class ExtraBlocks {
