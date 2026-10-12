@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.12.0] - 2026-10-12
+
+### Added
+- **Fluid volumes** show a port's fluid inside the machine, filling up as the port fills. Add a
+  `visuals` list to a structure with `{ "type": "fluid_volume", "from": [x, y, z], "to": [x, y, z] }`,
+  or `"area": "K"` to fill every spot of layout key `K`. `"port": "K"` picks which fluid port it
+  shows; without it, any fluid port in the machine. From KubeJS, `.fluidVolume(from, to, port)` and
+  `.fluidArea(key, port)`.
+- **PneumaticCraft air ports show their pressure** on the controller screen.
+
+### Fixed
+- **`/reload` now updates placed controllers.** New or changed processes used to stay unused until
+  the controller was broken and placed again.
+- **The debug tool** no longer fails in singleplayer with `duplicate entry`.
+
 ## [1.21.1-0.11.0] - 2026-10-09
 
 ### Added
