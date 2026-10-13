@@ -9,6 +9,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.block.ModelBlockRenderer;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
@@ -70,6 +71,7 @@ public class GuiBlockRenderer {
 
     private ModelData cachedModelData = ModelData.EMPTY;
     private int cachedGeneration = -1;
+    private boolean modelBroken = false;
 
     public void render(GuiGraphics gfx, int mouseX, int mouseY, AutoTransform mouseTransform) {
         render(gfx, mouseX, mouseY, mouseTransform, null, 0);
@@ -95,9 +97,16 @@ public class GuiBlockRenderer {
             }
             modeldata = cachedModelData;
         }
-        var layers = model.getRenderTypes(state, randomSource, modeldata);
-        for (RenderType layer : layers) {
-            brd.renderSingleBlock(state, pose, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, modeldata, layer);
+        if (!modelBroken) {
+            try {
+                renderModel(brd, pose, bufferSource, model, modeldata);
+            } catch (RuntimeException e) {
+                try {
+                    renderModel(brd, pose, bufferSource, model, ModelData.EMPTY);
+                } catch (RuntimeException e2) {
+                    modelBroken = true;
+                }
+            }
         }
 
         if (ber != null) {
@@ -108,6 +117,12 @@ public class GuiBlockRenderer {
             }
         }
         pose.popPose();
+    }
+
+    private void renderModel(BlockRenderDispatcher brd, PoseStack pose, MultiBufferSource bufferSource, BakedModel model, ModelData modeldata) {
+        for (RenderType layer : model.getRenderTypes(state, randomSource, modeldata)) {
+            brd.renderSingleBlock(state, pose, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, modeldata, layer);
+        }
     }
 
     public BlockState getState() {
