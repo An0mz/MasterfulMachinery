@@ -13,7 +13,7 @@ public class ArsSourceIngredientRenderer implements IIngredientRenderer<ArsSourc
 
     @Override
     public void render(GuiGraphics guiGraphics, @NotNull ArsSourceStack stack) {
-        guiGraphics.blit(Ref.UiTextures.SLOT_PARTS, 0, 0, 18, 79, 16, 16);
+        guiGraphics.blit(Ref.UiTextures.SLOT_PARTS, 0, 0, 0, 160, 16, 16);
     }
 
     @SuppressWarnings("removal")
