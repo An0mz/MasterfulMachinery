@@ -50,7 +50,7 @@ public class ProjectEEmcPortScreen extends AbstractContainerScreen<ProjectEEmcPo
         var filledValue = (double) storage.getStored() / (double) storage.getCapacity();
         var filledHeight = (int) (Math.min(filledValue, 1) * 78);
         var start = 129 - filledHeight;
-        gfx.fill(this.leftPos + 8, this.topPos + start, this.leftPos + 168, this.topPos + start + filledHeight, 0xFFF0BE28);
+        gfx.fill(this.leftPos + 8, this.topPos + start, this.leftPos + 168, this.topPos + start + filledHeight, ProjectEEmcPortStorage.FILL_COLOR);
         if (WidgetUtils.isPointerWithinSized(mouseX, mouseY, this.leftPos + 7, this.topPos + 50, 162, 80)) {
             var tooltip = new ArrayList<Component>();
             tooltip.add(Component.translatable("gui.mm.port.projecte_emc.storage",

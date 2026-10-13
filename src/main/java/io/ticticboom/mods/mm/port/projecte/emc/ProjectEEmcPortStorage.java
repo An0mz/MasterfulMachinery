@@ -27,6 +27,8 @@ import java.util.UUID;
 
 public class ProjectEEmcPortStorage implements IPortStorage {
 
+    public static final int FILL_COLOR = 0xFFF0BE28;
+
     public static final int KLEIN_SLOT_X = 79;
     public static final int KLEIN_SLOT_Y = 28;
 
@@ -200,6 +202,11 @@ public class ProjectEEmcPortStorage implements IPortStorage {
     @Override
     public double fillRatio() {
         return capacity <= 0 ? -1 : Math.min(1, (double) stored / capacity);
+    }
+
+    @Override
+    public int fillColor() {
+        return FILL_COLOR;
     }
 
     @Override

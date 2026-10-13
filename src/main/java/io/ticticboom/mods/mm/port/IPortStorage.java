@@ -55,6 +55,10 @@ public interface IPortStorage {
         return -1;
     }
 
+    default int fillColor() {
+        return 0;
+    }
+
     default void setPriority(int priority) {
         // default no-op for storage implementations that don't track priority
     }

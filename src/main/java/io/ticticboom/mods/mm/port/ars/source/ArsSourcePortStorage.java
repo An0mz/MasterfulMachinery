@@ -19,6 +19,8 @@ import java.util.UUID;
 
 public class ArsSourcePortStorage implements IPortStorage {
 
+    public static final int FILL_COLOR = 0xFF883090;
+
     private final ArsSourcePortStorageModel model;
     private final INotifyChangeFunction changed;
     private final UUID uid = UUID.randomUUID();
@@ -156,6 +158,11 @@ public class ArsSourcePortStorage implements IPortStorage {
     @Override
     public double fillRatio() {
         return capacity <= 0 ? -1 : Math.min(1, (double) stored / capacity);
+    }
+
+    @Override
+    public int fillColor() {
+        return FILL_COLOR;
     }
 
     @Override
