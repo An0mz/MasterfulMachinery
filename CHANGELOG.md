@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.13.0] - 2026-10-12
+
+### Added
+- **Animated GeckoLib models** for machines (needs GeckoLib). Add a `geoModel` object to a
+  controller or structure with `model`, `texture` and optionally `animations`, plus `idle` and
+  `working` animation names. `offset`, `scale`, `rotate` and `glow` place and light it. A structure's
+  `geoModel` wins over the controller's; `"geoModel": "none"` turns it off for that structure. From
+  KubeJS, `.geoModel({...})` on controllers and structures.
+- **`components` on item ingredients** match items by their data components, like enchantments or a
+  custom name, and give outputs those components.
+- **Output priority for fluid, energy, chemical and heat ports.** The Priority Setter now works on
+  them like it does on item ports: higher-priority ports fill first.
+- **The missing blocks tooltip** lists every port tier that fits a spot, not just one.
+
+### Fixed
+- **Machines no longer lose outputs** when a port's chunk unloads and loads again.
+- **Item ports keep enchanted items** when saving, and no longer stack items with different
+  components together.
+- **Structure previews** no longer crash on blocks whose models need a world.
+- **Source, heat and EMC port screens** show their bar in the right color (purple, orange and gold)
+  instead of the red energy bar. The source JEI icon is purple too.
+
 ## [1.21.1-0.12.0] - 2026-10-12
 
 ### Added
