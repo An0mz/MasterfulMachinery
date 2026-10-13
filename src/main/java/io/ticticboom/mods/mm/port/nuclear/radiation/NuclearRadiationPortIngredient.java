@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.port.nuclear.radiation;
 
+import net.minecraft.network.chat.Component;
+import io.ticticboom.mods.mm.port.PortContent;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.compat.jei.SlotGrid;
@@ -127,5 +129,10 @@ public class NuclearRadiationPortIngredient implements IPortIngredient {
     @Override
     public net.minecraft.network.chat.Component displayName() {
         return RadiationText.isotopeName(isotope);
+    }
+
+    @Override
+    public PortContent display() {
+        return PortContent.gauge(Component.translatable("port.mm.nuclear_radiation.name"), 0x5DBB3A, (long) max, 0, "Bq");
     }
 }

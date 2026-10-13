@@ -1,5 +1,9 @@
 package io.ticticboom.mods.mm.port.entity;
 
+import net.minecraft.world.item.SpawnEggItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.chat.Component;
+import io.ticticboom.mods.mm.port.PortContent;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.Ref;
@@ -173,5 +177,15 @@ public class EntityPortIngredient implements IPortIngredient {
         json.addProperty("canRun", type != null && remaining <= 0);
         json.add("searchedStorages", searchedStoragesJson);
         return json;
+    }
+
+    @Override
+    public PortContent display() {
+        var type = entityId != null ? EntityTypes.get(entityId) : EntityTypes.firstInTag(tagId);
+        var egg = type == null ? null : SpawnEggItem.byId(type);
+        if (egg != null) {
+            return PortContent.item(new ItemStack(egg), amount.max());
+        }
+        return PortContent.gauge(Component.translatable("port.mm.entity.name"), 0x7A9A5A, amount.max(), 0, "");
     }
 }

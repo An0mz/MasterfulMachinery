@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.projecte.emc;
 
+import io.ticticboom.mods.mm.port.PortContent;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.compat.jei.SlotGrid;
@@ -110,5 +111,10 @@ public class ProjectEEmcPortIngredient implements ITickSpreadIngredient {
         json.addProperty("amountToInsert", emc.max());
         json.addProperty("canRun", canOutput(level, storages, null));
         return json;
+    }
+
+    @Override
+    public PortContent display() {
+        return PortContent.gauge(Component.translatable("port.mm.projecte_emc.name"), ProjectEEmcPortStorage.FILL_COLOR, emc.max(), 0, "EMC");
     }
 }

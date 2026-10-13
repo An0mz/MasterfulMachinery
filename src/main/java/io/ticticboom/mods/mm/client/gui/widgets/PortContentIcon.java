@@ -30,6 +30,8 @@ public final class PortContentIcon {
                     gfx.setColor((tint >> 16 & 0xFF) / 255f, (tint >> 8 & 0xFF) / 255f, (tint & 0xFF) / 255f, 1);
                     gfx.blit(x, y, 0, 16, 16, sprite);
                     gfx.setColor(1, 1, 1, 1);
+                } else {
+                    gfx.fill(x, y, x + 16, y + 16, 0xFF000000 | content.tint());
                 }
             }
             case ENERGY -> gfx.blit(Ref.UiTextures.SLOT_PARTS, x, y, 90, 0, 16, 16);

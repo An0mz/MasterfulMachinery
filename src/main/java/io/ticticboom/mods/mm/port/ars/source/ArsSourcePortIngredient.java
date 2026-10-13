@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.ars.source;
 
+import io.ticticboom.mods.mm.port.PortContent;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.compat.jei.SlotGrid;
@@ -103,5 +104,10 @@ public class ArsSourcePortIngredient implements IPortIngredient {
         source.addToDebug(json, "amountToInsert", null);
         json.addProperty("canRun", canOutput(level, storages, null));
         return json;
+    }
+
+    @Override
+    public PortContent display() {
+        return PortContent.gauge(Component.translatable("port.mm.ars_source.name"), ArsSourcePortStorage.FILL_COLOR, source.max(), 0, "Source");
     }
 }

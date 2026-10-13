@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.port.mekanism.heat;
 
+import net.minecraft.network.chat.Component;
+import io.ticticboom.mods.mm.port.PortContent;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.Ref;
@@ -145,5 +147,10 @@ public class MekanismHeatPortIngredient implements IPortIngredient {
         json.addProperty("canRun", remaining <= 0);
         json.add("searchedStorages", searchedStoragesJson);
         return json;
+    }
+
+    @Override
+    public PortContent display() {
+        return PortContent.gauge(Component.translatable("port.mm.mekanism_heat.name"), 0xE67E22, amount.max(), 0, "J");
     }
 }

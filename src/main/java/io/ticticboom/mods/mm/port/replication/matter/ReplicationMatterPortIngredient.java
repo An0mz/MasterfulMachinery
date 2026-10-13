@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.port.replication.matter;
 
+import net.minecraft.network.chat.Component;
+import io.ticticboom.mods.mm.port.PortContent;
 import com.buuz135.replication.api.IMatterType;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -160,5 +162,10 @@ public class ReplicationMatterPortIngredient implements IPortIngredient {
     public net.minecraft.network.chat.Component displayName() {
         return net.minecraft.network.chat.Component.translatable("gui.mm.controller.recipe_output.matter",
                 MatterIngredientNames.displayName(matterId));
+    }
+
+    @Override
+    public PortContent display() {
+        return PortContent.gauge(Component.literal(matterId.getPath()), MatterTypes.colorOf(type()), amount.max(), 0, "");
     }
 }
