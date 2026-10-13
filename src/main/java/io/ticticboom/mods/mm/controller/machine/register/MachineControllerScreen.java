@@ -93,6 +93,8 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
     private static final int TOOLTIP_MISSING = 10;
     private static final int TOOLTIP_OPTIONS = 8;
     private static final long CYCLE_MS = 1200;
+    private static final int PREVIEW_PAD = 4;
+    private static final int PREVIEW_ARROW = 32;
     private static final boolean JEI = ModList.get().isLoaded("jei");
 
     private enum Row { STRUCTURE, TIER, PARALLEL, REDSTONE, MODE, SOUND, LINK, RECIPE }
@@ -304,6 +306,13 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
     private record Shown(int x, int y, PortContent content, boolean input, double chance) {
     }
 
+    private record RecipeContents(List<PortContent> inputs, List<PortContent> outputs, List<Double> chances) {
+    }
+
+    private record Preview(List<Shown> slots, int top, int height, int arrowX, int arrowY) {
+        static final Preview EMPTY = new Preview(List.of(), 0, 0, 0, 0);
+    }
+
     private record RecipeRow(List<Shown> slots, int arrowX, int percentX, int inputPages, int outputPages,
                              int outputX, int outputWidth) {
         static final RecipeRow EMPTY = new RecipeRow(List.of(), 0, 0, 1, 1, 0, 0);
@@ -327,6 +336,29 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         if (recipe == null) {
             return RecipeRow.EMPTY;
         }
+        var contents = recipeContents(recipe);
+        var inputs = contents.inputs();
+        var outputs = contents.outputs();
+        var chances = contents.chances();
+        int inputPages = pages(inputs.size(), maxInputs);
+        int outputPages = pages(outputs.size(), maxOutputs);
+        var shown = new ArrayList<Shown>();
+        int inputFrom = cycle % inputPages * maxInputs;
+        for (int i = inputFrom; i < Math.min(inputs.size(), inputFrom + maxInputs); i++) {
+            shown.add(new Shown(LEFT + (i - inputFrom) * SLOT_STEP, RECIPE_Y, inputs.get(i), true, 1));
+        }
+        int arrowX = LEFT + Math.min(inputs.size(), maxInputs) * SLOT_STEP + 3;
+        int outputX = arrowX + 28;
+        int outputFrom = cycle % outputPages * maxOutputs;
+        for (int i = outputFrom; i < Math.min(outputs.size(), outputFrom + maxOutputs); i++) {
+            shown.add(new Shown(outputX + (i - outputFrom) * SLOT_STEP, RECIPE_Y, outputs.get(i), false, chances.get(i)));
+        }
+        int outputWidth = Math.min(outputs.size(), maxOutputs) * SLOT_STEP - 1;
+        int percentX = outputs.isEmpty() ? outputX : outputX + outputWidth + 3;
+        return new RecipeRow(shown, arrowX, percentX, inputPages, outputPages, outputX, outputWidth);
+    }
+
+    private static RecipeContents recipeContents(RecipeModel recipe) {
         var inputs = new ArrayList<PortContent>();
         for (var entry : recipe.inputs().inputs()) {
             if (entry instanceof ConsumeRecipeIngredientEntry consume) {
@@ -345,22 +377,54 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
                 }
             }
         }
-        int inputPages = pages(inputs.size(), maxInputs);
-        int outputPages = pages(outputs.size(), maxOutputs);
-        var shown = new ArrayList<Shown>();
-        int inputFrom = cycle % inputPages * maxInputs;
-        for (int i = inputFrom; i < Math.min(inputs.size(), inputFrom + maxInputs); i++) {
-            shown.add(new Shown(LEFT + (i - inputFrom) * SLOT_STEP, RECIPE_Y, inputs.get(i), true, 1));
+        return new RecipeContents(inputs, outputs, chances);
+    }
+
+    private Preview preview() {
+        RecipeModel recipe = rows().contains(Row.RECIPE) ? selectedRecipe() : null;
+        if (recipe == null) {
+            return Preview.EMPTY;
         }
-        int arrowX = LEFT + Math.min(inputs.size(), maxInputs) * SLOT_STEP + 3;
-        int outputX = arrowX + 28;
-        int outputFrom = cycle % outputPages * maxOutputs;
-        for (int i = outputFrom; i < Math.min(outputs.size(), outputFrom + maxOutputs); i++) {
-            shown.add(new Shown(outputX + (i - outputFrom) * SLOT_STEP, RECIPE_Y, outputs.get(i), false, chances.get(i)));
+        var contents = recipeContents(recipe);
+        if (contents.inputs().isEmpty() && contents.outputs().isEmpty()) {
+            return Preview.EMPTY;
         }
-        int outputWidth = Math.min(outputs.size(), maxOutputs) * SLOT_STEP - 1;
-        int percentX = outputs.isEmpty() ? outputX : outputX + outputWidth + 3;
-        return new RecipeRow(shown, arrowX, percentX, inputPages, outputPages, outputX, outputWidth);
+        int top = wide && shownRecipe() != null ? progressY() + 24 : progressY() - 4;
+        int width = infoRight - LEFT - 2 * PREVIEW_PAD;
+        int outCols = Mth.clamp(contents.outputs().size(), 1, 3);
+        int inCols = Math.max(1, (width - PREVIEW_ARROW - outCols * SLOT_STEP + 1) / SLOT_STEP);
+        int maxLines = (panelBottom - 3 - top - 2 * PREVIEW_PAD + 1) / SLOT_STEP;
+        int lines = Math.min(maxLines, Math.max(pages(contents.inputs().size(), inCols), pages(contents.outputs().size(), outCols)));
+        if (lines < 1) {
+            return Preview.EMPTY;
+        }
+        int x = LEFT + PREVIEW_PAD;
+        int y = top + PREVIEW_PAD;
+        var slots = new ArrayList<Shown>();
+        for (int i = 0; i < Math.min(contents.inputs().size(), inCols * lines); i++) {
+            slots.add(new Shown(x + i % inCols * SLOT_STEP, y + i / inCols * SLOT_STEP, contents.inputs().get(i), true, 1));
+        }
+        int arrowX = x + Math.min(contents.inputs().size(), inCols) * SLOT_STEP + 3;
+        int outputX = arrowX + PREVIEW_ARROW - 4;
+        for (int i = 0; i < Math.min(contents.outputs().size(), outCols * lines); i++) {
+            slots.add(new Shown(outputX + i % outCols * SLOT_STEP, y + i / outCols * SLOT_STEP, contents.outputs().get(i), false,
+                    contents.chances().get(i)));
+        }
+        int height = lines * SLOT_STEP - 1 + 2 * PREVIEW_PAD;
+        return new Preview(slots, top, height, arrowX, y + (lines * SLOT_STEP - 1 - 17) / 2);
+    }
+
+    private void drawPreview(GuiGraphics gfx) {
+        var preview = preview();
+        if (preview.slots().isEmpty()) return;
+        int x = this.leftPos;
+        int y = this.topPos;
+        gfx.fill(x + LEFT, y + preview.top(), x + infoRight, y + preview.top() + preview.height(), GREY);
+        for (Shown s : preview.slots()) {
+            gfx.blit(Ref.UiTextures.SLOT_PARTS, x + s.x(), y + s.y(), 0, 26, 18, 18);
+            PortContentIcon.draw(gfx, s.content(), x + s.x(), y + s.y());
+        }
+        gfx.blit(Ref.UiTextures.SLOT_PARTS, x + preview.arrowX(), y + preview.arrowY(), 26, 0, 24, 17);
     }
 
     private static int pages(int count, int perPage) {
@@ -466,6 +530,8 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
                 drawSmallItem(gfx, icon.item(), x + VALUE_X, ry + 1, 8);
             }
         }
+
+        drawPreview(gfx);
 
         if (wide) {
             drawProgressBar(gfx);
@@ -847,6 +913,11 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
     private Shown hoveredSlot(double mouseX, double mouseY) {
         if (onPortsPage()) return null;
         for (Shown s : recipeRow().slots()) {
+            if (WidgetUtils.isPointerWithinSized((int) mouseX, (int) mouseY, this.leftPos + s.x(), this.topPos + s.y(), 18, 18)) {
+                return s;
+            }
+        }
+        for (Shown s : preview().slots()) {
             if (WidgetUtils.isPointerWithinSized((int) mouseX, (int) mouseY, this.leftPos + s.x(), this.topPos + s.y(), 18, 18)) {
                 return s;
             }
