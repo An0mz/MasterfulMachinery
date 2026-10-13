@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.replication.matter;
 
+import io.ticticboom.mods.mm.port.PortContent;
 import com.buuz135.replication.api.IMatterType;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -103,6 +104,17 @@ public class ReplicationMatterPortStorage implements IPortStorage, IRecipeDemand
         }
         dump.add("tanks", tanks);
         return dump;
+    }
+
+    @Override
+    public List<PortContent> contents() {
+        var gauges = new ArrayList<PortContent>();
+        for (var tank : handler.tanks()) {
+            var matter = tank.getMatter();
+            gauges.add(PortContent.gauge(matter.isEmpty() ? null : matter.getDisplayName(), MatterTypes.colorOf(matter.isEmpty() ? null : matter.getMatterType()),
+                    (long) Math.floor(tank.getMatterAmount()), (long) tank.getCapacity(), ""));
+        }
+        return gauges;
     }
 
     @Override

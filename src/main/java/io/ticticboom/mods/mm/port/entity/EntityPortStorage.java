@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.entity;
 
+import io.ticticboom.mods.mm.port.PortContent;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.port.IPortBlockEntity;
@@ -52,6 +53,11 @@ public class EntityPortStorage implements IPortStorage {
 
     public List<PortEntity> entities() {
         return List.copyOf(entities);
+    }
+
+    @Override
+    public List<PortContent> contents() {
+        return List.of(PortContent.gauge(net.minecraft.network.chat.Component.translatable("port.mm.entity.name"), 0x7A9A5A, entities.size(), model.capacity(), ""));
     }
 
     @Override

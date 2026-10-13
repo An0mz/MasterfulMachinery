@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.nuclear.radiation;
 
+import io.ticticboom.mods.mm.port.PortContent;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import igentuman.nr.api.RadiationProfile;
@@ -377,6 +378,11 @@ public class NuclearRadiationPortStorage implements IPortStorage {
         lines.add(Component.translatable("gui.mm.port.nuclear_radiation.total",
                 RadiationText.bq(total), RadiationText.bq(model.capacity())));
         return lines;
+    }
+
+    @Override
+    public List<PortContent> contents() {
+        return List.of(PortContent.gauge(Component.translatable("port.mm.nuclear_radiation.name"), 0x5DBB3A, (long) totalBq(), (long) model.capacity(), "Bq"));
     }
 
     @Override

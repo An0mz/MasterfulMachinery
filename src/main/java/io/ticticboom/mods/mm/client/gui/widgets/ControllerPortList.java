@@ -331,8 +331,16 @@ public class ControllerPortList {
                 int index = (mouseY - top - NAME_H) / (BAR_H + 1);
                 if (index < 0 || index >= contents.size()) return null;
                 PortContent tank = contents.get(index);
-                return List.of(PortContentIcon.name(tank), Component.literal(CountFormat.grouped(tank.amount()) + " / "
-                        + CountFormat.grouped(tank.capacity()) + " " + tank.unit()).withStyle(ChatFormatting.GRAY));
+                var lines = new ArrayList<Component>();
+                lines.add(PortContentIcon.name(tank));
+                if (contents.size() == 1 && tank.kind() == PortContent.Kind.CHEMICAL && tank.sprite() == null
+                        && !port.storage().describeContents().isEmpty()) {
+                    port.storage().describeContents().forEach(line -> lines.add(line.copy().withStyle(ChatFormatting.GRAY)));
+                } else {
+                    lines.add(Component.literal(CountFormat.grouped(tank.amount()) + " / "
+                            + CountFormat.grouped(tank.capacity()) + " " + tank.unit()).withStyle(ChatFormatting.GRAY));
+                }
+                return lines;
             }
             int col = (mouseX - x) / SLOT;
             int line = (mouseY - top - NAME_H) / SLOT;

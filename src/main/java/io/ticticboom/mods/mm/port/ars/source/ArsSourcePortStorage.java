@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.ars.source;
 
+import io.ticticboom.mods.mm.port.PortContent;
 import com.google.gson.JsonObject;
 import com.hollingsworth.arsnouveau.api.source.ISourceCap;
 import io.ticticboom.mods.mm.cap.ArsCapabilities;
@@ -148,6 +149,11 @@ public class ArsSourcePortStorage implements IPortStorage {
     @Override
     public UUID getStorageUid() {
         return uid;
+    }
+
+    @Override
+    public List<PortContent> contents() {
+        return List.of(PortContent.gauge(Component.translatable("port.mm.ars_source.name"), FILL_COLOR, stored, capacity, "Source"));
     }
 
     @Override

@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.pneumaticcraft.air;
 
+import io.ticticboom.mods.mm.port.PortContent;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.cap.MMCapabilities;
 import io.ticticboom.mods.mm.port.IPortStorage;
@@ -81,6 +82,12 @@ public class PneumaticAirPortStorage implements IPortStorage {
     }
 
 
+
+    @Override
+    public List<PortContent> contents() {
+        long capacity = (long) (airhandler.getDangerPressure() * getVolume());
+        return List.of(PortContent.gauge(Component.translatable("port.mm.pneumaticcraft_air.name"), 0x8FB8D8, getAir(), capacity, "mB"));
+    }
 
     @Override
     public List<Component> describeContents() {

@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.mekanism.heat;
 
+import io.ticticboom.mods.mm.port.PortContent;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.cap.MekCapabilities;
 import io.ticticboom.mods.mm.port.IPortStorage;
@@ -84,6 +85,12 @@ public class MekanismHeatPortStorage implements IPortStorage {
 
     public int internalInsert(int amount, boolean simulate) {
         return handler.insert(amount, simulate);
+    }
+
+    @Override
+    public java.util.List<PortContent> contents() {
+        var capacity = ((MekanismHeatPortStorageModel) getStorageModel()).capacity();
+        return java.util.List.of(PortContent.gauge(net.minecraft.network.chat.Component.translatable("port.mm.mekanism_heat.name"), 0xE67E22, getStoredHeat(), capacity, "J"));
     }
 
     @Override
