@@ -60,8 +60,11 @@ public final class BuildableStructureParser {
             CompoundTag block = blocks.getCompound(i);
             ListTag pos = block.getList("pos", Tag.TAG_INT);
             int index = block.getInt("state");
-            if (pos.size() != 3 || index < 0 || index >= states.size()) {
+            if (pos.size() != 3) {
                 return Result.skip("malformed block entry " + i);
+            }
+            if (index < 0 || index >= states.size()) {
+                continue;
             }
             BlockState state = states.get(index);
             if (state.isAir() || state.is(Blocks.STRUCTURE_VOID)) {
