@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.14.0] - 2026-10-13
+
+### Added
+- **The controller shows the selected recipe's cost in Manual mode.** On the big controller screen,
+  picking a recipe shows its inputs and outputs under the settings. Hover them for details, or click
+  to open them in JEI.
+- **Fill bars for more ports in the controller.** Source, Mekanism heat, PneumaticCraft air,
+  Replication matter, nuclear radiation and entity ports now show a bar instead of plain text. Hover
+  the bar for temperature, pressure, isotopes or mob types.
+- **Recipe icons for every port type in the controller.** Source, EMC, mana, rotation, heat, air,
+  radiation, matter and entity costs now show up in the recipe preview and the running recipe, not
+  just items, fluids, energy and chemicals.
+- **Jade fill bars use the port's colour.** Source ports show purple and EMC ports show gold.
+
+### Fixed
+- **The Structure Builder** no longer crashes when previewing Extreme Reactors turbines.
+- **Void miner tiers** now show up in the Structure Builder.
+
 ## [1.21.1-0.13.0] - 2026-10-12
 
 ### Added
