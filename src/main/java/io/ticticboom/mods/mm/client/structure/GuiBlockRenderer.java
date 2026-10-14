@@ -54,6 +54,7 @@ public class GuiBlockRenderer {
 
     public void setupAt(BlockPos pos) {
         this.pos = pos;
+        blockEntityModelData = null;
         state = fixedState != null ? fixedState : block.defaultBlockState();
         if (block instanceof EntityBlock eb) {
             be = eb.newBlockEntity(pos, state);
@@ -72,6 +73,18 @@ public class GuiBlockRenderer {
     private ModelData cachedModelData = ModelData.EMPTY;
     private int cachedGeneration = -1;
     private boolean modelBroken = false;
+    private ModelData blockEntityModelData;
+
+    private ModelData blockEntityModelData() {
+        if (blockEntityModelData == null) {
+            try {
+                blockEntityModelData = be != null ? be.getModelData() : ModelData.EMPTY;
+            } catch (RuntimeException e) {
+                blockEntityModelData = ModelData.EMPTY;
+            }
+        }
+        return blockEntityModelData;
+    }
 
     public void render(GuiGraphics gfx, int mouseX, int mouseY, AutoTransform mouseTransform) {
         render(gfx, mouseX, mouseY, mouseTransform, null, 0);
@@ -85,7 +98,7 @@ public class GuiBlockRenderer {
         BlockRenderDispatcher brd = mc.getBlockRenderer();
         MultiBufferSource.BufferSource bufferSource = gfx.bufferSource();
         var model = brd.getBlockModel(state);
-        var modeldata = be != null ? be.getModelData() : ModelData.EMPTY;
+        var modeldata = blockEntityModelData();
         if (world != null) {
             if (cachedGeneration != generation) {
                 try {
