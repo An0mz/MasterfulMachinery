@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
-## [1.21.1-0.14.0] - 2026-10-13
+## [1.21.1-0.14.0] - 2026-10-14
 
 ### Added
 - **The controller shows the selected recipe's cost in Manual mode.** On the big controller screen,
