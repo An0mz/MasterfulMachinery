@@ -11,8 +11,9 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   `idleOverlay` and `workingOverlay`, to a controller. Without them, every state uses `model` or
   `overlay`. From KubeJS, `.idleModel(...)`, `.workingModel(...)`, `.idleOverlay(...)` and
   `.workingOverlay(...)`. This works for single-block machines too.
-- **Formed machines contain Oritech black holes.** A black hole that is part of a formed machine no
-  longer pulls in blocks, and black holes nearby no longer pull blocks out of formed machines.
+- **Oritech support.** Machines can now contain an Oritech black hole: a black hole that is part of
+  a formed machine no longer pulls in blocks, and black holes nearby no longer pull blocks out of
+  formed machines.
 
 ## [1.21.1-0.14.0] - 2026-10-14
 
