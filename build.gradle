@@ -282,6 +282,8 @@ dependencies {
     runtimeOnly "curse.maven:modern-industrialization-405388:${modern_industrialization_id}"
     runtimeOnly "curse.maven:elemental-craft-395158:${elemental_craft_id}"
     runtimeOnly "curse.maven:datapack-anvil-432817:${dpanvil_id}"
+    runtimeOnly "curse.maven:oritech-1030830:${oritech_id}"
+    runtimeOnly "curse.maven:athena-841890:${athena_id}"
 
     //runtimeOnly "vazkii.botania:Botania:${botania_version}"
 }

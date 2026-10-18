@@ -3,6 +3,7 @@
   "package": "io.ticticboom.mods.mm.compat.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "BlackHoleBlockEntityMixin",
     "ReplicationTaskMixin"
   ],
   "client": [

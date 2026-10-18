@@ -13,6 +13,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.component.DataComponentMap;
 import io.ticticboom.mods.mm.structure.StructureDiagnosis;
 import io.ticticboom.mods.mm.Ref;
+import io.ticticboom.mods.mm.compat.oritech.BlackHoleShield;
 import io.ticticboom.mods.mm.config.MMConfig;
 import io.ticticboom.mods.mm.controller.IControllerBlockEntity;
 import io.ticticboom.mods.mm.controller.IControllerPart;
@@ -286,6 +287,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
 
     private void formed(Rotation rotation) {
         formedRotation = rotation;
+        BlackHoleShield.shield(level, getBlockPos(), structure, rotation);
         portStorages = collectStorages(rotation);
         speedStorages = resolveSpeedStorages();
         if (structure != structureChunksOf || rotation != structureChunksRotation) {
@@ -330,6 +332,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     private void unformed() {
+        BlackHoleShield.unshield(level, getBlockPos());
         portStorages = null;
         speedStorages = List.of();
         if (isFormed) {
@@ -802,6 +805,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         structure = null;
         formedRotation = null;
         isFormed = false;
+        BlackHoleShield.unshield(level, getBlockPos());
         portStorages = null;
         speedStorages = List.of();
         cachedStructureRecipes = null;
@@ -1266,6 +1270,25 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             requestedCrafts = 0;
         }
         return requestedRecipeId;
+    }
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        BlackHoleShield.watch(level, this);
+    }
+
+    @Override
+    public void setRemoved() {
+        super.setRemoved();
+        BlackHoleShield.unwatch(level, this);
+        BlackHoleShield.unshield(level, getBlockPos());
+    }
+
+    public void validateNow() {
+        if (level != null && !level.isClientSide() && !isRemoved()) {
+            validateStructure();
+        }
     }
 
     public boolean isFormed() {
