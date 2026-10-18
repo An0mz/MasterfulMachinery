@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.15.0] - 2026-10-17
+
+### Added
+- **Controllers can look different while working.** Add `idleModel` and `workingModel`, or
+  `idleOverlay` and `workingOverlay`, to a controller. Without them, every state uses `model` or
+  `overlay`. From KubeJS, `.idleModel(...)`, `.workingModel(...)`, `.idleOverlay(...)` and
+  `.workingOverlay(...)`. This works for single-block machines too.
+- **Formed machines contain Oritech black holes.** A black hole that is part of a formed machine no
+  longer pulls in blocks, and black holes nearby no longer pull blocks out of formed machines.
+
 ## [1.21.1-0.14.0] - 2026-10-14
 
 ### Added
