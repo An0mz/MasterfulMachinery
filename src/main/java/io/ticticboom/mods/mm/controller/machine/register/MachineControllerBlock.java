@@ -76,23 +76,19 @@ public class MachineControllerBlock extends HorizontalDirectionalBlock implement
     public void generateModel(MMBlockstateProvider provider) {
         var id = groupHolder.getBlock().getId();
         var models = new EnumMap<ControllerState, ModelFile>(ControllerState.class);
-        var custom = model.customModel();
         var base = Objects.requireNonNullElse(model.baseTexture(), Ref.Textures.BASE_BLOCK);
-        if (custom != null) {
-            var mdl = provider.customBlock(id, custom);
-            for (ControllerState state : ControllerState.values()) {
-                models.put(state, mdl);
-            }
-        } else if (model.overlayTexture() != null) {
-            var mdl = provider.dynamicBlockNorthOverlay(id, base, model.overlayTexture());
-            for (ControllerState state : ControllerState.values()) {
-                models.put(state, mdl);
-            }
-        } else {
-            for (ControllerState state : ControllerState.values()) {
-                var loc = state == ControllerState.UNFORMED ? id : id.withSuffix("_" + state.getSerializedName());
+        for (ControllerState state : ControllerState.values()) {
+            var name = state.getSerializedName();
+            var loc = state == ControllerState.UNFORMED ? id : id.withSuffix("_" + name);
+            var custom = model.customModel(name);
+            var overlay = model.overlayTexture(name);
+            if (custom != null) {
+                models.put(state, provider.customBlock(loc, custom));
+            } else if (overlay != null) {
+                models.put(state, provider.dynamicBlockNorthOverlay(loc, base, overlay));
+            } else {
                 models.put(state, provider.controllerModel(loc, base, Ref.Textures.CONTROLLER_FRAME,
-                        Ref.Textures.controllerScreen(state.getSerializedName())));
+                        Ref.Textures.controllerScreen(name)));
             }
         }
         provider.getVariantBuilder(groupHolder.getBlock().get())

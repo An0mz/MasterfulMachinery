@@ -60,6 +60,16 @@ public record ControllerModel(
         return ParserUtils.parseOptionalId(config, "model");
     }
 
+    public ResourceLocation customModel(String state) {
+        var specific = ParserUtils.parseOptionalId(config, state + "Model");
+        return specific != null ? specific : customModel();
+    }
+
+    public ResourceLocation overlayTexture(String state) {
+        var specific = ParserUtils.parseOptionalId(config, state + "Overlay");
+        return specific != null ? specific : overlayTexture();
+    }
+
     private static Supplier<Component> literalOf(String name) {
         var literal = Component.literal(name);
         return () -> literal;

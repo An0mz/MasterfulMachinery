@@ -75,6 +75,22 @@ public class ControllerBuilderJS {
         return putTexture("model", model);
     }
 
+    public ControllerBuilderJS idleOverlay(String texture) {
+        return putTexture("idleOverlay", texture);
+    }
+
+    public ControllerBuilderJS workingOverlay(String texture) {
+        return putTexture("workingOverlay", texture);
+    }
+
+    public ControllerBuilderJS idleModel(String model) {
+        return putTexture("idleModel", model);
+    }
+
+    public ControllerBuilderJS workingModel(String model) {
+        return putTexture("workingModel", model);
+    }
+
     @HideFromJS
     private ControllerBuilderJS putTexture(String key, String texture) {
         var rl = ResourceLocation.tryParse(texture);
