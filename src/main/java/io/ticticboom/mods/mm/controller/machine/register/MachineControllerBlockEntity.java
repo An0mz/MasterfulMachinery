@@ -664,6 +664,9 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             recipeNextCheckTime.put(recipe.id(), gameTime + SKIP_COOLDOWN);
             return false;
         }
+        if (recipe.outputs().usesConsumedItems()) {
+            state.trackConsumedItems();
+        }
         recipe.inputs().process(level, portStorages, state);
         if (recipe.id().equals(requestedRecipeId) && requestedCrafts > 0) {
             requestedCrafts--;
@@ -1099,7 +1102,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         for (String key : recipesTag.getAllKeys()) {
             ResourceLocation recipeId = ResourceLocation.tryParse(key);
             if (recipeId != null) {
-                activeRecipes.put(recipeId, RecipeStateModel.load(recipesTag.getCompound(key)));
+                activeRecipes.put(recipeId, RecipeStateModel.load(recipesTag.getCompound(key), registries));
             }
         }
         structure = tag.contains("structureId") ? StructureManager.STRUCTURES.get(ResourceLocation.tryParse(tag.getString("structureId"))) : null;

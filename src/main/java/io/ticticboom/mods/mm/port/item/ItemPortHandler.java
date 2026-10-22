@@ -218,17 +218,23 @@ public class ItemPortHandler extends ItemStackHandler {
     }
 
     public int extractMatching(Item item, Predicate<ItemStack> filter, int count, boolean simulate) {
-        int remaining = extractMatching(partialSlots.get(item), filter, count, simulate);
-        if (remaining > 0) remaining = extractMatching(fullSlots.get(item), filter, remaining, simulate);
+        return extractMatching(item, filter, count, simulate, null);
+    }
+
+    public int extractMatching(Item item, Predicate<ItemStack> filter, int count, boolean simulate, @Nullable List<ItemStack> taken) {
+        int remaining = extractMatching(partialSlots.get(item), filter, count, simulate, taken);
+        if (remaining > 0) remaining = extractMatching(fullSlots.get(item), filter, remaining, simulate, taken);
         return remaining;
     }
 
-    private int extractMatching(BitSet slots, Predicate<ItemStack> filter, int remaining, boolean simulate) {
+    private int extractMatching(BitSet slots, Predicate<ItemStack> filter, int remaining, boolean simulate, @Nullable List<ItemStack> taken) {
         if (slots == null) return remaining;
         for (int slot = slots.nextSetBit(0); slot >= 0 && remaining > 0; slot = slots.nextSetBit(slot + 1)) {
             ItemStack stack = getStackInSlot(slot);
             if (!filter.test(stack)) continue;
-            remaining -= extractItem(slot, remaining, simulate).getCount();
+            ItemStack extracted = extractItem(slot, remaining, simulate);
+            remaining -= extracted.getCount();
+            if (taken != null && !extracted.isEmpty()) taken.add(extracted);
         }
         return remaining;
     }

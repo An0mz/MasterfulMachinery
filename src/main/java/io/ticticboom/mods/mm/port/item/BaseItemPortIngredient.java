@@ -102,9 +102,10 @@ public abstract class BaseItemPortIngredient implements IPortIngredient {
     public void process(Level level, RecipeStorages storages, RecipeStateModel state) {
         List<ItemPortStorage> itemStorages = inputItemStorages(storages);
         int remaining = resolveCount(state);
+        List<ItemStack> taken = state == null ? null : state.getConsumedItems();
         for (ItemPortStorage storage : itemStorages) {
-            remaining = indexedItem() == null ? storage.extract(filter, remaining)
-                    : storage.extract(indexedItem(), filter, remaining);
+            remaining = indexedItem() == null ? storage.extract(filter, remaining, taken)
+                    : storage.extract(indexedItem(), filter, remaining, taken);
         }
     }
 

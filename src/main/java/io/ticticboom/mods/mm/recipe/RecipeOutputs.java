@@ -35,6 +35,15 @@ public record RecipeOutputs(
         return true;
     }
 
+    public boolean usesConsumedItems() {
+        for (IRecipeOutputEntry output : outputs) {
+            if (output.usesConsumedItems()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void process(Level level, RecipeStorages storages, RecipeStateModel model) {
         for (IRecipeOutputEntry output : outputs) {
             output.output(level, storages, model);

@@ -55,6 +55,7 @@ public class Ref {
         public static final ResourceLocation CONSUME_INPUT = id("input/consume");
         public static final ResourceLocation SIMPLE_OUTPUT = id("output/simple");
         public static final ResourceLocation WEIGHTED_OUTPUT = id("output/weighted");
+        public static final ResourceLocation MERGE_ENCHANTMENTS_OUTPUT = id("output/merge_enchantments");
     }
 
     public static class RecipeConditions {

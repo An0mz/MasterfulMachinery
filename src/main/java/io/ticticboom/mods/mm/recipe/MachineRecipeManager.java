@@ -3,6 +3,7 @@ package io.ticticboom.mods.mm.recipe;
 import io.ticticboom.mods.mm.recipe.condition.biome.BiomeRecipeCondition;
 import io.ticticboom.mods.mm.recipe.condition.height.HeightRecipeCondition;
 import io.ticticboom.mods.mm.recipe.condition.redstone.RedstoneRecipeCondition;
+import io.ticticboom.mods.mm.recipe.output.enchant.MergeEnchantmentsOutputEntry;
 import io.ticticboom.mods.mm.recipe.condition.tier.TierRecipeCondition;
 import io.ticticboom.mods.mm.recipe.condition.time.TimeRecipeCondition;
 import com.google.gson.JsonElement;
@@ -51,6 +52,7 @@ public class MachineRecipeManager extends SimpleJsonResourceReloadListener {
         ENTRY_INGREDIENT_PARSERS.put(Ref.RecipeEntries.CONSUME_INPUT, new ConsumeRecipeIngredientEntryParser());
         ENTRY_OUTPUT_PARSERS.put(Ref.RecipeEntries.SIMPLE_OUTPUT, new SimpleRecipeOutputEntryParser());
         ENTRY_OUTPUT_PARSERS.put(Ref.RecipeEntries.WEIGHTED_OUTPUT, new io.ticticboom.mods.mm.recipe.output.weighted.WeightedRecipeOutputEntryParser());
+        ENTRY_OUTPUT_PARSERS.put(Ref.RecipeEntries.MERGE_ENCHANTMENTS_OUTPUT, MergeEnchantmentsOutputEntry::parse);
         CONDITION_PARSERS.put(Ref.RecipeConditions.DIMENSION, new DimensionRecipeConditionParser());
         CONDITION_PARSERS.put(Ref.RecipeConditions.WEATHER, new WeatherRecipeConditionParser());
         CONDITION_PARSERS.put(Ref.RecipeConditions.BIOME, BiomeRecipeCondition::parse);

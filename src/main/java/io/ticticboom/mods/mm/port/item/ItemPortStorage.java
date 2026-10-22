@@ -125,11 +125,15 @@ public class ItemPortStorage implements IPortStorage {
     }
 
     public int canExtract(Predicate<ItemStack> item, int count) {
-        return handlerExtract(item, count, true); // returns remaining (not extracted)
+        return handlerExtract(item, count, true, null); // returns remaining (not extracted)
     }
 
     public int extract(Predicate<ItemStack> item, int count) {
-        return handlerExtract(item, count, false); // returns remaining after extraction
+        return handlerExtract(item, count, false, null); // returns remaining after extraction
+    }
+
+    public int extract(Predicate<ItemStack> item, int count, @Nullable List<ItemStack> taken) {
+        return handlerExtract(item, count, false, taken);
     }
 
     public int canExtract(Item item, Predicate<ItemStack> filter, int count) {
@@ -140,7 +144,11 @@ public class ItemPortStorage implements IPortStorage {
         return handler.extractMatching(item, filter, count, false);
     }
 
-    private int handlerExtract(Predicate<ItemStack> item, int count, boolean simulate) {
+    public int extract(Item item, Predicate<ItemStack> filter, int count, @Nullable List<ItemStack> taken) {
+        return handler.extractMatching(item, filter, count, false, taken);
+    }
+
+    private int handlerExtract(Predicate<ItemStack> item, int count, boolean simulate, @Nullable List<ItemStack> taken) {
         int remaining = count;
         for (int slot = 0; slot < handler.getSlots(); slot++) {
             ItemStack stack = handler.getStackInSlot(slot);
@@ -149,6 +157,7 @@ public class ItemPortStorage implements IPortStorage {
             }
             var extracted = handler.extractItem(slot, remaining, simulate);
             remaining -= extracted.getCount();
+            if (taken != null && !extracted.isEmpty()) taken.add(extracted);
             if (remaining <= 0) break;
         }
         return remaining; // amount not extracted

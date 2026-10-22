@@ -14,6 +14,9 @@ public interface IRecipeOutputEntry {
     boolean canOutput(Level level, RecipeStorages storages, RecipeStateModel state);
     void output(Level level, RecipeStorages storages, RecipeStateModel state);
     default void processTick(Level level, RecipeStorages storages, RecipeStateModel state) {}
+    default boolean usesConsumedItems() {
+        return false;
+    }
     void ditchRecipe(Level level, RecipeStorages storages, RecipeStateModel state);
 
     default java.util.List<DisplayedOutput> displayedOutputs() {
