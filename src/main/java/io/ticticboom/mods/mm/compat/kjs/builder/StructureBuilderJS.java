@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import io.ticticboom.mods.mm.client.geo.GeoModelConfig;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import io.ticticboom.mods.mm.model.IdList;
+import io.ticticboom.mods.mm.structure.StructureBoost;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import io.ticticboom.mods.mm.structure.attachment.StructureAttachments;
 import io.ticticboom.mods.mm.structure.attachment.visuals.FluidVolumeVisual;
@@ -27,6 +28,7 @@ public class StructureBuilderJS {
     private int maxParallelRecipes = -1;
     private final List<FluidVolumeVisual> fluidVolumes = new ArrayList<>();
     private JsonElement geoModel;
+    private final List<StructureBoost> boosts = new ArrayList<>();
 
     public StructureBuilderJS(String id) {
         this.id = ResourceLocation.tryParse(id);
@@ -62,6 +64,21 @@ public class StructureBuilderJS {
         return this;
     }
 
+    public StructureBuilderJS boost(String structure, double speed, int radius, int max) {
+        var id = ResourceLocation.tryParse(structure);
+        if (id == null) throw new IllegalArgumentException("Invalid structure id: " + structure);
+        boosts.add(new StructureBoost(id, radius, speed, max));
+        return this;
+    }
+
+    public StructureBuilderJS boost(String structure, double speed, int radius) {
+        return boost(structure, speed, radius, Integer.MAX_VALUE);
+    }
+
+    public StructureBuilderJS boost(String structure, double speed) {
+        return boost(structure, speed, StructureBoost.DEFAULT_RADIUS);
+    }
+
     public StructureBuilderJS geoModel(JsonElement geoModel) {
         this.geoModel = geoModel;
         return this;
@@ -94,6 +111,11 @@ public class StructureBuilderJS {
         }
         if (geoModel != null) {
             json.add(GeoModelConfig.KEY, geoModel);
+        }
+        if (!boosts.isEmpty()) {
+            var array = new JsonArray();
+            boosts.forEach(boost -> array.add(boost.toJson()));
+            json.add("boosts", array);
         }
         return new StructureModel(id, name, controllerIds, layout, StructureAttachments.parse(json), json);
     }

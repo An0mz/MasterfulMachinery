@@ -66,6 +66,7 @@ public class Ref {
         public static final ResourceLocation HEIGHT = id("height");
         public static final ResourceLocation REDSTONE = id("redstone");
         public static final ResourceLocation TIER = id("tier");
+        public static final ResourceLocation NEARBY_STRUCTURE = id("nearby_structure");
     }
 
     public static class StructureAttachments {

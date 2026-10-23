@@ -35,6 +35,8 @@ import io.ticticboom.mods.mm.recipe.RecipeStateModel;
 import io.ticticboom.mods.mm.recipe.RecipeStorages;
 import io.ticticboom.mods.mm.recipe.input.consume.ConsumeRecipeIngredientEntry;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
+import io.ticticboom.mods.mm.structure.NearbyMachines;
+import io.ticticboom.mods.mm.structure.StructureBoost;
 import io.ticticboom.mods.mm.structure.StructureManager;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import io.ticticboom.mods.mm.structure.attachment.visuals.FluidVolumeState;
@@ -112,6 +114,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private RecipeModel currentRecipe;
     private RecipeStorages portStorages = null;
     private List<EntityPortStorage> speedStorages = List.of();
+    private NearbyMachines.Lookup nearby = null;
     private RedstoneMode redstoneMode = RedstoneMode.IGNORED;
     private final Set<ResourceLocation> failedRecipes = new HashSet<>();
 
@@ -290,6 +293,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         BlackHoleShield.shield(level, getBlockPos(), structure, rotation);
         portStorages = collectStorages(rotation);
         speedStorages = resolveSpeedStorages();
+        NearbyMachines.formed(level, this);
         if (structure != structureChunksOf || rotation != structureChunksRotation) {
             structureChunks = structure.layout().chunkBounds(getBlockPos(), rotation);
             structureChunksOf = structure;
@@ -335,6 +339,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         BlackHoleShield.unshield(level, getBlockPos());
         portStorages = null;
         speedStorages = List.of();
+        NearbyMachines.unformed(level, this);
         if (isFormed) {
             isFormed = false;
             markChanged();
@@ -621,7 +626,14 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     private RecipeConditionContext conditionContext() {
-        return new RecipeConditionContext(level, getBlockPos(), structure);
+        return new RecipeConditionContext(level, getBlockPos(), structure, nearby());
+    }
+
+    private NearbyMachines.Lookup nearby() {
+        if (nearby == null) {
+            nearby = new NearbyMachines.Lookup(level, getBlockPos());
+        }
+        return nearby;
     }
 
     private boolean mayHaveInputs(RecipeRequirements needs) {
@@ -709,6 +721,11 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         double multiplier = 1;
         for (var storage : speedStorages) {
             multiplier += storage.speedBonus();
+        }
+        if (structure != null) {
+            for (StructureBoost boost : structure.boosts()) {
+                multiplier += boost.bonus(nearby());
+            }
         }
         return multiplier;
     }
@@ -811,6 +828,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         BlackHoleShield.unshield(level, getBlockPos());
         portStorages = null;
         speedStorages = List.of();
+        NearbyMachines.unformed(level, this);
         cachedStructureRecipes = null;
         storageContentCacheValid = false;
         recipeNextCheckTime.clear();
@@ -1286,6 +1304,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         super.setRemoved();
         BlackHoleShield.unwatch(level, this);
         BlackHoleShield.unshield(level, getBlockPos());
+        NearbyMachines.unformed(level, this);
     }
 
     public void validateNow() {

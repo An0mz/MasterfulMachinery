@@ -47,6 +47,8 @@ public class StructureModel {
     @Getter
     private final JsonObject config;
 
+    private final List<StructureBoost> boosts;
+
     @OnlyIn(Dist.CLIENT)
     private GuiStructureRenderer renderer;
 
@@ -85,6 +87,7 @@ public class StructureModel {
         this.layout = layout;
         this.attachments = attachments;
         this.config = config;
+        this.boosts = StructureBoost.parseAll(config);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             renderer = new GuiStructureRenderer(this);
 //            countedPartItems = getCountedItemStacks();
@@ -211,6 +214,10 @@ public class StructureModel {
             }
         } catch (RuntimeException ignored) { }
         return -1;
+    }
+
+    public List<StructureBoost> boosts() {
+        return boosts;
     }
 
     @OnlyIn(Dist.CLIENT)

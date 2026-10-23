@@ -3,6 +3,7 @@ package io.ticticboom.mods.mm.compat.kjs.builder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.recipe.RecipeModel;
+import io.ticticboom.mods.mm.structure.StructureBoost;
 import lombok.Getter;
 import net.minecraft.resources.ResourceLocation;
 
@@ -114,6 +115,22 @@ public class RecipeBuilderJS {
     @SuppressWarnings("unused")
     public RecipeBuilderJS maxTier(double tier) {
         return rangeCondition("tier", "maxTier", tier);
+    }
+
+    @SuppressWarnings("unused")
+    public RecipeBuilderJS nearbyStructure(String structure, int min, int radius) {
+        var json = new JsonObject();
+        json.addProperty("type", "mm:nearby_structure");
+        json.addProperty("structure", structure);
+        json.addProperty("min", min);
+        json.addProperty("radius", radius);
+        conditions.add(json);
+        return this;
+    }
+
+    @SuppressWarnings("unused")
+    public RecipeBuilderJS nearbyStructure(String structure, int min) {
+        return nearbyStructure(structure, min, StructureBoost.DEFAULT_RADIUS);
     }
 
     private RecipeBuilderJS condition(String type, String key, String value) {

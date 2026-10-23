@@ -3,6 +3,7 @@ package io.ticticboom.mods.mm.recipe;
 import io.ticticboom.mods.mm.recipe.condition.biome.BiomeRecipeCondition;
 import io.ticticboom.mods.mm.recipe.condition.height.HeightRecipeCondition;
 import io.ticticboom.mods.mm.recipe.condition.redstone.RedstoneRecipeCondition;
+import io.ticticboom.mods.mm.recipe.condition.nearby.NearbyStructureRecipeCondition;
 import io.ticticboom.mods.mm.recipe.output.enchant.MergeEnchantmentsOutputEntry;
 import io.ticticboom.mods.mm.recipe.condition.tier.TierRecipeCondition;
 import io.ticticboom.mods.mm.recipe.condition.time.TimeRecipeCondition;
@@ -60,6 +61,7 @@ public class MachineRecipeManager extends SimpleJsonResourceReloadListener {
         CONDITION_PARSERS.put(Ref.RecipeConditions.HEIGHT, HeightRecipeCondition::parse);
         CONDITION_PARSERS.put(Ref.RecipeConditions.REDSTONE, RedstoneRecipeCondition::parse);
         CONDITION_PARSERS.put(Ref.RecipeConditions.TIER, TierRecipeCondition::parse);
+        CONDITION_PARSERS.put(Ref.RecipeConditions.NEARBY_STRUCTURE, NearbyStructureRecipeCondition::parse);
     }
 
     public static IRecipeIngredientEntry parseIngredientEntry(JsonObject json) {
