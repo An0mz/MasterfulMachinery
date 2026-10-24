@@ -10,6 +10,7 @@ import io.ticticboom.mods.mm.compat.jei.ingredient.matter.MatterIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.pncr.PneumaticAirIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.radiation.RadiationIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.source.ArsSourceIngredientType;
+import io.ticticboom.mods.mm.compat.jei.ingredient.starlight.StarlightIngredientType;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.neoforge.NeoForgeTypes;
 import mezz.jei.api.ingredients.IIngredientType;
@@ -29,4 +30,5 @@ public class MMJeiIngredients {
     public static final RadiationIngredientType NUCLEAR_RADIATION = new RadiationIngredientType();
     public static final ArsSourceIngredientType ARS_SOURCE = new ArsSourceIngredientType();
     public static final EmcIngredientType PROJECTE_EMC = new EmcIngredientType();
+    public static final StarlightIngredientType ASTRAL_STARLIGHT = new StarlightIngredientType();
 }

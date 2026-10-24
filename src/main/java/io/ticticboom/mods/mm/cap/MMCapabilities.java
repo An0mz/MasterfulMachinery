@@ -111,6 +111,9 @@ public class MMCapabilities {
         if (ModList.get().isLoaded("projecte")) {
             result.add(ProjectECapabilities.EMC_STORAGE);
         }
+        if (ModList.get().isLoaded("astralsorcery")) {
+            result.add(AstralCapabilities.LUMEN_HANDLER);
+        }
         return result;
     }
 

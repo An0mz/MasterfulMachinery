@@ -38,6 +38,8 @@ public class Ref {
         public static final ResourceLocation PROJECTE_EMC = id("projecte/emc");
         public static final ResourceLocation AE2_PATTERN = id("ae2/pattern");
         public static final ResourceLocation NUCLEAR_RADIATION = id("nuclear_radiation/radiation");
+        public static final ResourceLocation ASTRAL_STARLIGHT = id("astralsorcery/starlight");
+        public static final ResourceLocation ASTRAL_LUMEN = id("astralsorcery/lumen");
 
         public static final ResourceLocation REPLICATION_MATTER = id("replication/matter");
         public static final ResourceLocation REPLICATION_LINK = id("replication/link");
@@ -67,6 +69,8 @@ public class Ref {
         public static final ResourceLocation REDSTONE = id("redstone");
         public static final ResourceLocation TIER = id("tier");
         public static final ResourceLocation NEARBY_STRUCTURE = id("nearby_structure");
+        public static final ResourceLocation ASTRAL_CONSTELLATION = id("astralsorcery/constellation");
+        public static final ResourceLocation ASTRAL_ECLIPSE = id("astralsorcery/eclipse");
     }
 
     public static class StructureAttachments {
@@ -141,6 +145,12 @@ public class Ref {
 
         public static final ResourceLocation INPUT_NUCLEAR_RADIATION_PORT_OVERLAY = id("block/compat_ports/nuclear_radiation_input_cutout");
         public static final ResourceLocation OUTPUT_NUCLEAR_RADIATION_PORT_OVERLAY = id("block/compat_ports/nuclear_radiation_output_cutout");
+
+        public static final ResourceLocation INPUT_ASTRAL_STARLIGHT_PORT_OVERLAY = id("block/compat_ports/astral_starlight_input_cutout");
+        public static final ResourceLocation OUTPUT_ASTRAL_STARLIGHT_PORT_OVERLAY = id("block/compat_ports/astral_starlight_output_cutout");
+
+        public static final ResourceLocation INPUT_ASTRAL_LUMEN_PORT_OVERLAY = id("block/compat_ports/astral_lumen_input_cutout");
+        public static final ResourceLocation OUTPUT_ASTRAL_LUMEN_PORT_OVERLAY = id("block/compat_ports/astral_lumen_output_cutout");
     }
 
     public static class UiTextures {

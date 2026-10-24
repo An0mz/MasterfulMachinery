@@ -6,6 +6,8 @@ import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.model.PortModel;
 import io.ticticboom.mods.mm.port.ae2.pattern.Ae2PatternPortType;
 import io.ticticboom.mods.mm.port.ars.source.ArsSourcePortType;
+import io.ticticboom.mods.mm.port.astral.lumen.AstralLumenPortType;
+import io.ticticboom.mods.mm.port.astral.starlight.AstralStarlightPortType;
 import io.ticticboom.mods.mm.port.botania.mana.BotaniaManaPortType;
 import io.ticticboom.mods.mm.port.energy.EnergyPortType;
 import io.ticticboom.mods.mm.port.entity.EntityPortType;
@@ -74,6 +76,11 @@ public class MMPortRegistry {
 
         if (ModList.get().isLoaded("nuclear_radiation")) {
             register(Ref.Ports.NUCLEAR_RADIATION, new NuclearRadiationPortType());
+        }
+
+        if (ModList.get().isLoaded("astralsorcery")) {
+            register(Ref.Ports.ASTRAL_STARLIGHT, new AstralStarlightPortType());
+            register(Ref.Ports.ASTRAL_LUMEN, new AstralLumenPortType());
         }
     }
 

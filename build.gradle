@@ -169,6 +169,12 @@ repositories {
             includeGroupByRegex 'com\\.blakebr0\\..*'
         }
     }
+    maven {
+        url = "https://maven.hellfiredev.net/"
+        content {
+            includeGroup 'hellfirepvp.observerlib'
+        }
+    } // ObserverLib, required by Astral Sorcery
 
     mavenCentral()
     maven { url = "https://jitpack.io" }
@@ -221,6 +227,8 @@ dependencies {
     compileOnly "curse.maven:ars-energistique-905641:${arseng_id}"
     compileOnly "curse.maven:applied-pneumatics-1355087:${appliedpneumatics_id}"
     compileOnly "software.bernie.geckolib:geckolib-neoforge-${mc_version}:${geckolib_version}"
+    compileOnly "curse.maven:astral-sorcery-241721:${astral_sorcery_id}"
+    compileOnly "hellfirepvp.observerlib:ObserverLib:${observerlib_version}"
 
     // Botania has no 1.21.1 release yet
     //compileOnly "vazkii.botania:Botania:${botania_version}"
@@ -284,6 +292,8 @@ dependencies {
     runtimeOnly "curse.maven:datapack-anvil-432817:${dpanvil_id}"
     runtimeOnly "curse.maven:oritech-1030830:${oritech_id}"
     runtimeOnly "curse.maven:athena-841890:${athena_id}"
+    runtimeOnly "curse.maven:astral-sorcery-241721:${astral_sorcery_id}"
+    runtimeOnly "hellfirepvp.observerlib:ObserverLib:${observerlib_version}"
 
     //runtimeOnly "vazkii.botania:Botania:${botania_version}"
 }

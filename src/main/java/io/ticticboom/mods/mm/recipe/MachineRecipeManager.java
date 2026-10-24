@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.recipe;
 
+import io.ticticboom.mods.mm.recipe.condition.astral.AstralConstellationRecipeCondition;
+import io.ticticboom.mods.mm.recipe.condition.astral.AstralEclipseRecipeCondition;
 import io.ticticboom.mods.mm.recipe.condition.biome.BiomeRecipeCondition;
 import io.ticticboom.mods.mm.recipe.condition.height.HeightRecipeCondition;
 import io.ticticboom.mods.mm.recipe.condition.redstone.RedstoneRecipeCondition;
@@ -26,6 +28,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
+import net.neoforged.fml.ModList;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -62,6 +65,10 @@ public class MachineRecipeManager extends SimpleJsonResourceReloadListener {
         CONDITION_PARSERS.put(Ref.RecipeConditions.REDSTONE, RedstoneRecipeCondition::parse);
         CONDITION_PARSERS.put(Ref.RecipeConditions.TIER, TierRecipeCondition::parse);
         CONDITION_PARSERS.put(Ref.RecipeConditions.NEARBY_STRUCTURE, NearbyStructureRecipeCondition::parse);
+        if (ModList.get().isLoaded("astralsorcery")) {
+            CONDITION_PARSERS.put(Ref.RecipeConditions.ASTRAL_CONSTELLATION, AstralConstellationRecipeCondition::parse);
+            CONDITION_PARSERS.put(Ref.RecipeConditions.ASTRAL_ECLIPSE, AstralEclipseRecipeCondition::parse);
+        }
     }
 
     public static IRecipeIngredientEntry parseIngredientEntry(JsonObject json) {

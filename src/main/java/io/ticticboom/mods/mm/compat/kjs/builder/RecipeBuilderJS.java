@@ -133,6 +133,16 @@ public class RecipeBuilderJS {
         return nearbyStructure(structure, min, StructureBoost.DEFAULT_RADIUS);
     }
 
+    @SuppressWarnings("unused")
+    public RecipeBuilderJS constellation(String constellation) {
+        return condition("astralsorcery/constellation", "constellation", constellation);
+    }
+
+    @SuppressWarnings("unused")
+    public RecipeBuilderJS eclipse(String eclipse) {
+        return condition("astralsorcery/eclipse", "eclipse", eclipse);
+    }
+
     private RecipeBuilderJS condition(String type, String key, String value) {
         var json = new JsonObject();
         json.addProperty("type", "mm:" + type);
