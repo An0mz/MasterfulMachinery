@@ -21,3 +21,5 @@ It allows modpack developers to create custom multiblock machines through data/c
 - Nuclear Radiation: [docs/radiation.md](docs/radiation.md)
 - ProjectE EMC: [docs/projecte.md](docs/projecte.md)
 - Single-block machines: [docs/single-block.md](docs/single-block.md)
+- Machine looks, GeckoLib models and fluid volumes: [docs/models.md](docs/models.md)
+- Astral Sorcery starlight and lumen: [docs/astral-sorcery.md](docs/astral-sorcery.md)

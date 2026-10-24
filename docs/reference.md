@@ -64,6 +64,9 @@ An event in the wrong folder silently never runs.
 | `workingSoundInterval` | no | Ticks between sounds. Default `40` |
 | `workingParticle` | no | A particle shown around the controller while the machine works, e.g. `minecraft:smoke` |
 | `unformedColor` / `idleColor` / `workingColor` | no | The controller screen's colour in each state, as `#RRGGBB` |
+| `idleModel` / `workingModel` / `unformedModel` | no | A model for one state — see [`models.md`](models.md) |
+| `idleOverlay` / `workingOverlay` / `unformedOverlay` | no | An overlay for one state — see [`models.md`](models.md) |
+| `geoModel` | no | An animated GeckoLib model — see [`models.md`](models.md) |
 
 Recipe selection modes:
 
@@ -178,6 +181,8 @@ shows its machine's state, in the screen colours.
 | `mm:nuclear_radiation/radiation` | Nuclear Radiation | see [`radiation.md`](radiation.md) | `isotope` (optional), `amount` (Bq) |
 | `mm:ars_nouveau/source` | Ars Nouveau | see [`ars-nouveau.md`](ars-nouveau.md) | `source` |
 | `mm:projecte/emc` | ProjectE | see [`projecte.md`](projecte.md) | `emc` |
+| `mm:astralsorcery/starlight` | Astral Sorcery | `capacity` — see [`astral-sorcery.md`](astral-sorcery.md) | `starlight`, `constellation` (optional) |
+| `mm:astralsorcery/lumen` | Astral Sorcery | `capacity`, `lumen` — see [`astral-sorcery.md`](astral-sorcery.md) | `lumen`, `amount` |
 | `mm:replication/link` | Replication | none — see [`replication.md`](replication.md) | cannot be used in recipes |
 | `mm:ae2/pattern` | AE2 | see [`ae2.md`](ae2.md) | cannot be used in recipes |
 
@@ -237,6 +242,8 @@ Config methods per type:
 | `mm:botania/mana` | `capacity` |
 | `mm:ars_nouveau/source` | `capacity`, `range` |
 | `mm:projecte/emc` | `capacity`, `kleinSlot`, `kleinRate` |
+| `mm:astralsorcery/starlight` | `capacity` |
+| `mm:astralsorcery/lumen` | `capacity`, `lumen` |
 | `mm:ae2/pattern` | `patternPriority` |
 
 The entity, Mekanism and Replication methods are in their own docs. Call `.controllerId(...)` once
@@ -328,6 +335,9 @@ Add `"defaultIgnored": true` to a list to also accept any block at all. State li
 | `maxParallelRecipes` | Overrides the controller's limit for this structure |
 | `portsAnywhere` | As above |
 | `tier` | The structure's tier number, used by `minTier` / `maxTier` recipe conditions. Without it, the tier is read from the name: "Tier 2", "Mk II", "Level 3" and so on, or `1` |
+| `boosts` | Speed bonuses from other machines nearby — see [Boosts](#boosts) |
+| `geoModel` | An animated GeckoLib model for this structure — see [`models.md`](models.md) |
+| `visuals` | Fluid that fills up inside the machine — see [`models.md`](models.md) |
 
 KubeJS:
 
@@ -350,6 +360,30 @@ MMEvents.createStructures(event => {
 Layers go top to bottom, the same as in JSON. Give the structure id a namespace — `kubejs:alloy_kiln`,
 not `alloy_kiln`. `.portsAnywhere(true)` goes on the layout, `.maxParallelRecipes(n)` on the
 structure.
+
+### Boosts
+
+A machine can run faster for every other machine of a given structure built nearby:
+
+```json
+"boosts": [
+  { "structure": "mypack:heat_vent", "speed": 0.25, "radius": 16, "max": 4 }
+]
+```
+
+| Key | Default | Meaning |
+|---|---|---|
+| `structure` | required | Which structure counts |
+| `speed` | `0` | Added speed per machine found. `0.25` is 25% faster for each one |
+| `radius` | `16` | How many blocks from this controller to look, in every direction |
+| `max` | no limit | The most machines that count |
+
+The example makes the machine up to twice as fast with four heat vents around it. Only formed
+machines count, and a machine never counts itself. Several boosts add up, together with entity port
+speed bonuses.
+
+KubeJS: `.boost('mypack:heat_vent', 0.25, 16, 4)` on the structure. `radius` and `max` can be left
+off from the end.
 
 ## Processes
 
@@ -409,6 +443,38 @@ An item ingredient can also be written as just a string: `"ingredient": "minecra
 Here iron comes out 60% of the time, gold 30%, and an option with no ingredient means nothing, 10%.
 `chance` works on the whole entry as on other outputs. JEI shows each option with its odds.
 
+### Merging enchantments
+
+`mm:output/merge_enchantments` makes one item carrying the enchantments of everything the recipe
+took in, like an anvil:
+
+```json
+{
+  "structureId": "mypack:enchant_fuser",
+  "ticks": 200,
+  "inputs": [
+    { "type": "mm:input/consume", "ingredient": { "type": "mm:item", "item": "minecraft:enchanted_book", "count": 2 } }
+  ],
+  "outputs": [
+    { "type": "mm:output/merge_enchantments", "maxLevel": 5 }
+  ]
+}
+```
+
+| Key | Default | Meaning |
+|---|---|---|
+| `item` | `minecraft:enchanted_book` | The item that comes out |
+| `maxLevel` | `255` | No enchantment goes above this level |
+
+- Two of the same enchantment at the **same** level become one level higher: two Sharpness III
+  make Sharpness IV. At different levels, the higher one is kept.
+- Enchantments on items and stored on books both count.
+- If one of the inputs is the `item` itself, the output is that item with its other data kept, so a
+  sword and a book make the same sword with the book's enchantments added.
+- Enchantments are not checked against each other or against the item, so Fortune and Silk Touch can
+  end up together.
+- One item comes out per craft.
+
 ### Random amounts
 
 Any `count` or `amount` can be a range:
@@ -446,6 +512,10 @@ Every condition has to pass. While one fails, the recipe does not start, and a r
 | `mm:height` | `minY`, `maxY` (either or both) | The controller's Y is in range |
 | `mm:redstone` | `redstone`: `powered` or `unpowered` | The controller does or does not get a signal |
 | `mm:tier` | `minTier`, `maxTier` (either or both) | The structure's `tier` is in range |
+| `mm:nearby_structure` | `structure`, `min` (default `1`), `radius` (default `16`) | At least `min` other formed machines of that structure have their controller within `radius` blocks |
+
+Astral Sorcery adds `mm:astralsorcery/constellation` and `mm:astralsorcery/eclipse` — see
+[`astral-sorcery.md`](astral-sorcery.md).
 
 JEI lists a recipe's conditions under it.
 
@@ -459,6 +529,25 @@ Item ingredients can require data on the item:
 
 `nbt` is SNBT text or a JSON object. By default the item only needs to contain those values;
 `"nbt_match": "strong"` makes it match exactly.
+
+### Item components
+
+`components` matches items by their data components, using the same component ids as `/give`:
+
+```json
+{
+  "type": "mm:item",
+  "item": "minecraft:diamond_sword",
+  "components": {
+    "minecraft:rarity": "epic",
+    "!minecraft:custom_name": {}
+  }
+}
+```
+
+The item must have every listed component with exactly that value. A `!` in front means it must
+**not** have that component, which only works for components the item does not have by default.
+On an output, the item comes out with the components set and the `!` ones removed.
 
 KubeJS:
 
@@ -487,6 +576,9 @@ More builder methods:
 | `.minY(-64)`, `.maxY(0)` | `mm:height` |
 | `.redstone('powered')` | `mm:redstone` |
 | `.minTier(2)`, `.maxTier(3)` | `mm:tier` |
+| `.nearbyStructure('mypack:heat_vent', 2, 16)` | `mm:nearby_structure` with `min` and `radius`. The radius can be left off |
+| `.constellation('astralsorcery:aevitas')` | `mm:astralsorcery/constellation` |
+| `.eclipse('solar')` | `mm:astralsorcery/eclipse` |
 
 ### Recipe events
 
@@ -632,6 +724,12 @@ MMEvents.builderStructures(event => {
     event.removeNamespace('someothermod')
 })
 ```
+
+## Oritech black holes
+
+With Oritech installed, a machine can contain an Oritech black hole. While the machine is formed, a
+black hole inside it does not pull in blocks, and black holes nearby do not pull blocks out of the
+machine. Once the machine breaks apart, its blocks are fair game again.
 
 ## Config
 
