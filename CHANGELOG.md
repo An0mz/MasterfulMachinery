@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.16.0] - 2026-10-24
+
+### Added
+- **Astral Sorcery support.** A starlight port (`mm:astralsorcery/starlight`) takes starlight from
+  lenses linked to it with the Linking Tool, kept per constellation. A lumen port
+  (`mm:astralsorcery/lumen`) pulls lumen from Astral's network as an input and supplies Astral
+  blocks as an output. Recipes can also require a constellation in the sky
+  (`mm:astralsorcery/constellation`) or an eclipse (`mm:astralsorcery/eclipse`). From KubeJS,
+  `.constellation(...)` and `.eclipse(...)`.
+- **Etheria support.** An ether port (`mm:etheria/ether`) with a slot for ether vessels like the
+  Ether Orb and Ether Crystal. Input ports empty the vessel, output ports fill it. Pipes and hoppers
+  can insert vessels, and take them out once they are empty (input) or full (output). Set
+  `capacity`, and optionally `vesselRate` to limit ether moved per tick. Recipes use
+  `{ "type": "mm:etheria/ether", "ether": 300 }`.
+- **Boosts from nearby machines.** Add `boosts` to a structure to make it faster for every formed
+  machine of another structure built nearby: `structure`, `speed` per machine, `radius` and `max`.
+  From KubeJS, `.boost('mypack:heat_vent', 0.25, 16, 4)`.
+- **`mm:nearby_structure` condition.** A recipe only runs when at least `min` formed machines of a
+  structure are within `radius` blocks. From KubeJS, `.nearbyStructure(...)`.
+- **`mm:output/merge_enchantments`** makes one item carrying the enchantments of everything the
+  recipe took in, like an anvil. By default the gear piece that went in comes back out with the
+  enchantments added; with only books, you get an enchanted book. Set `item` to an item or `#tag`
+  to choose which input is kept. Levels stop at each enchantment's normal max unless you set
+  `maxLevel`. Clashing enchantments (like the different protections) are left off unless
+  `allowConflicting` is `true`, and ones the item can't take (like Soul Speed on a chestplate)
+  are left off unless `allowUnsupported` is `true`. Anything left off comes out on a separate
+  enchanted book; set `leftoverBook` to `false` to drop them instead.
+- **Single-block machines link to JEI.** Click the progress bar on a single-block machine's screen
+  to see its recipes.
+
+
 ## [1.21.1-0.15.0] - 2026-10-17
 
 ### Added
