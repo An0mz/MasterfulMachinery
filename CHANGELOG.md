@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
-## [1.21.1-0.16.0] - 2026-10-24
+## [1.21.1-0.16.0] - 2026-10-28
 
 ### Added
 - **Astral Sorcery support.** A starlight port (`mm:astralsorcery/starlight`) takes starlight from

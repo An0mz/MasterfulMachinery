@@ -445,35 +445,44 @@ Here iron comes out 60% of the time, gold 30%, and an option with no ingredient 
 
 ### Merging enchantments
 
-`mm:output/merge_enchantments` makes one item carrying the enchantments of everything the recipe
-took in, like an anvil:
+`mm:output/merge_enchantments` combines the enchantments of everything the recipe took in, like an
+anvil:
 
 ```json
 {
   "structureId": "mypack:enchant_fuser",
   "ticks": 200,
   "inputs": [
-    { "type": "mm:input/consume", "ingredient": { "type": "mm:item", "item": "minecraft:enchanted_book", "count": 2 } }
+    { "type": "mm:input/consume", "ingredient": { "type": "mm:item", "item": "minecraft:diamond_chestplate" } },
+    { "type": "mm:input/consume", "ingredient": { "type": "mm:item", "item": "minecraft:enchanted_book" } }
   ],
   "outputs": [
-    { "type": "mm:output/merge_enchantments", "maxLevel": 5 }
+    { "type": "mm:output/merge_enchantments" }
   ]
 }
 ```
 
+A chestplate and a book with Mending and Soul Speed make the same chestplate with Mending, plus a
+book with Soul Speed, since chestplates can't take it.
+
 | Key | Default | Meaning |
 |---|---|---|
-| `item` | `minecraft:enchanted_book` | The item that comes out |
-| `maxLevel` | `255` | No enchantment goes above this level |
+| `item` | the gear piece that went in | Which input comes back out with the enchantments. An item id or a `#tag` |
+| `maxLevel` | each enchantment's normal max | No enchantment goes above this level |
+| `allowConflicting` | `false` | Let clashing enchantments go together, like all four protections |
+| `allowUnsupported` | `false` | Let the item take enchantments it normally can't, like Soul Speed on a chestplate |
+| `leftoverBook` | `true` | Put enchantments that were left off on a separate enchanted book. `false` drops them |
 
+- The kept item comes out with its other data, like damage and name, unchanged. With no `item` set
+  and only books going in, you get an enchanted book.
+- If `item` is set but nothing that went in matches it, nothing comes out.
 - Two of the same enchantment at the **same** level become one level higher: two Sharpness III
-  make Sharpness IV. At different levels, the higher one is kept.
+  make Sharpness IV. At different levels, the higher one is kept. The order things go in doesn't
+  matter.
 - Enchantments on items and stored on books both count.
-- If one of the inputs is the `item` itself, the output is that item with its other data kept, so a
-  sword and a book make the same sword with the book's enchantments added.
-- Enchantments are not checked against each other or against the item, so Fortune and Silk Touch can
-  end up together.
-- One item comes out per craft.
+- When two enchantments clash, the one the item already had wins, then the higher level.
+- Clashes follow the game's enchantment tags, so a datapack that changes them changes this too.
+- When there's a leftover book, the recipe waits until there's room for it as well.
 
 ### Random amounts
 
