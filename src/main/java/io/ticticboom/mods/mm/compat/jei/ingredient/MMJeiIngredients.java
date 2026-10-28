@@ -2,6 +2,7 @@ package io.ticticboom.mods.mm.compat.jei.ingredient;
 
 import io.ticticboom.mods.mm.compat.jei.ingredient.create.CreateRotationIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.emc.EmcIngredientType;
+import io.ticticboom.mods.mm.compat.jei.ingredient.ether.EtherIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.energy.EnergyIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.entity.EntityIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.heat.HeatIngredientType;
@@ -31,4 +32,5 @@ public class MMJeiIngredients {
     public static final ArsSourceIngredientType ARS_SOURCE = new ArsSourceIngredientType();
     public static final EmcIngredientType PROJECTE_EMC = new EmcIngredientType();
     public static final StarlightIngredientType ASTRAL_STARLIGHT = new StarlightIngredientType();
+    public static final EtherIngredientType ETHERIA_ETHER = new EtherIngredientType();
 }

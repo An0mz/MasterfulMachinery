@@ -57,6 +57,8 @@ import io.ticticboom.mods.mm.compat.jei.ingredient.starlight.StarlightIngredient
 import io.ticticboom.mods.mm.compat.jei.ingredient.starlight.StarlightIngredientRenderer;
 import io.ticticboom.mods.mm.compat.jei.ingredient.emc.EmcIngredientHelper;
 import io.ticticboom.mods.mm.compat.jei.ingredient.emc.EmcIngredientRenderer;
+import io.ticticboom.mods.mm.compat.jei.ingredient.ether.EtherIngredientHelper;
+import io.ticticboom.mods.mm.compat.jei.ingredient.ether.EtherIngredientRenderer;
 import io.ticticboom.mods.mm.util.ItemNbtUtil;
 
 @SuppressWarnings("unused")
@@ -150,6 +152,7 @@ public class MMJeiPlugin implements IModPlugin {
         registration.register(MMJeiIngredients.ARS_SOURCE, ImmutableList.of(), new ArsSourceIngredientHelper(), new ArsSourceIngredientRenderer());
         registration.register(MMJeiIngredients.PROJECTE_EMC, ImmutableList.of(), new EmcIngredientHelper(), new EmcIngredientRenderer());
         registration.register(MMJeiIngredients.ASTRAL_STARLIGHT, ImmutableList.of(), new StarlightIngredientHelper(), new StarlightIngredientRenderer());
+        registration.register(MMJeiIngredients.ETHERIA_ETHER, ImmutableList.of(), new EtherIngredientHelper(), new EtherIngredientRenderer());
     }
 
     @Override

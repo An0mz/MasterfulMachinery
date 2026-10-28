@@ -11,6 +11,7 @@ import io.ticticboom.mods.mm.port.astral.starlight.AstralStarlightPortType;
 import io.ticticboom.mods.mm.port.botania.mana.BotaniaManaPortType;
 import io.ticticboom.mods.mm.port.energy.EnergyPortType;
 import io.ticticboom.mods.mm.port.entity.EntityPortType;
+import io.ticticboom.mods.mm.port.etheria.ether.EtheriaEtherPortType;
 import io.ticticboom.mods.mm.port.fluid.FluidPortType;
 import io.ticticboom.mods.mm.port.item.ItemPortType;
 import io.ticticboom.mods.mm.port.kinetic.CreateKineticPortType;
@@ -81,6 +82,10 @@ public class MMPortRegistry {
         if (ModList.get().isLoaded("astralsorcery")) {
             register(Ref.Ports.ASTRAL_STARLIGHT, new AstralStarlightPortType());
             register(Ref.Ports.ASTRAL_LUMEN, new AstralLumenPortType());
+        }
+
+        if (ModList.get().isLoaded("etheria")) {
+            register(Ref.Ports.ETHERIA_ETHER, new EtheriaEtherPortType());
         }
     }
 

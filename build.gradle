@@ -228,6 +228,7 @@ dependencies {
     compileOnly "curse.maven:applied-pneumatics-1355087:${appliedpneumatics_id}"
     compileOnly "software.bernie.geckolib:geckolib-neoforge-${mc_version}:${geckolib_version}"
     compileOnly "curse.maven:astral-sorcery-241721:${astral_sorcery_id}"
+    compileOnly "curse.maven:etheria-1100499:${etheria_id}"
     compileOnly "hellfirepvp.observerlib:ObserverLib:${observerlib_version}"
 
     // Botania has no 1.21.1 release yet
@@ -293,6 +294,8 @@ dependencies {
     runtimeOnly "curse.maven:oritech-1030830:${oritech_id}"
     runtimeOnly "curse.maven:athena-841890:${athena_id}"
     runtimeOnly "curse.maven:astral-sorcery-241721:${astral_sorcery_id}"
+    runtimeOnly "curse.maven:etheria-1100499:${etheria_id}"
+    runtimeOnly "curse.maven:ethecore-1531354:${ethecore_id}"
     runtimeOnly "hellfirepvp.observerlib:ObserverLib:${observerlib_version}"
 
     //runtimeOnly "vazkii.botania:Botania:${botania_version}"

@@ -40,6 +40,7 @@ public class Ref {
         public static final ResourceLocation NUCLEAR_RADIATION = id("nuclear_radiation/radiation");
         public static final ResourceLocation ASTRAL_STARLIGHT = id("astralsorcery/starlight");
         public static final ResourceLocation ASTRAL_LUMEN = id("astralsorcery/lumen");
+        public static final ResourceLocation ETHERIA_ETHER = id("etheria/ether");
 
         public static final ResourceLocation REPLICATION_MATTER = id("replication/matter");
         public static final ResourceLocation REPLICATION_LINK = id("replication/link");
@@ -151,6 +152,9 @@ public class Ref {
 
         public static final ResourceLocation INPUT_ASTRAL_LUMEN_PORT_OVERLAY = id("block/compat_ports/astral_lumen_input_cutout");
         public static final ResourceLocation OUTPUT_ASTRAL_LUMEN_PORT_OVERLAY = id("block/compat_ports/astral_lumen_output_cutout");
+
+        public static final ResourceLocation INPUT_ETHERIA_ETHER_PORT_OVERLAY = id("block/compat_ports/etheria_ether_input_cutout");
+        public static final ResourceLocation OUTPUT_ETHERIA_ETHER_PORT_OVERLAY = id("block/compat_ports/etheria_ether_output_cutout");
     }
 
     public static class UiTextures {
