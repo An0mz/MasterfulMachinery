@@ -4,6 +4,8 @@ import com.google.common.collect.ImmutableList;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.client.tool.MultiblockToolScreen;
 import io.ticticboom.mods.mm.controller.machine.register.MachineControllerScreen;
+import io.ticticboom.mods.mm.controller.single.register.SingleMachineLayout;
+import io.ticticboom.mods.mm.controller.single.register.SingleMachineScreen;
 import io.ticticboom.mods.mm.compat.jei.category.MMRecipeCategory;
 import io.ticticboom.mods.mm.compat.jei.category.MMStructureCategory;
 import io.ticticboom.mods.mm.compat.jei.ingredient.MMJeiIngredients;
@@ -29,10 +31,12 @@ import io.ticticboom.mods.mm.structure.StructureManager;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
+import mezz.jei.api.gui.handlers.IGuiClickableArea;
 import mezz.jei.api.gui.handlers.IGuiContainerHandler;
 import mezz.jei.api.gui.builder.IClickableIngredientFactory;
 import mezz.jei.api.runtime.IClickableIngredient;
 import mezz.jei.api.neoforge.NeoForgeTypes;
+import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.registration.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.renderer.Rect2i;
@@ -41,6 +45,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -207,5 +212,27 @@ public class MMJeiPlugin implements IModPlugin {
                 };
             }
         });
+        registration.addGuiContainerHandler(SingleMachineScreen.class, new IGuiContainerHandler<>() {
+            @Override
+            public @NotNull Collection<IGuiClickableArea> getGuiClickableAreas(@NotNull SingleMachineScreen screen, double mouseX, double mouseY) {
+                var type = recipeTypeFor(Ref.id(screen.getMenu().getModel().id()));
+                if (type == null) return List.of();
+                var layout = screen.getMenu().getLayout();
+                return List.of(IGuiClickableArea.createBasic(layout.barX(), layout.barY() - 3,
+                        SingleMachineLayout.BAR_W, SingleMachineLayout.BAR_H + 15, type));
+            }
+        });
+    }
+
+    private static RecipeType<RecipeModel> recipeTypeFor(ResourceLocation structureId) {
+        if (!MMConfig.JEI_RECIPE_SPLIT) {
+            return MMRecipeCategory.RECIPE_TYPE;
+        }
+        for (var category : recipeCategories) {
+            if (category.getStructureModel() != null && category.getStructureModel().id().equals(structureId)) {
+                return category.getRecipeType();
+            }
+        }
+        return null;
     }
 }
