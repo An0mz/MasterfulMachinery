@@ -51,13 +51,15 @@ public class MergeEnchantmentsOutputEntry implements IRecipeOutputEntry {
     private final Integer maxLevel;
     private final boolean allowConflicting;
     private final boolean allowUnsupported;
+    private final boolean leftoverBook;
 
-    public MergeEnchantmentsOutputEntry(Item item, TagKey<Item> tag, Integer maxLevel, boolean allowConflicting, boolean allowUnsupported) {
+    public MergeEnchantmentsOutputEntry(Item item, TagKey<Item> tag, Integer maxLevel, boolean allowConflicting, boolean allowUnsupported, boolean leftoverBook) {
         this.item = item;
         this.tag = tag;
         this.maxLevel = maxLevel == null ? null : Math.max(1, Math.min(maxLevel, LEVEL_LIMIT));
         this.allowConflicting = allowConflicting;
         this.allowUnsupported = allowUnsupported;
+        this.leftoverBook = leftoverBook;
     }
 
     public static IRecipeOutputEntry parse(JsonObject json) {
@@ -78,7 +80,8 @@ public class MergeEnchantmentsOutputEntry implements IRecipeOutputEntry {
         Integer maxLevel = json.has("maxLevel") ? json.get("maxLevel").getAsInt() : null;
         boolean allowConflicting = json.has("allowConflicting") && json.get("allowConflicting").getAsBoolean();
         boolean allowUnsupported = json.has("allowUnsupported") && json.get("allowUnsupported").getAsBoolean();
-        return new MergeEnchantmentsOutputEntry(item, tag, maxLevel, allowConflicting, allowUnsupported);
+        boolean leftoverBook = !json.has("leftoverBook") || json.get("leftoverBook").getAsBoolean();
+        return new MergeEnchantmentsOutputEntry(item, tag, maxLevel, allowConflicting, allowUnsupported, leftoverBook);
     }
 
     @Override
@@ -109,10 +112,15 @@ public class MergeEnchantmentsOutputEntry implements IRecipeOutputEntry {
     }
 
     public ItemStack result(RecipeStateModel state) {
+        List<ItemStack> results = results(state);
+        return results.isEmpty() ? ItemStack.EMPTY : results.get(0);
+    }
+
+    public List<ItemStack> results(RecipeStateModel state) {
         List<ItemStack> consumed = state == null || state.getConsumedItems() == null ? List.of() : state.getConsumedItems();
         ItemStack result = base(consumed);
         if (result.isEmpty()) {
-            return result;
+            return List.of();
         }
         Set<Holder<Enchantment>> own = EnchantmentHelper.getEnchantmentsForCrafting(result).keySet();
         Map<Holder<Enchantment>, IntList> levels = new LinkedHashMap<>();
@@ -130,12 +138,21 @@ public class MergeEnchantmentsOutputEntry implements IRecipeOutputEntry {
                 .thenComparing(MergeEnchantmentsOutputEntry::key));
         boolean book = result.is(Items.ENCHANTED_BOOK);
         var merged = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
+        var leftover = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
         for (Holder<Enchantment> holder : order) {
-            if (!accepts(result, book, merged, holder)) continue;
-            merged.set(holder, combined.getInt(holder));
+            if (accepts(result, book, merged, holder)) {
+                merged.set(holder, combined.getInt(holder));
+            } else {
+                leftover.set(holder, combined.getInt(holder));
+            }
         }
         EnchantmentHelper.setEnchantments(result, merged.toImmutable());
-        return result;
+        if (!leftoverBook || leftover.keySet().isEmpty()) {
+            return List.of(result);
+        }
+        ItemStack extra = new ItemStack(Items.ENCHANTED_BOOK);
+        EnchantmentHelper.setEnchantments(extra, leftover.toImmutable());
+        return List.of(result, extra);
     }
 
     private static void collect(Map<Holder<Enchantment>, IntList> levels, ItemEnchantments from) {
@@ -171,8 +188,13 @@ public class MergeEnchantmentsOutputEntry implements IRecipeOutputEntry {
     @Override
     public boolean canOutput(Level level, RecipeStorages storages, RecipeStateModel state) {
         if (storages == null) return false;
-        ItemStack stack = result(state);
-        if (stack.isEmpty()) return true;
+        for (ItemStack stack : results(state)) {
+            if (!fits(storages, stack)) return false;
+        }
+        return true;
+    }
+
+    private static boolean fits(RecipeStorages storages, ItemStack stack) {
         int remaining = 1;
         for (ItemPortStorage storage : storages.getOutputItemStorages(stack.getItem())) {
             remaining = storage.canInsert(stack, remaining);
@@ -183,12 +205,12 @@ public class MergeEnchantmentsOutputEntry implements IRecipeOutputEntry {
 
     @Override
     public void output(Level level, RecipeStorages storages, RecipeStateModel state) {
-        ItemStack stack = result(state);
-        if (stack.isEmpty()) return;
-        int remaining = 1;
-        for (ItemPortStorage storage : storages.getOutputItemStorages(stack.getItem())) {
-            if (remaining <= 0) break;
-            remaining = storage.insert(stack, remaining);
+        for (ItemStack stack : results(state)) {
+            int remaining = 1;
+            for (ItemPortStorage storage : storages.getOutputItemStorages(stack.getItem())) {
+                if (remaining <= 0) break;
+                remaining = storage.insert(stack, remaining);
+            }
         }
     }
 
@@ -206,6 +228,9 @@ public class MergeEnchantmentsOutputEntry implements IRecipeOutputEntry {
                     list.add(Component.translatable("jei.mm.recipe.merge_enchantments").withStyle(ChatFormatting.DARK_AQUA));
                     if (maxLevel != null) {
                         list.add(Component.translatable("jei.mm.recipe.merge_enchantments.max_level", maxLevel).withStyle(ChatFormatting.DARK_AQUA));
+                    }
+                    if (leftoverBook) {
+                        list.add(Component.translatable("jei.mm.recipe.merge_enchantments.leftover").withStyle(ChatFormatting.DARK_AQUA));
                     }
                 });
     }
@@ -226,7 +251,8 @@ public class MergeEnchantmentsOutputEntry implements IRecipeOutputEntry {
         if (maxLevel != null) json.addProperty("maxLevel", maxLevel);
         json.addProperty("allowConflicting", allowConflicting);
         json.addProperty("allowUnsupported", allowUnsupported);
-        json.addProperty("result", result(model).toString());
+        json.addProperty("leftoverBook", leftoverBook);
+        json.addProperty("result", results(model).toString());
         return json;
     }
 }
