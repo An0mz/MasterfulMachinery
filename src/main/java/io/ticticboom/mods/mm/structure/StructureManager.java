@@ -13,6 +13,7 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -116,6 +117,7 @@ public class StructureManager extends SimpleJsonResourceReloadListener {
         var list = STRUCTURES_BY_CONTROLLER.computeIfAbsent(controllerId, x -> new ArrayList<>());
         list.removeIf(existing -> existing.id().equals(structure.id()));
         list.add(structure);
+        list.sort(Comparator.comparingDouble(StructureTier::of).reversed());
     }
 
 }

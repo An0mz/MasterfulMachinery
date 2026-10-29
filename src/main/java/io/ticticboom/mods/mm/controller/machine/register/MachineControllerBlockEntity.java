@@ -39,6 +39,7 @@ import io.ticticboom.mods.mm.structure.NearbyMachines;
 import io.ticticboom.mods.mm.structure.StructureBoost;
 import io.ticticboom.mods.mm.structure.StructureManager;
 import io.ticticboom.mods.mm.structure.StructureModel;
+import io.ticticboom.mods.mm.structure.StructureTier;
 import io.ticticboom.mods.mm.structure.attachment.visuals.FluidVolumeState;
 import io.ticticboom.mods.mm.structure.attachment.visuals.VisualsStructureAttachment;
 import lombok.Getter;
@@ -267,16 +268,14 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
 
     private void validateStructure() {
         var pos = getBlockPos();
-        if (structure != null) {
-            var rotation = structure.formedRotation(level, pos, formedRotation);
-            if (rotation != null) {
-                formed(rotation);
-                return;
-            }
-        }
+        Rotation current = structure == null ? null : structure.formedRotation(level, pos, formedRotation);
+        double currentTier = current == null ? Double.NEGATIVE_INFINITY : StructureTier.of(structure);
         for (StructureModel candidate : StructureManager.getStructuresForController(controllerId)) {
             if (candidate == structure) {
                 continue;
+            }
+            if (current != null && StructureTier.of(candidate) <= currentTier) {
+                break;
             }
             var rotation = candidate.formedRotation(level, pos, null);
             if (rotation != null) {
@@ -284,6 +283,10 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                 formed(rotation);
                 return;
             }
+        }
+        if (current != null) {
+            formed(current);
+            return;
         }
         unformed();
     }

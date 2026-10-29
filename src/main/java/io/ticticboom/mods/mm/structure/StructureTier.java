@@ -14,6 +14,9 @@ public final class StructureTier {
         if (config != null && config.has("tier") && config.get("tier").isJsonPrimitive()) {
             return config.get("tier").getAsDouble();
         }
+        if (structure.name() == null) {
+            return 1;
+        }
         var m = IN_NAME.matcher(structure.name());
         if (!m.find()) {
             return 1;

@@ -57,12 +57,9 @@ The same in JSON, one file per structure:
 ```
 
 The controller forms as whichever structure is built around it, and its screen shows the tier.
-
-**Make each tier differ in at least one spot.** If Mk II is just Mk I with more blocks around it, a
-Mk II build also matches Mk I, and the machine can form as either. A machine that is already formed
-keeps its structure for as long as that structure still matches, so an upgraded Mk I can stay Mk I.
-Use a different casing, as above, or put a block in a spot that Mk I leaves empty and requires to be
-`minecraft:air`.
+When a build matches more than one tier, the highest wins. So a tier can be the one below it plus
+extra blocks, or the same build with one block swapped for an upgrade block: adding the block
+upgrades the machine, and removing it drops it back down.
 
 ### Tier from the name
 
