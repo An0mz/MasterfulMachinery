@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.21.1-0.16.1] - 2026-10-29
 
 ### Added
 - **More KubeJS methods.** Controllers take `.unformedModel(...)` and `.unformedOverlay(...)`.
