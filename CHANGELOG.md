@@ -15,6 +15,10 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 - **Level caps per enchantment.** `mm:output/merge_enchantments` takes `maxLevels`, e.g.
   `{ "minecraft:fortune": 3 }`, which wins over `maxLevel` for the enchantments it lists.
 
+### Changed
+- **Machines form as the highest tier they match.** A tier built as the one below plus extra blocks,
+  or with one upgrade block swapped in, now upgrades as soon as the blocks are placed.
+
 ### Fixed
 - Extra block names from KubeJS take the coloured forms, like `.name({ text: 'Casing', color: '#FF8800' })`,
   the same as controllers and ports.
