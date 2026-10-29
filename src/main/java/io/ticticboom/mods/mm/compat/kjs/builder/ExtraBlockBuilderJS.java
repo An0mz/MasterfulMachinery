@@ -1,8 +1,9 @@
 package io.ticticboom.mods.mm.compat.kjs.builder;
 
+import com.google.gson.JsonElement;
+import io.ticticboom.mods.mm.compat.kjs.KubeJsValues;
 import io.ticticboom.mods.mm.extra.ExtraBlockModel;
-import net.minecraft.network.chat.Component;
-import io.ticticboom.mods.mm.recipe.RecipeStorages;
+import io.ticticboom.mods.mm.util.ParserUtils;
 import lombok.Getter;
 import net.minecraft.resources.ResourceLocation;
 
@@ -11,14 +12,16 @@ public class ExtraBlockBuilderJS {
     private final String id;
     private ResourceLocation type;
     private String name;
+    private JsonElement nameSpec;
     private String connectGroup;
 
     public ExtraBlockBuilderJS(String id) {
         this.id = id;
     }
 
-    public ExtraBlockBuilderJS name(String name) {
-        this.name = name;
+    public ExtraBlockBuilderJS name(Object name) {
+        this.nameSpec = KubeJsValues.toJson(name);
+        this.name = ParserUtils.parseComponentKey(nameSpec);
         return this;
     }
 
@@ -33,6 +36,6 @@ public class ExtraBlockBuilderJS {
     }
 
     public ExtraBlockModel build() {
-        return new ExtraBlockModel(id, name, Component.literal(name), type, connectGroup);
+        return new ExtraBlockModel(id, name, ParserUtils.parseNameSupplier(nameSpec), type, connectGroup);
     }
 }

@@ -12,6 +12,12 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   object as `stateLists` in JSON.
 - **A KubeJS page in the docs** listing every event and method, with examples for the newer
   features.
+- **Level caps per enchantment.** `mm:output/merge_enchantments` takes `maxLevels`, e.g.
+  `{ "minecraft:fortune": 3 }`, which wins over `maxLevel` for the enchantments it lists.
+
+### Fixed
+- Extra block names from KubeJS take the coloured forms, like `.name({ text: 'Casing', color: '#FF8800' })`,
+  the same as controllers and ports.
 
 ## [1.21.1-0.16.0] - 2026-10-28
 

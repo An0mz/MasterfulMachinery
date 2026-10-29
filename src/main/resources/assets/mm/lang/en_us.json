@@ -201,6 +201,7 @@
   "jei.mm.recipe.output_per_tick": "Output Per Tick",
   "jei.mm.recipe.merge_enchantments": "Combines the enchantments of the items put in",
   "jei.mm.recipe.merge_enchantments.max_level": "Up to level %s",
+  "jei.mm.recipe.merge_enchantments.max_level_of": "%s up to level %s",
   "jei.mm.recipe.merge_enchantments.leftover": "Enchantments that don't fit come out on a book",
   "jei.mm.recipe.consumes_range": "Consumes %s-%s per craft",
   "jei.mm.recipe.outputs_range": "Outputs %s-%s per craft",

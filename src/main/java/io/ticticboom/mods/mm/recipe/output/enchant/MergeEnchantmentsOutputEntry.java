@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.recipe.output.enchant;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import io.ticticboom.mods.mm.compat.jei.SlotGrid;
@@ -20,6 +21,7 @@ import mezz.jei.api.helpers.IJeiHelpers;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import net.minecraft.ChatFormatting;
+import net.minecraft.Util;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -49,14 +51,17 @@ public class MergeEnchantmentsOutputEntry implements IRecipeOutputEntry {
     private final Item item;
     private final TagKey<Item> tag;
     private final Integer maxLevel;
+    private final Map<ResourceLocation, Integer> maxLevels;
     private final boolean allowConflicting;
     private final boolean allowUnsupported;
     private final boolean leftoverBook;
 
-    public MergeEnchantmentsOutputEntry(Item item, TagKey<Item> tag, Integer maxLevel, boolean allowConflicting, boolean allowUnsupported, boolean leftoverBook) {
+    public MergeEnchantmentsOutputEntry(Item item, TagKey<Item> tag, Integer maxLevel, Map<ResourceLocation, Integer> maxLevels, boolean allowConflicting, boolean allowUnsupported, boolean leftoverBook) {
         this.item = item;
         this.tag = tag;
-        this.maxLevel = maxLevel == null ? null : Math.max(1, Math.min(maxLevel, LEVEL_LIMIT));
+        this.maxLevel = maxLevel == null ? null : clampLevel(maxLevel);
+        this.maxLevels = new LinkedHashMap<>();
+        maxLevels.forEach((id, level) -> this.maxLevels.put(id, clampLevel(level)));
         this.allowConflicting = allowConflicting;
         this.allowUnsupported = allowUnsupported;
         this.leftoverBook = leftoverBook;
@@ -78,10 +83,20 @@ public class MergeEnchantmentsOutputEntry implements IRecipeOutputEntry {
             }
         }
         Integer maxLevel = json.has("maxLevel") ? json.get("maxLevel").getAsInt() : null;
+        Map<ResourceLocation, Integer> maxLevels = new LinkedHashMap<>();
+        if (json.has("maxLevels")) {
+            for (Map.Entry<String, JsonElement> entry : json.getAsJsonObject("maxLevels").entrySet()) {
+                maxLevels.put(ParserUtils.parseId(new JsonPrimitive(entry.getKey())), entry.getValue().getAsInt());
+            }
+        }
         boolean allowConflicting = json.has("allowConflicting") && json.get("allowConflicting").getAsBoolean();
         boolean allowUnsupported = json.has("allowUnsupported") && json.get("allowUnsupported").getAsBoolean();
         boolean leftoverBook = !json.has("leftoverBook") || json.get("leftoverBook").getAsBoolean();
-        return new MergeEnchantmentsOutputEntry(item, tag, maxLevel, allowConflicting, allowUnsupported, leftoverBook);
+        return new MergeEnchantmentsOutputEntry(item, tag, maxLevel, maxLevels, allowConflicting, allowUnsupported, leftoverBook);
+    }
+
+    private static int clampLevel(int level) {
+        return Math.max(1, Math.min(level, LEVEL_LIMIT));
     }
 
     @Override
@@ -168,7 +183,10 @@ public class MergeEnchantmentsOutputEntry implements IRecipeOutputEntry {
             int next = list.getInt(i);
             level = level == next ? level + 1 : Math.max(level, next);
         }
-        int cap = maxLevel != null ? maxLevel : Math.max(holder.value().getMaxLevel(), list.getInt(list.size() - 1));
+        Integer specific = holder.unwrapKey().map(k -> maxLevels.get(k.location())).orElse(null);
+        int cap = specific != null ? specific
+                : maxLevel != null ? maxLevel
+                : Math.max(holder.value().getMaxLevel(), list.getInt(list.size() - 1));
         return Math.min(level, cap);
     }
 
@@ -229,6 +247,8 @@ public class MergeEnchantmentsOutputEntry implements IRecipeOutputEntry {
                     if (maxLevel != null) {
                         list.add(Component.translatable("jei.mm.recipe.merge_enchantments.max_level", maxLevel).withStyle(ChatFormatting.DARK_AQUA));
                     }
+                    maxLevels.forEach((id, level) -> list.add(Component.translatable("jei.mm.recipe.merge_enchantments.max_level_of",
+                            Component.translatable(Util.makeDescriptionId("enchantment", id)), level).withStyle(ChatFormatting.DARK_AQUA)));
                     if (leftoverBook) {
                         list.add(Component.translatable("jei.mm.recipe.merge_enchantments.leftover").withStyle(ChatFormatting.DARK_AQUA));
                     }
@@ -249,6 +269,11 @@ public class MergeEnchantmentsOutputEntry implements IRecipeOutputEntry {
     public JsonObject debugExpected(Level level, RecipeStorages storages, RecipeStateModel model, JsonObject json) {
         json.addProperty("item", item != null ? BuiltInRegistries.ITEM.getKey(item).toString() : tag != null ? "#" + tag.location() : "");
         if (maxLevel != null) json.addProperty("maxLevel", maxLevel);
+        if (!maxLevels.isEmpty()) {
+            JsonObject levels = new JsonObject();
+            maxLevels.forEach((id, cap) -> levels.addProperty(id.toString(), cap));
+            json.add("maxLevels", levels);
+        }
         json.addProperty("allowConflicting", allowConflicting);
         json.addProperty("allowUnsupported", allowUnsupported);
         json.addProperty("leftoverBook", leftoverBook);

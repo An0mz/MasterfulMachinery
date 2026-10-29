@@ -5,10 +5,12 @@ import io.ticticboom.mods.mm.util.ParserUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.function.Supplier;
+
 public record ExtraBlockModel(
         String id,
         String name,
-        Component displayName,
+        Supplier<Component> displayNameSource,
         ResourceLocation type,
         String connectGroup
 ) {
@@ -17,10 +19,14 @@ public record ExtraBlockModel(
         // The raw string seeds the generated block.mm.<id> lang entry; the component form is what
         // the block actually displays when the pack supplied a translation key.
         String name = ParserUtils.parseComponentKey(json.get("name"));
-        Component displayName = ParserUtils.parseComponent(json.get("name"));
+        Supplier<Component> displayName = ParserUtils.parseNameSupplier(json.get("name"));
         ResourceLocation type = ParserUtils.parseId(json, "type");
         String connectGroup = json.has("connectGroup") ? json.get("connectGroup").getAsString() : null;
         return new ExtraBlockModel(id, name, displayName, type, connectGroup);
+    }
+
+    public Component displayName() {
+        return displayNameSource.get();
     }
 
     public String resolvedConnectGroup() {
