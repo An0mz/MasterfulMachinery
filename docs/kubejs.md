@@ -309,7 +309,8 @@ layout.key('F', { anyOf: [
 ] })
 ```
 
-Without `.tier(n)`, the tier is read from the name: "Tier 2", "Mk II", "Level 3", or `1`.
+Without `.tier(n)`, the tier is read from the name: "Tier 2", "Mk II", "Level 3", or `1`. Tiered
+machines and tier recipes are walked through in [`tiers.md`](tiers.md).
 
 ### State lists
 
@@ -680,3 +681,4 @@ JSON.
 - [`reference.md`](reference.md) — every key and option.
 - [`models.md`](models.md) — looks, GeckoLib models and fluid volumes.
 - [`single-block.md`](single-block.md) — machines in one block.
+- [`tiers.md`](tiers.md) — tiered machines, tier recipes and port tiers.

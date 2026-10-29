@@ -522,7 +522,7 @@ Every condition has to pass. While one fails, the recipe does not start, and a r
 | `mm:time` | `time`: `day` or `night` | It is that time of day |
 | `mm:height` | `minY`, `maxY` (either or both) | The controller's Y is in range |
 | `mm:redstone` | `redstone`: `powered` or `unpowered` | The controller does or does not get a signal |
-| `mm:tier` | `minTier`, `maxTier` (either or both) | The structure's `tier` is in range |
+| `mm:tier` | `minTier`, `maxTier` (either or both) | The structure's `tier` is in range. See [`tiers.md`](tiers.md) |
 | `mm:nearby_structure` | `structure`, `min` (default `1`), `radius` (default `16`) | At least `min` other formed machines of that structure have their controller within `radius` blocks |
 
 Astral Sorcery adds `mm:astralsorcery/constellation` and `mm:astralsorcery/eclipse` — see
