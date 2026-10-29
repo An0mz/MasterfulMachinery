@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **More KubeJS methods.** Controllers take `.unformedModel(...)` and `.unformedOverlay(...)`.
+  Structures take `.tier(n)` and `.stateList('casing', { iron: {...}, gold: {...} })`, the same
+  object as `stateLists` in JSON.
+- **A KubeJS page in the docs** listing every event and method, with examples for the newer
+  features.
+
 ## [1.21.1-0.16.0] - 2026-10-28
 
 ### Added

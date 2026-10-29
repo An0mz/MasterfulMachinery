@@ -75,12 +75,20 @@ public class ControllerBuilderJS {
         return putTexture("model", model);
     }
 
+    public ControllerBuilderJS unformedOverlay(String texture) {
+        return putTexture("unformedOverlay", texture);
+    }
+
     public ControllerBuilderJS idleOverlay(String texture) {
         return putTexture("idleOverlay", texture);
     }
 
     public ControllerBuilderJS workingOverlay(String texture) {
         return putTexture("workingOverlay", texture);
+    }
+
+    public ControllerBuilderJS unformedModel(String model) {
+        return putTexture("unformedModel", model);
     }
 
     public ControllerBuilderJS idleModel(String model) {

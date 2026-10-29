@@ -2,6 +2,7 @@ package io.ticticboom.mods.mm.compat.kjs.builder;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.client.geo.GeoModelConfig;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import io.ticticboom.mods.mm.model.IdList;
@@ -29,6 +30,8 @@ public class StructureBuilderJS {
     private final List<FluidVolumeVisual> fluidVolumes = new ArrayList<>();
     private JsonElement geoModel;
     private final List<StructureBoost> boosts = new ArrayList<>();
+    private final JsonObject stateLists = new JsonObject();
+    private Double tier;
 
     public StructureBuilderJS(String id) {
         this.id = ResourceLocation.tryParse(id);
@@ -79,6 +82,16 @@ public class StructureBuilderJS {
         return boost(structure, speed, StructureBoost.DEFAULT_RADIUS);
     }
 
+    public StructureBuilderJS tier(double tier) {
+        this.tier = tier;
+        return this;
+    }
+
+    public StructureBuilderJS stateList(String name, JsonObject options) {
+        stateLists.add(name, options);
+        return this;
+    }
+
     public StructureBuilderJS geoModel(JsonElement geoModel) {
         this.geoModel = geoModel;
         return this;
@@ -111,6 +124,12 @@ public class StructureBuilderJS {
         }
         if (geoModel != null) {
             json.add(GeoModelConfig.KEY, geoModel);
+        }
+        if (tier != null) {
+            json.addProperty("tier", tier);
+        }
+        if (stateLists.size() > 0) {
+            json.add("stateLists", stateLists);
         }
         if (!boosts.isEmpty()) {
             var array = new JsonArray();
