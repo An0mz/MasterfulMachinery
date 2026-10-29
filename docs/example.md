@@ -400,6 +400,7 @@ the name.
 ## More
 
 - [`reference.md`](reference.md) — every key and option.
+- [`kubejs.md`](kubejs.md) — every KubeJS event and method.
 - [`entity.md`](entity.md) — machines that use mobs.
 - [`mekanism.md`](mekanism.md) — Mekanism chemicals and heat.
 - [`replication.md`](replication.md) — Replication matter.

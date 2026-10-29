@@ -38,8 +38,8 @@ MMEvents.registerControllers(event => {
 })
 ```
 
-`.idleModel(...)`, `.workingModel(...)`, `.idleOverlay(...)` and `.workingOverlay(...)` work the
-same way.
+`.unformedModel(...)`, `.idleModel(...)`, `.workingModel(...)`, `.unformedOverlay(...)`,
+`.idleOverlay(...)` and `.workingOverlay(...)` work the same way.
 
 ## Animated GeckoLib models
 

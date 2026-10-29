@@ -37,7 +37,7 @@ The same things can be made from KubeJS:
 | `MMEvents.recipeStarted` / `MMEvents.recipeFinished` | `kubejs/server_scripts/` — see [Recipe events](#recipe-events) |
 | `MMEvents.builderStructures` | `kubejs/server_scripts/` — see [Structure Builder](#structure-builder) |
 
-An event in the wrong folder silently never runs.
+An event in the wrong folder silently never runs. Every method is listed in [`kubejs.md`](kubejs.md).
 
 ## Controllers
 
@@ -324,7 +324,8 @@ A state list is a named set of options that one position can take:
 }
 ```
 
-Add `"defaultIgnored": true` to a list to also accept any block at all. State lists are JSON only.
+Add `"defaultIgnored": true` to a list to also accept any block at all. From KubeJS,
+`.stateList('casing', { iron: {...}, gold: {...} })` on the structure.
 
 ### Other structure keys
 
@@ -358,8 +359,8 @@ MMEvents.createStructures(event => {
 ```
 
 Layers go top to bottom, the same as in JSON. Give the structure id a namespace — `kubejs:alloy_kiln`,
-not `alloy_kiln`. `.portsAnywhere(true)` goes on the layout, `.maxParallelRecipes(n)` on the
-structure.
+not `alloy_kiln`. `.portsAnywhere(true)` goes on the layout; `.maxParallelRecipes(n)`, `.tier(n)` and
+`.stateList(...)` on the structure.
 
 ### Boosts
 
