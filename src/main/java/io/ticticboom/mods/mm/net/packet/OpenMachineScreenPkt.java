@@ -1,13 +1,16 @@
 package io.ticticboom.mods.mm.net.packet;
 
 import io.ticticboom.mods.mm.Ref;
+import io.ticticboom.mods.mm.controller.machine.register.MachineControllerMenu;
 import io.ticticboom.mods.mm.controller.single.register.SingleMachineBlockEntity;
+import io.ticticboom.mods.mm.controller.single.register.SingleMachineMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.jetbrains.annotations.Nullable;
 
 public record OpenMachineScreenPkt(BlockPos pos, boolean controller) implements CustomPacketPayload {
 
@@ -22,20 +25,30 @@ public record OpenMachineScreenPkt(BlockPos pos, boolean controller) implements 
 
     public static void handle(OpenMachineScreenPkt pkt, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (!(context.player() instanceof ServerPlayer player) || !player.level().isLoaded(pkt.pos())) {
+            if (!(context.player() instanceof ServerPlayer player) || !player.containerMenu.stillValid(player)) {
                 return;
             }
-            if (player.distanceToSqr(pkt.pos().getX() + 0.5, pkt.pos().getY() + 0.5, pkt.pos().getZ() + 0.5) > 64) {
+            SingleMachineBlockEntity machine = openMachine(player);
+            if (machine == null || !machine.getBlockPos().equals(pkt.pos())) {
                 return;
             }
-            if (player.level().getBlockEntity(pkt.pos()) instanceof SingleMachineBlockEntity machine) {
-                if (pkt.controller()) {
-                    machine.openController(player);
-                } else {
-                    machine.openSlots(player);
-                }
+            if (pkt.controller()) {
+                machine.openController(player);
+            } else {
+                machine.openSlots(player);
             }
         });
+    }
+
+    @Nullable
+    private static SingleMachineBlockEntity openMachine(ServerPlayer player) {
+        if (player.containerMenu instanceof SingleMachineMenu menu) {
+            return menu.getMachine();
+        }
+        if (player.containerMenu instanceof MachineControllerMenu menu && menu.getBe().getBlockEntity() instanceof SingleMachineBlockEntity machine) {
+            return machine;
+        }
+        return null;
     }
 
     @Override

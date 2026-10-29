@@ -2,12 +2,12 @@ package io.ticticboom.mods.mm.net.packet;
 
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
+import io.ticticboom.mods.mm.controller.machine.register.MachineControllerMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public class ToggleRedstoneModePkt implements CustomPacketPayload {
@@ -48,14 +48,9 @@ public class ToggleRedstoneModePkt implements CustomPacketPayload {
     public static void handle(ToggleRedstoneModePkt pkt, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (!(context.player() instanceof ServerPlayer sender)) return;
-            Level level = sender.level();
-            if (!level.isLoaded(pkt.pos)) return;
-            var be = level.getBlockEntity(pkt.pos);
-            if (be instanceof MachineControllerBlockEntity mbe) {
-                // simple permission check: player must be close enough
-                if (sender.distanceToSqr(pkt.pos.getX() + 0.5, pkt.pos.getY() + 0.5, pkt.pos.getZ() + 0.5) > 64 * 64) return;
-                mbe.setRedstoneModeOrdinal(pkt.modeOrdinal);
-            }
+            if (!(sender.containerMenu instanceof MachineControllerMenu menu) || !menu.stillValid(sender)) return;
+            if (!(menu.getBe().getBlockEntity() instanceof MachineControllerBlockEntity controller) || !controller.getBlockPos().equals(pkt.pos)) return;
+            controller.setRedstoneModeOrdinal(pkt.modeOrdinal);
         });
     }
 
