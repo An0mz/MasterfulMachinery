@@ -243,11 +243,15 @@ The config function can be left off. Recipes target a single-block machine like 
 ```js
 MMEvents.registerExtraBlocks(event => {
     event.create('kiln_casing').name('Kiln Casing').type('mm:vent').connectGroup('kiln')
+    event.create('kiln_core').name({ text: 'Kiln Core', color: '#FF8800' }).type('mm:circuit').connectGroup('kiln')
 })
 ```
 
-`type` is `'mm:circuit'`, `'mm:gearbox'` or `'mm:vent'`. Blocks sharing a `connectGroup` join into
-one panel.
+| Method | Meaning |
+|---|---|
+| `.type(id)` | Required. `'mm:circuit'`, `'mm:gearbox'` or `'mm:vent'` |
+| `.name(name)` | Display name. Text or a styled object — see [Names](#names) |
+| `.connectGroup(group)` | Blocks sharing a group join into one panel. Without one, a block only joins copies of itself |
 
 ## Structures
 
@@ -493,6 +497,17 @@ MMEvents.createProcesses(event => {
             allowUnsupported: true,
             leftoverBook: false
         })
+
+    // Up to level 10, except Fortune and Looting, which stop at 3
+    event.create('kubejs:overcharge_pickaxe')
+        .structureId('kubejs:enchant_fuser')
+        .ticks(400)
+        .input({ type: 'mm:input/consume', ingredient: { type: 'mm:item', item: 'minecraft:netherite_pickaxe', count: 2 } })
+        .output({
+            type: 'mm:output/merge_enchantments',
+            maxLevel: 10,
+            maxLevels: { 'minecraft:fortune': 3, 'minecraft:looting': 3 }
+        })
 })
 ```
 
@@ -500,6 +515,7 @@ MMEvents.createProcesses(event => {
 |---|---|---|
 | `item` | the gear piece that went in | Which input comes back out with the enchantments. An item id or `'#tag'` |
 | `maxLevel` | each enchantment's normal max | No enchantment goes above this |
+| `maxLevels` | none | A cap for single enchantments, e.g. `{ 'minecraft:fortune': 3 }`. Wins over `maxLevel` for the ones it lists |
 | `allowConflicting` | `false` | Let clashing enchantments go together, like all four protections |
 | `allowUnsupported` | `false` | Let the item take enchantments it normally can't |
 | `leftoverBook` | `true` | Enchantments that were left off come out on a separate book. `false` drops them |
@@ -637,7 +653,8 @@ MMEvents.builderStructures(event => {
 
 ## Names
 
-`.name(...)` on controllers and ports, and `.inputName(...)` / `.outputName(...)` on ports, take:
+`.name(...)` on controllers, ports and extra blocks, and `.inputName(...)` / `.outputName(...)` on
+ports, take:
 
 ```js
 .name('Alloy Kiln')

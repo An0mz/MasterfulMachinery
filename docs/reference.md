@@ -470,6 +470,7 @@ book with Soul Speed, since chestplates can't take it.
 |---|---|---|
 | `item` | the gear piece that went in | Which input comes back out with the enchantments. An item id or a `#tag` |
 | `maxLevel` | each enchantment's normal max | No enchantment goes above this level |
+| `maxLevels` | none | A cap for single enchantments, e.g. `{ "minecraft:fortune": 3 }`. Wins over `maxLevel` for the ones it lists |
 | `allowConflicting` | `false` | Let clashing enchantments go together, like all four protections |
 | `allowUnsupported` | `false` | Let the item take enchantments it normally can't, like Soul Speed on a chestplate |
 | `leftoverBook` | `true` | Put enchantments that were left off on a separate enchanted book. `false` drops them |
@@ -666,6 +667,9 @@ face. `connectGroup` decides what joins with what:
 
 Blocks sharing a `connectGroup` join each other. Without one, a block only joins copies of itself.
 Using the same block in as many structures as you like changes nothing.
+
+`name` takes the same forms as a controller's: plain text, `{ "translation": "..." }`, or a coloured
+object such as `{ "text": "Kiln Casing", "color": "#FF8800" }`, `"gradient"` or `"rainbow"`.
 
 ```js
 MMEvents.registerExtraBlocks(event => {
