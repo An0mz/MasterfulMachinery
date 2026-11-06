@@ -114,6 +114,11 @@ public class MMCapabilities {
         if (ModList.get().isLoaded("astralsorcery")) {
             result.add(AstralCapabilities.LUMEN_HANDLER);
         }
+        if (ModList.get().isLoaded("thaumaturge")) {
+            result.add(ThaumaturgeCapabilities.ESSENTIA_CONDUIT);
+            result.add(ThaumaturgeCapabilities.ESSENTIA_STORAGE);
+            result.add(ThaumaturgeCapabilities.ESSENTIA_CONTAINER);
+        }
         return result;
     }
 

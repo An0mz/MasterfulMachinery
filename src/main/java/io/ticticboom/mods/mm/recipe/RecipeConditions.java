@@ -36,6 +36,27 @@ public class RecipeConditions {
         return true;
     }
 
+    public boolean canStart(RecipeConditionContext ctx) {
+        for (IRecipeCondition condition : conditions) {
+            if (!condition.canStart(ctx)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public void start(RecipeConditionContext ctx) {
+        for (IRecipeCondition condition : conditions) {
+            condition.onStart(ctx);
+        }
+    }
+
+    public void finish(RecipeConditionContext ctx) {
+        for (IRecipeCondition condition : conditions) {
+            condition.onFinish(ctx);
+        }
+    }
+
     public boolean isEmpty() {
         return conditions.isEmpty();
     }

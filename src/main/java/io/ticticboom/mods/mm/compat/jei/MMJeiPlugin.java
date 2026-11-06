@@ -39,6 +39,7 @@ import mezz.jei.api.neoforge.NeoForgeTypes;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.registration.*;
 import net.minecraft.resources.ResourceLocation;
+import net.neoforged.fml.ModList;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -51,6 +52,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import io.ticticboom.mods.mm.compat.jei.ingredient.radiation.RadiationIngredientHelper;
 import io.ticticboom.mods.mm.compat.jei.ingredient.radiation.RadiationIngredientRenderer;
+import io.ticticboom.mods.mm.compat.jei.ingredient.essentia.EssentiaIngredientHelper;
+import io.ticticboom.mods.mm.compat.jei.ingredient.essentia.EssentiaIngredientRenderer;
 import io.ticticboom.mods.mm.compat.jei.ingredient.source.ArsSourceIngredientHelper;
 import io.ticticboom.mods.mm.compat.jei.ingredient.source.ArsSourceIngredientRenderer;
 import io.ticticboom.mods.mm.compat.jei.ingredient.starlight.StarlightIngredientHelper;
@@ -153,6 +156,9 @@ public class MMJeiPlugin implements IModPlugin {
         registration.register(MMJeiIngredients.PROJECTE_EMC, ImmutableList.of(), new EmcIngredientHelper(), new EmcIngredientRenderer());
         registration.register(MMJeiIngredients.ASTRAL_STARLIGHT, ImmutableList.of(), new StarlightIngredientHelper(), new StarlightIngredientRenderer());
         registration.register(MMJeiIngredients.ETHERIA_ETHER, ImmutableList.of(), new EtherIngredientHelper(), new EtherIngredientRenderer());
+        if (ModList.get().isLoaded("thaumaturge")) {
+            registration.register(MMJeiIngredients.THAUMATURGE_ESSENTIA, ImmutableList.of(), new EssentiaIngredientHelper(), new EssentiaIngredientRenderer());
+        }
     }
 
     @Override

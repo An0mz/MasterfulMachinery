@@ -231,6 +231,8 @@ dependencies {
     compileOnly "curse.maven:etheria-1100499:${etheria_id}"
     compileOnly "hellfirepvp.observerlib:ObserverLib:${observerlib_version}"
 
+    compileOnly "curse.maven:thaumaturge-1628024:${thaumaturge_id}"
+
     // Botania has no 1.21.1 release yet
     //compileOnly "vazkii.botania:Botania:${botania_version}"
 
@@ -299,6 +301,9 @@ dependencies {
     runtimeOnly "hellfirepvp.observerlib:ObserverLib:${observerlib_version}"
 
     //runtimeOnly "vazkii.botania:Botania:${botania_version}"
+
+    runtimeOnly "curse.maven:thaumaturge-1628024:${thaumaturge_id}"
+    runtimeOnly "curse.maven:lithostitched-936015:${lithostitched_id}"
 }
 
 // Expands the declared properties in neoforge.mods.toml so versions live in one place.

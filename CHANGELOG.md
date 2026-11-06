@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.17.0] - 2026-11-06
+
+### Added
+- **Thaumaturge support.** An essentia port (`mm:thaumaturge/essentia`) holds one aspect at a time.
+  Input ports draw essentia from jars and tubes touching them, output ports let jars and tubes draw it
+  out. Set `capacity`, and optionally `suction` (how hard an input port pulls, 128 by default) and
+  `transferRate` (units drawn per attempt, 1 by default). Lock a port in its screen to keep it on one
+  aspect. Goggles and the thaumometer show what a port holds. Recipes use
+  `{ "type": "mm:thaumaturge/essentia", "aspect": "thaumaturge:ignis", "amount": 10 }`.
+- **Aura conditions for Thaumaturge.** `mm:thaumaturge/aura` takes `vis` (drained from the chunk when
+  the recipe starts), `flux` (added to the chunk when it finishes), `minVis` (vis the chunk needs to
+  start) and `maxFlux` (the machine pauses while the chunk's flux is above it). From KubeJS, use
+  `.drainVis(...)`, `.releaseFlux(...)`, `.minVis(...)` and `.maxFlux(...)`.
+
 ## [1.21.1-0.16.1] - 2026-10-29
 
 ### Added

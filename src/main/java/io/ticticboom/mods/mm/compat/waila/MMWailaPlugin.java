@@ -20,6 +20,7 @@ import io.ticticboom.mods.mm.port.ars.source.register.ArsSourcePortBlock;
 import io.ticticboom.mods.mm.port.astral.lumen.register.AstralLumenPortBlock;
 import io.ticticboom.mods.mm.port.astral.starlight.register.AstralStarlightPortBlock;
 import io.ticticboom.mods.mm.port.etheria.ether.register.EtheriaEtherPortBlock;
+import io.ticticboom.mods.mm.port.thaumaturge.essentia.register.ThaumaturgeEssentiaPortBlock;
 import io.ticticboom.mods.mm.port.projecte.emc.register.ProjectEEmcPortBlock;
 import io.ticticboom.mods.mm.port.entity.register.EntityPortBlock;
 import io.ticticboom.mods.mm.port.mekanism.chemical.register.MekanismChemicalPortBlock;
@@ -67,6 +68,10 @@ public class MMWailaPlugin implements IWailaPlugin {
         }
         if (ModList.get().isLoaded("projecte")) {
             registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, ProjectEEmcPortBlock.class);
+        }
+        if (ModList.get().isLoaded("thaumaturge")) {
+            registration.registerBlockComponent(PortPriorityDataProvider.INSTANCE, ThaumaturgeEssentiaPortBlock.class);
+            registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, ThaumaturgeEssentiaPortBlock.class);
         }
         if (ModList.get().isLoaded("nuclear_radiation")) {
             registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, NuclearRadiationPortBlock.class);

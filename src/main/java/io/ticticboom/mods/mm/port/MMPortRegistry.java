@@ -23,6 +23,7 @@ import io.ticticboom.mods.mm.port.projecte.emc.ProjectEEmcPortType;
 import io.ticticboom.mods.mm.port.replication.link.ReplicationLinkPortType;
 import io.ticticboom.mods.mm.port.replication.matter.ReplicationMatterPortType;
 import io.ticticboom.mods.mm.port.replication.matter.feature.ReplicationMatterPipeHook;
+import io.ticticboom.mods.mm.port.thaumaturge.essentia.ThaumaturgeEssentiaPortType;
 import io.ticticboom.mods.mm.setup.RegistryGroupHolder;
 import io.ticticboom.mods.mm.util.ParserUtils;
 import net.minecraft.resources.ResourceLocation;
@@ -73,6 +74,10 @@ public class MMPortRegistry {
 
         if (ModList.get().isLoaded("projecte")) {
             register(Ref.Ports.PROJECTE_EMC, new ProjectEEmcPortType());
+        }
+
+        if (ModList.get().isLoaded("thaumaturge")) {
+            register(Ref.Ports.THAUMATURGE_ESSENTIA, new ThaumaturgeEssentiaPortType());
         }
 
         if (ModList.get().isLoaded("nuclear_radiation")) {

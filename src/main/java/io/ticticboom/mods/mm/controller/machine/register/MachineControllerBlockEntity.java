@@ -625,7 +625,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             }
         }
         return recipeNextCheckTime.getOrDefault(recipe.id(), 0L) <= gameTime
-                && recipe.conditions().canRun(conditionContext());
+                && recipe.conditions().canStart(conditionContext());
     }
 
     private RecipeConditionContext conditionContext() {
@@ -683,6 +683,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             state.trackConsumedItems();
         }
         recipe.inputs().process(level, portStorages, state);
+        recipe.conditions().start(conditionContext());
         if (recipe.id().equals(requestedRecipeId) && requestedCrafts > 0) {
             requestedCrafts--;
             requestStarts++;
@@ -704,6 +705,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
 
     private void recipeFinished(RecipeModel recipe) {
         linkExportRequested = true;
+        recipe.conditions().finish(conditionContext());
         MMInteropManager.KUBEJS.ifPresent(kubejs -> kubejs.postRecipeFinished(this, recipe.id()));
     }
 

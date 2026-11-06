@@ -6,6 +6,7 @@ import io.ticticboom.mods.mm.recipe.condition.biome.BiomeRecipeCondition;
 import io.ticticboom.mods.mm.recipe.condition.height.HeightRecipeCondition;
 import io.ticticboom.mods.mm.recipe.condition.redstone.RedstoneRecipeCondition;
 import io.ticticboom.mods.mm.recipe.condition.nearby.NearbyStructureRecipeCondition;
+import io.ticticboom.mods.mm.recipe.condition.thaumaturge.AuraRecipeCondition;
 import io.ticticboom.mods.mm.recipe.output.enchant.MergeEnchantmentsOutputEntry;
 import io.ticticboom.mods.mm.recipe.condition.tier.TierRecipeCondition;
 import io.ticticboom.mods.mm.recipe.condition.time.TimeRecipeCondition;
@@ -69,6 +70,9 @@ public class MachineRecipeManager extends SimpleJsonResourceReloadListener {
             CONDITION_PARSERS.put(Ref.RecipeConditions.ASTRAL_CONSTELLATION, AstralConstellationRecipeCondition::parse);
             CONDITION_PARSERS.put(Ref.RecipeConditions.ASTRAL_ECLIPSE, AstralEclipseRecipeCondition::parse);
         }
+        if (ModList.get().isLoaded("thaumaturge")) {
+            CONDITION_PARSERS.put(Ref.RecipeConditions.THAUMATURGE_AURA, AuraRecipeCondition::parse);
+        }
     }
 
     public static IRecipeIngredientEntry parseIngredientEntry(JsonObject json) {
@@ -83,7 +87,11 @@ public class MachineRecipeManager extends SimpleJsonResourceReloadListener {
 
     public static IRecipeCondition parseCondition(JsonObject json) {
         var typeId = ParserUtils.parseId(json, "type");
-        return CONDITION_PARSERS.get(typeId).parse(json);
+        var parser = CONDITION_PARSERS.get(typeId);
+        if (parser == null) {
+            throw new RuntimeException("Unknown recipe condition '" + typeId + "'. Either it is misspelled, or the mod providing it is not installed.");
+        }
+        return parser.parse(json);
     }
 
     public static List<RecipeModel> getRecipeForStructureIds(List<ResourceLocation> structureIds) {

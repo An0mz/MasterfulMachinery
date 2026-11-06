@@ -5,6 +5,7 @@ import io.ticticboom.mods.mm.compat.jei.ingredient.emc.EmcIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.ether.EtherIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.energy.EnergyIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.entity.EntityIngredientType;
+import io.ticticboom.mods.mm.compat.jei.ingredient.essentia.EssentiaIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.heat.HeatIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.mana.BotaniaManaIngredientType;
 import io.ticticboom.mods.mm.compat.jei.ingredient.matter.MatterIngredientType;
@@ -33,4 +34,5 @@ public class MMJeiIngredients {
     public static final EmcIngredientType PROJECTE_EMC = new EmcIngredientType();
     public static final StarlightIngredientType ASTRAL_STARLIGHT = new StarlightIngredientType();
     public static final EtherIngredientType ETHERIA_ETHER = new EtherIngredientType();
+    public static final EssentiaIngredientType THAUMATURGE_ESSENTIA = new EssentiaIngredientType();
 }

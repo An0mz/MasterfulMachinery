@@ -143,6 +143,26 @@ public class RecipeBuilderJS {
         return condition("astralsorcery/eclipse", "eclipse", eclipse);
     }
 
+    @SuppressWarnings("unused")
+    public RecipeBuilderJS drainVis(float vis) {
+        return rangeCondition("thaumaturge/aura", "vis", vis);
+    }
+
+    @SuppressWarnings("unused")
+    public RecipeBuilderJS releaseFlux(float flux) {
+        return rangeCondition("thaumaturge/aura", "flux", flux);
+    }
+
+    @SuppressWarnings("unused")
+    public RecipeBuilderJS minVis(float vis) {
+        return rangeCondition("thaumaturge/aura", "minVis", vis);
+    }
+
+    @SuppressWarnings("unused")
+    public RecipeBuilderJS maxFlux(float flux) {
+        return rangeCondition("thaumaturge/aura", "maxFlux", flux);
+    }
+
     private RecipeBuilderJS condition(String type, String key, String value) {
         var json = new JsonObject();
         json.addProperty("type", "mm:" + type);

@@ -36,6 +36,7 @@ public class Ref {
         public static final ResourceLocation BOTANIA_MANA = id("botania/mana");
         public static final ResourceLocation ARS_SOURCE = id("ars_nouveau/source");
         public static final ResourceLocation PROJECTE_EMC = id("projecte/emc");
+        public static final ResourceLocation THAUMATURGE_ESSENTIA = id("thaumaturge/essentia");
         public static final ResourceLocation AE2_PATTERN = id("ae2/pattern");
         public static final ResourceLocation NUCLEAR_RADIATION = id("nuclear_radiation/radiation");
         public static final ResourceLocation ASTRAL_STARLIGHT = id("astralsorcery/starlight");
@@ -72,6 +73,7 @@ public class Ref {
         public static final ResourceLocation NEARBY_STRUCTURE = id("nearby_structure");
         public static final ResourceLocation ASTRAL_CONSTELLATION = id("astralsorcery/constellation");
         public static final ResourceLocation ASTRAL_ECLIPSE = id("astralsorcery/eclipse");
+        public static final ResourceLocation THAUMATURGE_AURA = id("thaumaturge/aura");
     }
 
     public static class StructureAttachments {
@@ -143,6 +145,8 @@ public class Ref {
 
         public static final ResourceLocation INPUT_PROJECTE_EMC_PORT_OVERLAY = id("block/compat_ports/projecte_emc_input_cutout");
         public static final ResourceLocation OUTPUT_PROJECTE_EMC_PORT_OVERLAY = id("block/compat_ports/projecte_emc_output_cutout");
+        public static final ResourceLocation INPUT_ESSENTIA_PORT_OVERLAY = id("block/compat_ports/thaumaturge_essentia_input_cutout");
+        public static final ResourceLocation OUTPUT_ESSENTIA_PORT_OVERLAY = id("block/compat_ports/thaumaturge_essentia_output_cutout");
 
         public static final ResourceLocation INPUT_NUCLEAR_RADIATION_PORT_OVERLAY = id("block/compat_ports/nuclear_radiation_input_cutout");
         public static final ResourceLocation OUTPUT_NUCLEAR_RADIATION_PORT_OVERLAY = id("block/compat_ports/nuclear_radiation_output_cutout");
