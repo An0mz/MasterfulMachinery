@@ -27,8 +27,10 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.neoforged.neoforge.client.model.data.ModelData;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +44,7 @@ public final class BlueprintPastePreviewRenderer {
     private static StructureModel keyStructure;
     private static long keyBucket;
     private static Map<BlockPos, BlockState> ghosts = Map.of();
+    private static Map<BlockPos, ModelData> ghostData = Map.of();
     private static List<BlockPos> obstructed = List.of();
     private static AABB bounds;
 
@@ -83,21 +86,27 @@ public final class BlueprintPastePreviewRenderer {
             return;
         }
         Map<BlockPos, BlockState> toDraw = new LinkedHashMap<>();
+        Map<BlockPos, ModelData> data = new HashMap<>();
         List<BlockPos> blocked = new ArrayList<>();
         for (StructurePasteUtil.PlannedBlock planned : plan) {
             if (!StructurePasteUtil.canPlaceAt(level, planned)) {
                 blocked.add(planned.pos());
             } else if (!level.getBlockState(planned.pos()).is(planned.state().getBlock())) {
                 toDraw.put(planned.pos(), planned.state());
+                if (!planned.camos().isEmpty()) {
+                    data.put(planned.pos(), GhostBlocks.modelData(planned.state(), planned.pos(), planned.camos()));
+                }
             }
         }
         ghosts = toDraw;
+        ghostData = data;
         obstructed = blocked;
         bounds = StructurePasteUtil.bounds(plan);
     }
 
     private static void clear() {
         ghosts = Map.of();
+        ghostData = Map.of();
         obstructed = List.of();
         bounds = null;
         keyStructure = null;
@@ -117,7 +126,7 @@ public final class BlueprintPastePreviewRenderer {
         MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
         poseStack.pushPose();
         poseStack.translate(-camera.x, -camera.y, -camera.z);
-        GhostBlocks.render(poseStack, buffers, mc.getBlockRenderer(), ghosts);
+        GhostBlocks.render(poseStack, buffers, mc.getBlockRenderer(), ghosts, ghostData);
         VertexConsumer lines = buffers.getBuffer(RenderType.lines());
         for (BlockPos pos : obstructed) {
             LevelRenderer.renderLineBox(poseStack, lines, new AABB(pos).inflate(0.01D), 1.0F, 0.0F, 0.0F, 1.0F);

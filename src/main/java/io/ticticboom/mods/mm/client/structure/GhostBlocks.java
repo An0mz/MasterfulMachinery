@@ -2,15 +2,20 @@ package io.ticticboom.mods.mm.client.structure;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import io.ticticboom.mods.mm.builder.FramedCamo;
+import io.ticticboom.mods.mm.compat.framedblocks.FramedCamos;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.model.data.ModelData;
 
+import java.util.List;
 import java.util.Map;
 
 public final class GhostBlocks {
@@ -19,8 +24,29 @@ public final class GhostBlocks {
     private GhostBlocks() {
     }
 
+    public static ModelData modelData(BlockState state, BlockPos pos, List<FramedCamo> camos) {
+        if (camos.isEmpty() || !(state.getBlock() instanceof EntityBlock entityBlock)) {
+            return ModelData.EMPTY;
+        }
+        try {
+            BlockEntity be = entityBlock.newBlockEntity(pos, state);
+            if (be == null) {
+                return ModelData.EMPTY;
+            }
+            FramedCamos.preview(be, camos);
+            return be.getModelData();
+        } catch (RuntimeException e) {
+            return ModelData.EMPTY;
+        }
+    }
+
     public static void render(PoseStack poseStack, MultiBufferSource.BufferSource buffers, BlockRenderDispatcher dispatcher,
                               Map<BlockPos, BlockState> blocks) {
+        render(poseStack, buffers, dispatcher, blocks, Map.of());
+    }
+
+    public static void render(PoseStack poseStack, MultiBufferSource.BufferSource buffers, BlockRenderDispatcher dispatcher,
+                              Map<BlockPos, BlockState> blocks, Map<BlockPos, ModelData> modelData) {
         if (blocks.isEmpty()) {
             return;
         }
@@ -34,7 +60,7 @@ public final class GhostBlocks {
             poseStack.scale(0.98F, 0.98F, 0.98F);
             poseStack.translate(-0.5D, -0.5D, -0.5D);
             dispatcher.getModelRenderer().renderModel(poseStack.last(), ghost, state, dispatcher.getBlockModel(state),
-                    1.0F, 1.0F, 1.0F, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, ModelData.EMPTY, null);
+                    1.0F, 1.0F, 1.0F, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, modelData.getOrDefault(pos, ModelData.EMPTY), null);
             poseStack.popPose();
         }
         buffers.endBatch(RenderType.translucent());

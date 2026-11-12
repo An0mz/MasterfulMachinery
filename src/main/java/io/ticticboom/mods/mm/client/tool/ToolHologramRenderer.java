@@ -35,7 +35,10 @@ import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 
+import net.neoforged.neoforge.client.model.data.ModelData;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -53,6 +56,7 @@ public final class ToolHologramRenderer {
     private static Object keyStructure;
     private static long keyBucket;
     private static List<AssemblyPlanner.Planned> ghosts = List.of();
+    private static Map<BlockPos, ModelData> ghostData = Map.of();
     private static List<BlockPos> obstructed = List.of();
     private static AABB bounds;
 
@@ -132,12 +136,20 @@ public final class ToolHologramRenderer {
             }
         }
         ghosts = toDraw;
+        var data = new HashMap<BlockPos, ModelData>();
+        for (AssemblyPlanner.Planned step : toDraw) {
+            if (!step.camos().isEmpty()) {
+                data.put(step.pos(), GhostBlocks.modelData(step.state(), step.pos(), step.camos()));
+            }
+        }
+        ghostData = data;
         obstructed = planObstructed;
         bounds = box;
     }
 
     private static void clear() {
         ghosts = List.of();
+        ghostData = Map.of();
         obstructed = List.of();
         bounds = null;
     }
@@ -185,6 +197,6 @@ public final class ToolHologramRenderer {
         for (AssemblyPlanner.Planned step : ghosts) {
             blocks.put(step.pos(), step.state());
         }
-        GhostBlocks.render(poseStack, buffers, dispatcher, blocks);
+        GhostBlocks.render(poseStack, buffers, dispatcher, blocks, ghostData);
     }
 }

@@ -1,7 +1,10 @@
 package io.ticticboom.mods.mm.util;
 
+import io.ticticboom.mods.mm.builder.FramedCamo;
+import io.ticticboom.mods.mm.compat.framedblocks.FramedCamos;
 import io.ticticboom.mods.mm.controller.MMControllerRegistry;
 import io.ticticboom.mods.mm.piece.modifier.StructurePieceModifier;
+import io.ticticboom.mods.mm.piece.modifier.framed.FramedCamoStructurePieceModifier;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import io.ticticboom.mods.mm.structure.layout.PositionedLayoutPiece;
 import io.ticticboom.mods.mm.structure.layout.StructureLayoutPiece;
@@ -11,6 +14,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Rotation;
@@ -49,6 +53,11 @@ public final class StructurePasteUtil {
 
         for (PlannedBlock planned : plan) {
             level.setBlock(planned.pos(), planned.state(), Block.UPDATE_ALL);
+            for (FramedCamo camo : planned.camos()) {
+                if (FramedCamos.bare(level, planned.pos(), camo)) {
+                    FramedCamos.apply(level, planned.pos(), player, new ItemStack(camo.block()), camo);
+                }
+            }
         }
 
         return PasteResult.success(Component.translatable("message.mm.blueprint.pasted", model.displayName(), plan.size()));
@@ -92,7 +101,7 @@ public final class StructurePasteUtil {
             BlockPos pos = positioned.findAbsolutePos(controllerPos);
             BlockState state = createBlockState(positioned.piece(), pos, rotation);
             if (state != null) {
-                plan.add(new PlannedBlock(pos, state));
+                plan.add(new PlannedBlock(pos, state, camosFor(positioned.piece())));
             }
         }
 
@@ -128,6 +137,20 @@ public final class StructurePasteUtil {
             }
         }
         return state;
+    }
+
+    private static List<FramedCamo> camosFor(StructureLayoutPiece layoutPiece) {
+        List<StructurePieceModifier> modifiers = layoutPiece.modifiers();
+        if (modifiers == null) {
+            return List.of();
+        }
+        var camos = new ArrayList<FramedCamo>();
+        for (StructurePieceModifier modifier : modifiers) {
+            if (modifier instanceof FramedCamoStructurePieceModifier framed) {
+                camos.addAll(framed.camos());
+            }
+        }
+        return List.copyOf(camos);
     }
 
     private static List<BlockPos> findObstructions(ServerLevel level, List<PlannedBlock> plan) {
@@ -251,7 +274,10 @@ public final class StructurePasteUtil {
     public record PastePlan(BlockPos controllerPos, List<PlannedBlock> blocks) {
     }
 
-    public record PlannedBlock(BlockPos pos, BlockState state) {
+    public record PlannedBlock(BlockPos pos, BlockState state, List<FramedCamo> camos) {
+        public PlannedBlock(BlockPos pos, BlockState state) {
+            this(pos, state, List.of());
+        }
     }
 
     public record PasteResult(boolean success, Component message) {
