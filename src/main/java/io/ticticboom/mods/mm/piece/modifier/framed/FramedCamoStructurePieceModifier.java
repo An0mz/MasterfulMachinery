@@ -2,6 +2,7 @@ package io.ticticboom.mods.mm.piece.modifier.framed;
 
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.builder.FramedCamo;
+import io.ticticboom.mods.mm.compat.framedblocks.FramedCamos;
 import io.ticticboom.mods.mm.piece.StructurePieceSetupMetadata;
 import io.ticticboom.mods.mm.piece.modifier.StructurePieceModifier;
 import io.ticticboom.mods.mm.structure.StructureModel;
@@ -69,6 +70,9 @@ public class FramedCamoStructurePieceModifier extends StructurePieceModifier {
 
     @Override
     public BlockEntity modifyBlockEntity(BlockState state, BlockEntity be, BlockPos pos) {
+        if (be != null) {
+            FramedCamos.preview(be, camos());
+        }
         return be;
     }
 

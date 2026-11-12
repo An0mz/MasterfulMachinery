@@ -5,7 +5,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.fml.ModList;
+
+import java.util.List;
 
 public final class FramedCamos {
     private static Boolean loaded;
@@ -22,6 +25,12 @@ public final class FramedCamos {
 
     public static boolean bare(Level level, BlockPos pos, FramedCamo camo) {
         return loaded() && FramedBlocksCamoApplier.bare(level, pos, camo.secondary());
+    }
+
+    public static void preview(BlockEntity be, List<FramedCamo> camos) {
+        if (loaded()) {
+            FramedBlocksCamoApplier.preview(be, camos);
+        }
     }
 
     public static boolean apply(Level level, BlockPos pos, Player player, ItemStack stack, FramedCamo camo) {
