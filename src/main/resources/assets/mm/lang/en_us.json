@@ -236,6 +236,7 @@
   "config.jade.plugin_mm.controller_progress": "Progress",
   "config.jade.plugin_mm.port_priority": "Port Priority",
   "config.jade.plugin_mm.port_contents": "Port Contents",
+  "config.jade.plugin_mm.port_machine": "Port Machine",
 
   "tooltip.mm.port_priority": "Port priority: %s",
 
