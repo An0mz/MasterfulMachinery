@@ -232,6 +232,7 @@ dependencies {
     compileOnly "hellfirepvp.observerlib:ObserverLib:${observerlib_version}"
 
     compileOnly "curse.maven:thaumaturge-1628024:${thaumaturge_id}"
+    compileOnly "curse.maven:framedblocks-441647:${framedblocks_id}"
 
     // Botania has no 1.21.1 release yet
     //compileOnly "vazkii.botania:Botania:${botania_version}"
@@ -303,6 +304,7 @@ dependencies {
     //runtimeOnly "vazkii.botania:Botania:${botania_version}"
 
     runtimeOnly "curse.maven:thaumaturge-1628024:${thaumaturge_id}"
+    runtimeOnly "curse.maven:framedblocks-441647:${framedblocks_id}"
     runtimeOnly "curse.maven:lithostitched-936015:${lithostitched_id}"
 }
 

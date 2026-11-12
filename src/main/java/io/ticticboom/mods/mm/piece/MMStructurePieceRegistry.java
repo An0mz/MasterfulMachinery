@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.piece.modifier.StructurePieceModifier;
 import io.ticticboom.mods.mm.piece.modifier.MMStructurePieceModifierType;
 import io.ticticboom.mods.mm.piece.modifier.blockstate.BlockstateStructurePieceModifierType;
+import io.ticticboom.mods.mm.piece.modifier.framed.FramedCamoStructurePieceModifierType;
 import io.ticticboom.mods.mm.piece.type.StructurePiece;
 import io.ticticboom.mods.mm.piece.type.anyof.AnyOfStructurePieceType;
 import io.ticticboom.mods.mm.piece.type.block.BlockStructurePieceType;
@@ -56,5 +57,6 @@ public class MMStructurePieceRegistry {
         registerPiece(new StatesStructurePieceType());
 
         registerModifier(new BlockstateStructurePieceModifierType());
+        registerModifier(new FramedCamoStructurePieceModifierType());
     }
 }

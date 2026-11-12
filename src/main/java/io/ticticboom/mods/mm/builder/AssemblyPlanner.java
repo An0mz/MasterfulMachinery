@@ -1,6 +1,7 @@
 package io.ticticboom.mods.mm.builder;
 
 import io.ticticboom.mods.mm.piece.modifier.StructurePieceModifier;
+import io.ticticboom.mods.mm.piece.modifier.framed.FramedCamoStructurePieceModifier;
 import io.ticticboom.mods.mm.piece.type.StructurePiece;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import io.ticticboom.mods.mm.structure.layout.PositionedLayoutPiece;
@@ -20,7 +21,10 @@ import java.util.function.Predicate;
 
 public final class AssemblyPlanner {
 
-    public record Planned(BlockPos pos, BlockState state, List<Block> accepted) {
+    public record Planned(BlockPos pos, BlockState state, List<Block> accepted, List<FramedCamo> camos) {
+        public Planned(BlockPos pos, BlockState state, List<Block> accepted) {
+            this(pos, state, accepted, List.of());
+        }
     }
 
     public record Plan(List<Planned> steps, int unavailable) {
@@ -85,14 +89,18 @@ public final class AssemblyPlanner {
             BlockPos pos = positioned.findAbsolutePos(controllerPos);
             BlockState state = block.defaultBlockState().rotate(rotation);
             List<StructurePieceModifier> modifiers = positioned.piece().modifiers();
+            var camos = new ArrayList<FramedCamo>();
             if (modifiers != null) {
                 for (StructurePieceModifier modifier : modifiers) {
                     state = modifier.modifyBlockState(state, null, pos);
+                    if (modifier instanceof FramedCamoStructurePieceModifier framed) {
+                        camos.addAll(framed.camos());
+                    }
                 }
             }
             List<Block> candidates = piece.createBlocksSupplier().get();
             List<Block> accepted = candidates == null ? List.of() : candidates.stream().filter(Objects::nonNull).toList();
-            steps.add(new Planned(pos, state, accepted));
+            steps.add(new Planned(pos, state, accepted, List.copyOf(camos)));
         }
         return new Plan(steps, unavailable);
     }

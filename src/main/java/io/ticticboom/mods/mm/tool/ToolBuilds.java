@@ -3,6 +3,8 @@ package io.ticticboom.mods.mm.tool;
 import io.ticticboom.mods.mm.config.MMConfig;
 import io.ticticboom.mods.mm.builder.AssemblyPlanner;
 import io.ticticboom.mods.mm.builder.ChainedMaterialSource;
+import io.ticticboom.mods.mm.builder.FramedCamo;
+import io.ticticboom.mods.mm.compat.framedblocks.FramedCamos;
 import io.ticticboom.mods.mm.builder.MaterialSource;
 import io.ticticboom.mods.mm.builder.me.CraftTracker;
 import io.ticticboom.mods.mm.builder.me.MeAccessFactory;
@@ -168,18 +170,28 @@ public final class ToolBuilds {
         for (AssemblyPlanner.Planned step : plan.steps()) {
             BlockState existing = level.getBlockState(step.pos());
             Block wanted = step.state().getBlock();
+            if (!player.mayBuild() || !level.mayInteract(player, step.pos())) {
+                continue;
+            }
             if (existing.is(wanted) || step.accepted().contains(existing.getBlock())) {
+                for (FramedCamo camo : step.camos()) {
+                    if (FramedCamos.bare(level, step.pos(), camo)) {
+                        needed.merge(camo.block().asItem(), 1, Integer::sum);
+                    }
+                }
                 continue;
             }
             if (!existing.isAir() && !existing.canBeReplaced()) {
                 continue;
             }
-            if (!player.mayBuild() || !level.mayInteract(player, step.pos())) {
-                continue;
-            }
             Item item = wanted.asItem();
             if (item != Items.AIR) {
                 needed.merge(item, 1, Integer::sum);
+            }
+            if (FramedCamos.loaded()) {
+                for (FramedCamo camo : step.camos()) {
+                    needed.merge(camo.block().asItem(), 1, Integer::sum);
+                }
             }
         }
         return needed;

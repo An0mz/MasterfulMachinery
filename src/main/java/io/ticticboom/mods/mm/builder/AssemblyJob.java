@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.builder;
 
+import io.ticticboom.mods.mm.compat.framedblocks.FramedCamos;
 import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -134,6 +135,7 @@ public final class AssemblyJob {
         BlockState existing = level.getBlockState(pos);
         Block wanted = next.state().getBlock();
         if (existing.is(wanted) || next.accepted().contains(existing.getBlock())) {
+            applyCamos(player, source, next);
             return Outcome.ALREADY;
         }
         if (!existing.isAir() && !existing.canBeReplaced()) {
@@ -170,6 +172,29 @@ public final class AssemblyJob {
         var sound = next.state().getSoundType();
         level.playSound(null, pos, sound.getPlaceSound(), SoundSource.BLOCKS, (sound.getVolume() + 1f) / 2f, sound.getPitch() * 0.8f);
         placed++;
+        applyCamos(player, source, next);
         return Outcome.PLACED;
+    }
+
+    private void applyCamos(Player player, MaterialSource source, AssemblyPlanner.Planned next) {
+        BlockPos pos = next.pos();
+        for (FramedCamo camo : next.camos()) {
+            if (!FramedCamos.bare(level, pos, camo)) {
+                continue;
+            }
+            if (!player.mayBuild() || !level.mayInteract(player, pos)) {
+                return;
+            }
+            if (!source.has(camo.block())) {
+                missing.merge(camo.block(), 1, Integer::sum);
+                continue;
+            }
+            ItemStack taken = source.take(camo.block());
+            ItemStack stack = taken.isEmpty() ? new ItemStack(camo.block()) : taken;
+            FramedCamos.apply(level, pos, player, stack, camo);
+            if (!taken.isEmpty() && !stack.isEmpty()) {
+                source.refund(stack);
+            }
+        }
     }
 }
