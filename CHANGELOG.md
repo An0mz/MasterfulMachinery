@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.18.0] - 2026-11-12
+
+### Added
+- **FramedBlocks camo in structures.** A structure piece can name the camo a framed block should wear
+  with `camo`, plus `camo_two` for double framed blocks, e.g.
+  `{ "block": "framedblocks:framed_cube", "camo": "minecraft:stone_bricks" }`. The structure preview,
+  in-world previews and blueprint paste show the framed block with its camo, and the builder applies
+  the camo from your materials after placing the frame.
+- **Required camo.** Add `"require_camo": true` to a camo piece and the machine only forms when each
+  framed block has the right camo applied. Without it, a bare frame still counts.
+
+### Fixed
+- The port machine option in Jade's config screen now shows its name.
+
 ## [1.21.1-0.17.0] - 2026-11-06
 
 ### Added
