@@ -24,11 +24,13 @@ public class FramedCamoStructurePieceModifier extends StructurePieceModifier {
 
     private final ResourceLocation camoId;
     private final @Nullable ResourceLocation camoTwoId;
+    private final boolean required;
     private List<FramedCamo> camos;
 
-    public FramedCamoStructurePieceModifier(ResourceLocation camoId, @Nullable ResourceLocation camoTwoId) {
+    public FramedCamoStructurePieceModifier(ResourceLocation camoId, @Nullable ResourceLocation camoTwoId, boolean required) {
         this.camoId = camoId;
         this.camoTwoId = camoTwoId;
+        this.required = required;
     }
 
     @Override
@@ -60,6 +62,14 @@ public class FramedCamoStructurePieceModifier extends StructurePieceModifier {
 
     @Override
     public boolean formed(Level level, BlockPos pos, StructureModel model, Rotation rotation) {
+        if (!required) {
+            return true;
+        }
+        for (FramedCamo camo : camos()) {
+            if (!FramedCamos.matches(level, pos, camo)) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -82,11 +92,23 @@ public class FramedCamoStructurePieceModifier extends StructurePieceModifier {
         if (camoTwoId != null) {
             json.addProperty("camo_two", camoTwoId.toString());
         }
+        json.addProperty("require_camo", required);
         return json;
     }
 
     @Override
     public JsonObject debugFound(Level level, BlockPos pos, StructureModel model, Rotation rotation, JsonObject json) {
+        if (!required) {
+            return json;
+        }
+        json.addProperty("camo", describe(FramedCamos.camoBlock(level, pos, false)));
+        if (camoTwoId != null) {
+            json.addProperty("camo_two", describe(FramedCamos.camoBlock(level, pos, true)));
+        }
         return json;
+    }
+
+    private static String describe(@Nullable Block block) {
+        return block == null ? "none" : BuiltInRegistries.BLOCK.getKey(block).toString();
     }
 }

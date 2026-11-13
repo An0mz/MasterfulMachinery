@@ -8,7 +8,9 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import org.jetbrains.annotations.Nullable;
 import xfacthd.framedblocks.api.camo.block.SimpleBlockCamoContainer;
 import xfacthd.framedblocks.api.camo.block.SimpleBlockCamoContainerFactory;
 
@@ -35,6 +37,22 @@ final class FramedBlocksCamoApplier {
             current = be.getCamo();
         }
         return current != null && current.isEmpty();
+    }
+
+    static @Nullable Block camoBlock(Level level, BlockPos pos, boolean secondary) {
+        if (!(level.getBlockEntity(pos) instanceof FramedBlockEntity be)) {
+            return null;
+        }
+        CamoContainer<?, ?> current;
+        if (secondary) {
+            current = be instanceof IFramedDoubleBlockEntity doubled ? doubled.getCamoTwo() : null;
+        } else {
+            current = be.getCamo();
+        }
+        if (current == null || current.isEmpty()) {
+            return null;
+        }
+        return current.getContent().getAsBlockState().getBlock();
     }
 
     static void preview(BlockEntity be, List<FramedCamo> camos) {

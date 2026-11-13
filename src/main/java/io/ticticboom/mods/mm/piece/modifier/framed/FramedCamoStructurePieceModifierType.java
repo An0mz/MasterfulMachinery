@@ -16,6 +16,7 @@ public class FramedCamoStructurePieceModifierType extends MMStructurePieceModifi
     public StructurePieceModifier parse(JsonObject json) {
         var camo = ResourceLocation.parse(json.get("camo").getAsString());
         var camoTwo = json.has("camo_two") ? ResourceLocation.parse(json.get("camo_two").getAsString()) : null;
-        return new FramedCamoStructurePieceModifier(camo, camoTwo);
+        var required = json.has("require_camo") && json.get("require_camo").getAsBoolean();
+        return new FramedCamoStructurePieceModifier(camo, camoTwo, required);
     }
 }

@@ -5,8 +5,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.fml.ModList;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -25,6 +27,14 @@ public final class FramedCamos {
 
     public static boolean bare(Level level, BlockPos pos, FramedCamo camo) {
         return loaded() && FramedBlocksCamoApplier.bare(level, pos, camo.secondary());
+    }
+
+    public static boolean matches(Level level, BlockPos pos, FramedCamo camo) {
+        return loaded() && FramedBlocksCamoApplier.camoBlock(level, pos, camo.secondary()) == camo.block();
+    }
+
+    public static @Nullable Block camoBlock(Level level, BlockPos pos, boolean secondary) {
+        return loaded() ? FramedBlocksCamoApplier.camoBlock(level, pos, secondary) : null;
     }
 
     public static void preview(BlockEntity be, List<FramedCamo> camos) {
