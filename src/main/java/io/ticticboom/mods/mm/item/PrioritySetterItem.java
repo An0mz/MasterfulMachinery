@@ -81,9 +81,8 @@ public class PrioritySetterItem extends Item {
         int prio = getPriorityFromItem(context.getItemInHand());
         // set in storage
         var storage = portBe.getStorage();
-        int oldPrio = storage.getPriority();
         storage.setPriority(prio);
-        // logging suppressed
+        be.setChanged();
 
         serverPlayer.displayClientMessage(Component.translatable("item.mm.priority_setter.message.apply_success", prio), true);
         return InteractionResult.SUCCESS;

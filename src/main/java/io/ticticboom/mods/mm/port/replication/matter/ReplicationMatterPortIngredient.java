@@ -83,7 +83,7 @@ public class ReplicationMatterPortIngredient implements IPortIngredient {
         var type = type();
         if (type == null) return false;
         int remaining = resolveAmount(state);
-        for (var storage : storages.getOutputStorages(ReplicationMatterPortStorage.class)) {
+        for (var storage : storages.getOutputStoragesByPriority(ReplicationMatterPortStorage.class)) {
             remaining -= storage.internalInsert(type, remaining, true);
             if (remaining <= 0) break;
         }
@@ -95,7 +95,7 @@ public class ReplicationMatterPortIngredient implements IPortIngredient {
         var type = type();
         if (type == null) return;
         int remaining = resolveAmount(state);
-        for (var storage : storages.getOutputStorages(ReplicationMatterPortStorage.class)) {
+        for (var storage : storages.getOutputStoragesByPriority(ReplicationMatterPortStorage.class)) {
             remaining -= storage.internalInsert(type, remaining, false);
             if (remaining <= 0) break;
         }
@@ -143,7 +143,7 @@ public class ReplicationMatterPortIngredient implements IPortIngredient {
         amount.addToDebug(json, "amountToInsert", null);
 
         int remaining = amount.max();
-        for (var storage : storages.getOutputStorages(ReplicationMatterPortStorage.class)) {
+        for (var storage : storages.getOutputStoragesByPriority(ReplicationMatterPortStorage.class)) {
             var iterJson = new JsonObject();
             var inserted = type == null ? 0 : storage.internalInsert(type, remaining, true);
             remaining -= inserted;
