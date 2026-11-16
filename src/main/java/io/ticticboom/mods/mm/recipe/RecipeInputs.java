@@ -1,5 +1,8 @@
 package io.ticticboom.mods.mm.recipe;
 
+import io.ticticboom.mods.mm.recipe.input.count.CountRecipeIngredientEntry;
+import io.ticticboom.mods.mm.recipe.input.flex.FlexRecipeIngredientEntry;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -23,13 +26,51 @@ public record RecipeInputs(
 
     public boolean canProcess(Level level, RecipeStorages storages, RecipeStateModel model) {
         model.markBlocked(null, -1);
-        for (int i = 0; i < inputs.size(); i++) {
-            if (!inputs.get(i).canProcess(level, storages, model)) {
+        int firstCost = 0;
+        while (firstCost < inputs.size() && isSelecting(inputs.get(firstCost))) {
+            if (!inputs.get(firstCost).canProcess(level, storages, model)) {
+                if (model.getBlockedKind() == null) {
+                    model.markBlocked(RecipeBlockReason.Kind.INPUT, firstCost);
+                }
+                return false;
+            }
+            firstCost++;
+        }
+        int i = firstCost;
+        while (i < inputs.size()) {
+            if (inputs.get(i).canProcess(level, storages, model)) {
+                i++;
+                continue;
+            }
+            if (!dropOneKind(model)) {
                 model.markBlocked(RecipeBlockReason.Kind.INPUT, i);
                 return false;
             }
+            i = firstCost;
         }
         return true;
+    }
+
+    private static boolean isSelecting(IRecipeIngredientEntry input) {
+        return input instanceof FlexRecipeIngredientEntry || input instanceof CountRecipeIngredientEntry;
+    }
+
+    private boolean dropOneKind(RecipeStateModel model) {
+        for (int i = inputs.size() - 1; i >= 0; i--) {
+            if (inputs.get(i) instanceof FlexRecipeIngredientEntry flex && flex.dropLastKind(model)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasFlex() {
+        for (IRecipeIngredientEntry input : inputs) {
+            if (input instanceof FlexRecipeIngredientEntry) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void processTick(Level level, RecipeStorages storages, RecipeStateModel model) {
@@ -39,6 +80,9 @@ public record RecipeInputs(
     }
 
     public void process(Level level, RecipeStorages storages, RecipeStateModel model) {
+        if (hasFlex() && model.getCaptures().isEmpty()) {
+            canProcess(level, storages, model);
+        }
         for (IRecipeIngredientEntry input : inputs) {
             input.process(level, storages, model);
         }

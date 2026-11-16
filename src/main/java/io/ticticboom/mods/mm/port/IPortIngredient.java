@@ -43,4 +43,16 @@ public interface IPortIngredient {
     default boolean canSimulateOutput() {
         return false;
     }
+
+    default @org.jetbrains.annotations.Nullable IPortIngredient scaled(double factor) {
+        return null;
+    }
+
+    static int scaleAmount(int amount, double factor) {
+        return (int) Math.min(Integer.MAX_VALUE, Math.max(0, Math.ceil(amount * factor)));
+    }
+
+    static long scaleAmount(long amount, double factor) {
+        return (long) Math.min(Long.MAX_VALUE, Math.max(0, Math.ceil(amount * factor)));
+    }
 }

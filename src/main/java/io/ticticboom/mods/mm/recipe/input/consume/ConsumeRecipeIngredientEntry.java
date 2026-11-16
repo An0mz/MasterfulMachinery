@@ -30,6 +30,7 @@ public class ConsumeRecipeIngredientEntry implements IRecipeIngredientEntry {
     @Getter
     private final boolean perTick;
     private final String chanceRollKey;
+    private final java.util.Map<Double, IPortIngredient> scaled = new java.util.concurrent.ConcurrentHashMap<>();
 
     public ConsumeRecipeIngredientEntry(IPortIngredient ingredient, double chance, boolean perTick) {
         this.ingredient = ingredient;
@@ -48,15 +49,26 @@ public class ConsumeRecipeIngredientEntry implements IRecipeIngredientEntry {
         return chance >= state.getRollToken(chanceRollKey);
     }
 
+    public IPortIngredient ingredientFor(@org.jetbrains.annotations.Nullable RecipeStateModel state) {
+        double multiplier = state == null ? 1 : state.getCostMultiplier();
+        if (multiplier == 1) {
+            return ingredient;
+        }
+        return scaled.computeIfAbsent(multiplier, m -> {
+            IPortIngredient copy = ingredient.scaled(m);
+            return copy == null ? ingredient : copy;
+        });
+    }
+
     @Override
     public boolean canProcess(Level level, RecipeStorages storages, RecipeStateModel state) {
-        return ingredient.canProcess(level, storages, state);
+        return ingredientFor(state).canProcess(level, storages, state);
     }
 
     @Override
     public void process(Level level, RecipeStorages storages, RecipeStateModel state) {
         if (!perTick && shouldRun(state)) {
-            ingredient.process(level, storages, state);
+            ingredientFor(state).process(level, storages, state);
         }
     }
 
@@ -69,7 +81,7 @@ public class ConsumeRecipeIngredientEntry implements IRecipeIngredientEntry {
         if (!perTick) {
             return;
         }
-        ingredient.processTick(level, storages, state);
+        ingredientFor(state).processTick(level, storages, state);
     }
 
     @Override
@@ -97,6 +109,9 @@ public class ConsumeRecipeIngredientEntry implements IRecipeIngredientEntry {
             rSlot.setOverlay(new SlotBadgeDrawable(slot.getBadgeCount(), slot.hasBadgeNotUsed()), 0, 0);
         }
         ingredient.setRecipe(builder, model, focus, helpers, grid, rSlot);
+        if (model.mode() == io.ticticboom.mods.mm.recipe.flex.RecipeMode.FLEX) {
+            rSlot.addRichTooltipCallback((v, list) -> list.add(Component.translatable("jei.mm.recipe.flex_cost").withStyle(ChatFormatting.DARK_AQUA)));
+        }
         var range = ingredient.getAmountRange();
         if (range != null && range.isRanged()) {
             rSlot.addTooltipCallback((v, list) -> {

@@ -11,6 +11,7 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,11 @@ public class RecipeStateModel {
     private int blockedIndex = -1;
 
     private final Map<String, Double> rollTokens = new HashMap<>();
+    private final Map<String, List<ItemStack>> captures = new HashMap<>();
+    private final Map<String, Integer> counts = new HashMap<>();
+    private double costMultiplier = 1;
+    @Nullable
+    private Comparator<ItemStack> flexInputOrder;
 
     @Nullable
     private List<ItemStack> consumedItems = null;
@@ -49,6 +55,30 @@ public class RecipeStateModel {
 
     public int getBlockedIndex() {
         return blockedIndex;
+    }
+
+    public List<ItemStack> getCaptured(String name) {
+        return captures.getOrDefault(name, List.of());
+    }
+
+    public void setCaptured(String name, List<ItemStack> stacks) {
+        if (stacks.isEmpty()) {
+            captures.remove(name);
+            return;
+        }
+        var copies = new ArrayList<ItemStack>(stacks.size());
+        for (ItemStack stack : stacks) {
+            copies.add(stack.copyWithCount(1));
+        }
+        captures.put(name, List.copyOf(copies));
+    }
+
+    public int getCount(String name) {
+        return counts.getOrDefault(name, 1);
+    }
+
+    public void setCount(String name, int count) {
+        counts.put(name, count);
     }
 
     public void trackConsumedItems() {
@@ -93,6 +123,25 @@ public class RecipeStateModel {
             rollTokens.forEach(rolls::putDouble);
             tag.put(ROLL_TOKENS_KEY, rolls);
         }
+        if (!captures.isEmpty()) {
+            var capturesTag = new CompoundTag();
+            captures.forEach((name, stacks) -> {
+                var list = new ListTag();
+                for (ItemStack stack : stacks) {
+                    list.add(stack.save(registries));
+                }
+                capturesTag.put(name, list);
+            });
+            tag.put("captures", capturesTag);
+        }
+        if (!counts.isEmpty()) {
+            var countsTag = new CompoundTag();
+            counts.forEach(countsTag::putInt);
+            tag.put("counts", countsTag);
+        }
+        if (costMultiplier != 1) {
+            tag.putDouble("costMultiplier", costMultiplier);
+        }
         if (consumedItems != null) {
             var items = new ListTag();
             for (ItemStack stack : consumedItems) {
@@ -115,6 +164,21 @@ public class RecipeStateModel {
             for (String key : rolls.getAllKeys()) {
                 model.rollTokens.put(key, rolls.getDouble(key));
             }
+        }
+        var capturesTag = tag.getCompound("captures");
+        for (String name : capturesTag.getAllKeys()) {
+            var stacks = new ArrayList<ItemStack>();
+            for (Tag item : capturesTag.getList(name, Tag.TAG_COMPOUND)) {
+                ItemStack.parse(registries, item).ifPresent(stacks::add);
+            }
+            model.setCaptured(name, stacks);
+        }
+        var countsTag = tag.getCompound("counts");
+        for (String name : countsTag.getAllKeys()) {
+            model.setCount(name, countsTag.getInt(name));
+        }
+        if (tag.contains("costMultiplier")) {
+            model.setCostMultiplier(tag.getDouble("costMultiplier"));
         }
         if (tag.contains(CONSUMED_ITEMS_KEY)) {
             model.trackConsumedItems();

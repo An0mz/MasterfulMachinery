@@ -643,7 +643,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                 recipeNextCheckTime.put(recipe.id(), gameTime + SKIP_COOLDOWN);
                 continue;
             }
-            var state = new RecipeStateModel();
+            var state = newRecipeProbe();
             if (!canStart(recipe, state)) {
                 if (state.getBlockedKind() != null) {
                     noteBlocked(recipe.id(), state, gameTime);
@@ -765,8 +765,25 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (inputKey != null) {
             inputItemLastStartedSequence.put(inputKey, recipeSelectionSequence);
         }
+        if (!state.getCaptures().isEmpty()) {
+            for (var kinds : state.getCaptures().values()) {
+                for (ItemStack kind : kinds) {
+                    inputItemLastStartedSequence.put(BuiltInRegistries.ITEM.getKey(kind.getItem()), recipeSelectionSequence);
+                }
+            }
+        }
+        state.setFlexInputOrder(null);
         markChanged();
         return true;
+    }
+
+    private RecipeStateModel newRecipeProbe() {
+        var state = new RecipeStateModel();
+        if (getRecipeSelectionMode() == RecipeSelectionMode.ROUND_ROBIN_INPUT_ITEM) {
+            state.setFlexInputOrder(Comparator.comparingLong(stack ->
+                    inputItemLastStartedSequence.getOrDefault(BuiltInRegistries.ITEM.getKey(stack.getItem()), Long.MIN_VALUE)));
+        }
+        return state;
     }
 
     private void recipeFinished(RecipeModel recipe) {
@@ -868,7 +885,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         for (int i = 0; i < inputs.size(); i++) {
             var input = inputs.get(i);
             if (input instanceof ConsumeRecipeIngredientEntry entry && entry.isPerTick()) {
-                var ingredient = entry.getIngredient();
+                var ingredient = entry.ingredientFor(state);
                 if (ingredient instanceof ITickSpreadIngredient spread) {
                     if (!drawTickSpread(recipe, state, spread)) {
                         state.markBlocked(RecipeBlockReason.Kind.INPUT, i);

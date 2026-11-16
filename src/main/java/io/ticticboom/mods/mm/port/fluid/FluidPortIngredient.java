@@ -200,4 +200,9 @@ public class FluidPortIngredient implements IPortIngredient {
     public boolean canSimulateOutput() {
         return true;
     }
+
+    @Override
+    public IPortIngredient scaled(double factor) {
+        return new FluidPortIngredient(fluidId, amount.scaled(factor));
+    }
 }

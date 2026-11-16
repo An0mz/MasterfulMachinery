@@ -190,4 +190,9 @@ public class MekanismChemicalPortIngredient implements IPortIngredient {
     public boolean canSimulateOutput() {
         return true;
     }
+
+    @Override
+    public IPortIngredient scaled(double factor) {
+        return new MekanismChemicalPortIngredient(id, IPortIngredient.scaleAmount(amount, factor));
+    }
 }

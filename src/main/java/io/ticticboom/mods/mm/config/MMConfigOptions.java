@@ -62,6 +62,7 @@ public final class MMConfigOptions {
             integer("structureValidationRate", "Validation interval (ticks)", Scope.SERVER, S.structureValidationRate, 1, 100),
             bool("debugTool", "Debug tool enabled", Scope.SERVER, S.debugTool),
             bool("splitRecipesJei", "Split JEI recipes by structure", Scope.SERVER, S.splitRecipesJei),
+            bool("showJeiFlexInputCopies", "Flex input slot per kind in JEI", Scope.SERVER, S.showJeiFlexInputCopies),
             bool("portsAutoExtractByDefault", "Port auto I/O default", Scope.SERVER, S.portsAutoExtractByDefault),
             integer("portAutoIOInterval", "Port auto I/O interval (ticks)", Scope.SERVER, S.portAutoIOInterval, 1, 200),
             integer("assemblyBlocksPerTick", "Assembly blocks per tick", Scope.SERVER, S.assemblyBlocksPerTick, 1, 64),

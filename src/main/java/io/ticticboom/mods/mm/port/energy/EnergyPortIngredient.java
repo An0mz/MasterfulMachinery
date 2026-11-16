@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.port.energy;
 
+import io.ticticboom.mods.mm.port.IPortIngredient;
 import io.ticticboom.mods.mm.port.PortContent;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -154,5 +155,10 @@ public class EnergyPortIngredient implements ITickSpreadIngredient {
     @Override
     public boolean canSimulateOutput() {
         return true;
+    }
+
+    @Override
+    public IPortIngredient scaled(double factor) {
+        return new EnergyPortIngredient(amount.scaled(factor));
     }
 }

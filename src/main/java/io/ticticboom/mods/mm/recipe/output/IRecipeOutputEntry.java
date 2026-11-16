@@ -32,5 +32,10 @@ public interface IRecipeOutputEntry {
         return java.util.List.of();
     }
     void setRecipe(IRecipeLayoutBuilder builder, RecipeModel model, IFocusGroup focus, IJeiHelpers helpers, SlotGrid grid);
+
+    default int jeiSlotCount(RecipeModel model) {
+        return displayedOutputs().size();
+    }
+
     JsonObject debugExpected(Level level, RecipeStorages storages, RecipeStateModel model, JsonObject jsonObject);
 }

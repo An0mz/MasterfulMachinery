@@ -14,6 +14,8 @@ import java.util.Locale;
 public class RecipeBuilderJS {
     private final List<JsonObject> inputs = new ArrayList<>();
     private final List<JsonObject> outputs = new ArrayList<>();
+    private String mode;
+    private com.google.gson.JsonElement flexCost;
     private int ticks;
     private ResourceLocation structureId;
     private boolean parallelProcessing = false;
@@ -27,6 +29,78 @@ public class RecipeBuilderJS {
     public RecipeBuilderJS(String id) {
         //noinspection removal
         this.id = ResourceLocation.parse(id);
+    }
+
+    public RecipeBuilderJS mode(String mode) {
+        this.mode = mode;
+        return this;
+    }
+
+    public RecipeBuilderJS flexInput(String as, JsonObject ingredient) {
+        var entry = new JsonObject();
+        entry.addProperty("type", "mm:input/flex");
+        entry.addProperty("as", as);
+        entry.add("ingredient", ingredient);
+        inputs.add(entry);
+        return this;
+    }
+
+    public RecipeBuilderJS flexInput(String as, JsonObject ingredient, int maxTypes) {
+        var entry = new JsonObject();
+        entry.addProperty("type", "mm:input/flex");
+        entry.addProperty("as", as);
+        entry.add("ingredient", ingredient);
+        entry.addProperty("max_types", maxTypes);
+        inputs.add(entry);
+        return this;
+    }
+
+    public RecipeBuilderJS flexInput(String as, JsonObject ingredient, int maxTypes, double chance) {
+        var entry = new JsonObject();
+        entry.addProperty("type", "mm:input/flex");
+        entry.addProperty("as", as);
+        entry.add("ingredient", ingredient);
+        entry.addProperty("max_types", maxTypes);
+        entry.addProperty("chance", chance);
+        inputs.add(entry);
+        return this;
+    }
+
+    public RecipeBuilderJS flexMatch(String from, String item, int count, double chance) {
+        var entry = new JsonObject();
+        entry.addProperty("type", "mm:input/flex_match");
+        entry.addProperty("from", from);
+        entry.addProperty("item", item);
+        entry.addProperty("count", count);
+        entry.addProperty("chance", chance);
+        inputs.add(entry);
+        return this;
+    }
+
+    public RecipeBuilderJS flexOutput(String from, String match, String item, int count) {
+        var entry = new JsonObject();
+        entry.addProperty("type", "mm:output/flex");
+        entry.addProperty("from", from);
+        entry.addProperty("match", match);
+        entry.addProperty("item", item);
+        entry.addProperty("count", count);
+        outputs.add(entry);
+        return this;
+    }
+
+    public RecipeBuilderJS flexCost(com.google.gson.JsonElement cost) {
+        this.flexCost = cost;
+        return this;
+    }
+
+    public RecipeBuilderJS countInput(String as, JsonObject ingredient, int max) {
+        var entry = new JsonObject();
+        entry.addProperty("type", "mm:input/count");
+        entry.addProperty("as", as);
+        entry.add("ingredient", ingredient);
+        entry.addProperty("max", max);
+        inputs.add(entry);
+        return this;
     }
 
     public RecipeBuilderJS input(JsonObject entry) {
@@ -190,6 +264,12 @@ public class RecipeBuilderJS {
         JsonObject json = new JsonObject();
         json.addProperty("id", id.toString());
         json.addProperty("ticks", ticks);
+        if (mode != null) {
+            json.addProperty("mode", mode);
+        }
+        if (flexCost != null) {
+            json.add("flex_cost", flexCost);
+        }
         json.addProperty("structureId", structureId.toString());
         json.addProperty("parallelProcessing", parallelProcessing);
         json.addProperty("requestOnly", requestOnly);

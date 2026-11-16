@@ -57,4 +57,9 @@ public record LongAmountRange(long min, long max, String rollKey) {
         long value = min + (long) (token * ((double) (max - min) + 1));
         return Math.max(min, Math.min(max, value));
     }
+
+    public LongAmountRange scaled(double factor) {
+        return new LongAmountRange(io.ticticboom.mods.mm.port.IPortIngredient.scaleAmount(min, factor),
+                io.ticticboom.mods.mm.port.IPortIngredient.scaleAmount(max, factor), rollKey);
+    }
 }

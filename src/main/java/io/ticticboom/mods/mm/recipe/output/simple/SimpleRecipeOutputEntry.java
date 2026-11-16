@@ -28,8 +28,16 @@ public class SimpleRecipeOutputEntry implements IRecipeOutputEntry {
     private final boolean perTick;
     private final String chanceRollKey;
     private final java.util.List<IPortIngredient> planned;
+    @org.jetbrains.annotations.Nullable
+    private final String scaleBy;
+    private final java.util.Map<Integer, java.util.List<IPortIngredient>> scaled = new java.util.concurrent.ConcurrentHashMap<>();
 
     public SimpleRecipeOutputEntry(IPortIngredient ingredient, double chance, boolean perTick) {
+        this(ingredient, chance, perTick, null);
+    }
+
+    public SimpleRecipeOutputEntry(IPortIngredient ingredient, double chance, boolean perTick, @org.jetbrains.annotations.Nullable String scaleBy) {
+        this.scaleBy = scaleBy;
         this.ingredient = ingredient;
         this.chance = chance;
         this.perTick = perTick;
@@ -44,6 +52,29 @@ public class SimpleRecipeOutputEntry implements IRecipeOutputEntry {
 
     public IPortIngredient getIngredient() {
         return ingredient;
+    }
+
+    @org.jetbrains.annotations.Nullable
+    public String getScaleBy() {
+        return scaleBy;
+    }
+
+    private java.util.List<IPortIngredient> plannedFor(RecipeStateModel state) {
+        if (scaleBy == null || state == null) {
+            return planned;
+        }
+        int factor = state.getCount(scaleBy);
+        if (factor == 1) {
+            return planned;
+        }
+        return scaled.computeIfAbsent(factor, f -> {
+            IPortIngredient copy = ingredient.scaled(f);
+            return java.util.List.of(copy == null ? ingredient : copy);
+        });
+    }
+
+    private IPortIngredient ingredientFor(RecipeStateModel state) {
+        return plannedFor(state).get(0);
     }
 
     private boolean shouldRun(RecipeStateModel state) {
@@ -61,32 +92,32 @@ public class SimpleRecipeOutputEntry implements IRecipeOutputEntry {
         if (!shouldRun(state)) {
             return true;
         }
-        return ingredient.canOutput(level, storages, state);
+        return ingredientFor(state).canOutput(level, storages, state);
     }
 
     @Override
     public void output(Level level, RecipeStorages storages, RecipeStateModel state) {
         if (!perTick && shouldRun(state)) {
-            ingredient.output(level, storages, state);
+            ingredientFor(state).output(level, storages, state);
         }
     }
 
     @Override
     public void processTick(Level level, RecipeStorages storages, RecipeStateModel state) {
         if (perTick && shouldRun(state)) {
-            ingredient.output(level, storages, state);
+            ingredientFor(state).output(level, storages, state);
         }
         ingredient.outputTick(level, storages, state);
     }
 
     @Override
     public java.util.List<IPortIngredient> plannedOutputs(Level level, RecipeStateModel state) {
-        return !perTick && shouldRun(state) ? planned : java.util.List.of();
+        return !perTick && shouldRun(state) ? plannedFor(state) : java.util.List.of();
     }
 
     @Override
     public java.util.List<IPortIngredient> plannedTickOutputs(Level level, RecipeStateModel state) {
-        return perTick && chance >= 1 ? planned : java.util.List.of();
+        return perTick && chance >= 1 ? plannedFor(state) : java.util.List.of();
     }
 
     @Override
@@ -105,6 +136,9 @@ public class SimpleRecipeOutputEntry implements IRecipeOutputEntry {
             }
             if (perTick) {
                 list.add(Component.translatable("jei.mm.recipe.output_per_tick").withStyle(ChatFormatting.DARK_AQUA));
+            }
+            if (scaleBy != null) {
+                list.add(Component.translatable("jei.mm.recipe.scaled_by", scaleBy).withStyle(ChatFormatting.DARK_AQUA));
             }
         });
     }
