@@ -11,6 +11,11 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.core.Direction;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -21,6 +26,8 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class StructureCaptureUtil {
+
+    private static final Set<String> SHAPE_PROPERTIES = Set.of("half", "type", "shape", "face", "attachment", "hinge", "rotation", "orientation");
 
     private static final char[] KEYS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".toCharArray();
 
@@ -66,6 +73,39 @@ public class StructureCaptureUtil {
         char[][][] grid = new char[dy][dz][dx];
         for (int yy = 0; yy < dy; yy++) for (int zz = 0; zz < dz; zz++) for (int xx = 0; xx < dx; xx++) grid[yy][zz][xx] = ' ';
 
+        for (int y = minY; y <= maxY; y++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                for (int x = minX; x <= maxX; x++) {
+                    BlockPos pos = new BlockPos(x, y, z);
+                    if (serverLevel.isLoaded(pos) && serverLevel.getBlockState(pos).getBlock() instanceof IControllerPart part
+                            && (controllerPos == null || pos.getY() < controllerPos.getY())) {
+                        foundController = Ref.id(part.getModel().id());
+                        controllerPos = pos;
+                    }
+                }
+            }
+        }
+
+        int rotation = 0;
+        if (foundController != null) {
+            int ctrlRelX = controllerPos.getX() - minX;
+            int ctrlRelZ = controllerPos.getZ() - minZ;
+            for (int cand : new int[]{0,90,180,270}) {
+                int nz, ndz;
+                if (cand == 0) { nz = ctrlRelZ; ndz = dz; }
+                else if (cand == 90) { nz = dx - 1 - ctrlRelX; ndz = dx; }
+                else if (cand == 180) { nz = dz - 1 - ctrlRelZ; ndz = dz; }
+                else { nz = ctrlRelX; ndz = dx; }
+                if (nz == ndz - 1) { rotation = cand; break; }
+            }
+        }
+        Rotation stateRotation = switch (rotation) {
+            case 90 -> Rotation.COUNTERCLOCKWISE_90;
+            case 180 -> Rotation.CLOCKWISE_180;
+            case 270 -> Rotation.CLOCKWISE_90;
+            default -> Rotation.NONE;
+        };
+
         // scan region
         for (int y = maxY; y >= minY; y--) {
             for (int z = maxZ; z >= minZ; z--) {
@@ -79,19 +119,19 @@ public class StructureCaptureUtil {
                     var state = serverLevel.getBlockState(pos);
                     Block b = state.getBlock();
                     String key = "minecraft:air";
+                    String blockId = key;
+                    JsonArray props = new JsonArray();
                     if (!b.equals(net.minecraft.world.level.block.Blocks.AIR)) {
                         ResourceLocation rl = BuiltInRegistries.BLOCK.getKey(b);
                         if (rl != null) key = rl.toString(); else key = b.toString();
+                        blockId = key;
                         // Always ignore podzol (treat as air)
                         if ("minecraft:podzol".equals(key)) {
                             key = "minecraft:air";
-                        } else {
-                            if (b instanceof IControllerPart part) {
-                                // Prefer the lowest controller in Y
-                                if (foundController == null || pos.getY() < controllerPos.getY()) {
-                                    foundController = Ref.id(part.getModel().id());
-                                    controllerPos = pos;
-                                }
+                        } else if (!(b instanceof IControllerPart) && (rl == null || !Ref.ID.equals(rl.getNamespace()))) {
+                            props = orientationProperties(state.rotate(stateRotation));
+                            if (!props.isEmpty()) {
+                                key = key + props;
                             }
                         }
                     }
@@ -150,7 +190,10 @@ public class StructureCaptureUtil {
                             keyMap.put(key, chr);
                             if (chr != 'C') {
                                 JsonObject def = new JsonObject();
-                                def.addProperty("block", key);
+                                def.addProperty("block", blockId);
+                                if (!props.isEmpty()) {
+                                    def.add("properties", props);
+                                }
                                 keyDefs.put(chr, def);
                             }
                             usedChars.add(chr);
@@ -159,24 +202,6 @@ public class StructureCaptureUtil {
                     }
                 }
             }
-        }
-
-        // determine rotation so that controller is at front (z == newDz-1)
-        int rotation = 0; // degrees clockwise
-        @SuppressWarnings("unused") int newDxLocal = dx, newDzLocal = dz;
-        if (foundController != null && controllerPos != null) {
-            int ctrlRelX = controllerPos.getX() - minX;
-            int ctrlRelZ = controllerPos.getZ() - minZ;
-            int chosen = 0; // 0,90,180,270
-            for (int cand : new int[]{0,90,180,270}) {
-                int nz, ndz;
-                if (cand == 0) { nz = ctrlRelZ; ndz = dz; }
-                else if (cand == 90) { nz = dx - 1 - ctrlRelX; ndz = dx; }
-                else if (cand == 180) { nz = dz - 1 - ctrlRelZ; ndz = dz; }
-                else { nz = ctrlRelX; ndz = dx; }
-                if (nz == ndz - 1) { chosen = cand; break; }
-            }
-            rotation = chosen;
         }
 
         // apply rotation to grid
@@ -271,7 +296,7 @@ public class StructureCaptureUtil {
         String baseName = getNextBaseName(playerName);
 
         String jsonString = new Gson().toJson(root);
-        String js = buildKubeJs(baseName, root, keyMap);
+        String js = buildKubeJs(baseName, root, keyDefs);
 
         try {
             Path outDir = Paths.get("config", "mm", "structures");
@@ -340,7 +365,7 @@ public class StructureCaptureUtil {
         throw new IllegalStateException("No available key characters");
     }
 
-    private static String buildKubeJs(String id, JsonObject root, Map<String, Character> keyMap) {
+    private static String buildKubeJs(String id, JsonObject root, Map<Character, JsonObject> keyDefs) {
         StringBuilder sb = new StringBuilder();
         sb.append("priority: 1;\n");
         sb.append("MMEvents.createStructures((event) => {\n");
@@ -388,17 +413,44 @@ public class StructureCaptureUtil {
         }
         sb.append("      ");
         // keys (skip controller 'C' — it must not be present under key definitions)
-        for (var e : keyMap.entrySet()) {
-            String block = e.getKey();
-            char chr = e.getValue();
-            if (chr == 'C') continue;
+        for (var e : keyDefs.entrySet()) {
+            char chr = e.getKey();
+            JsonObject def = e.getValue();
             sb.append("        .key('").append(chr).append("', {\n");
-            sb.append("          block: '").append(block).append("',\n");
+            sb.append("          block: '").append(def.get("block").getAsString()).append("',\n");
+            if (def.has("properties")) {
+                sb.append("          properties: [");
+                var props = def.getAsJsonArray("properties");
+                for (int i = 0; i < props.size(); i++) {
+                    var prop = props.get(i).getAsJsonObject();
+                    if (i > 0) sb.append(", ");
+                    sb.append("{ property: '").append(prop.get("property").getAsString())
+                            .append("', value: '").append(prop.get("value").getAsString()).append("' }");
+                }
+                sb.append("],\n");
+            }
             sb.append("        })\n");
         }
         sb.append("    });\n");
         sb.append("});\n");
         return sb.toString();
+    }
+
+    private static JsonArray orientationProperties(BlockState state) {
+        var props = new JsonArray();
+        for (Property<?> prop : state.getProperties()) {
+            if (prop instanceof DirectionProperty || prop.getValueClass() == Direction.Axis.class || SHAPE_PROPERTIES.contains(prop.getName())) {
+                var json = new JsonObject();
+                json.addProperty("property", prop.getName());
+                json.addProperty("value", valueName(state, prop));
+                props.add(json);
+            }
+        }
+        return props;
+    }
+
+    private static <T extends Comparable<T>> String valueName(BlockState state, Property<T> prop) {
+        return prop.getName(state.getValue(prop));
     }
 
     private static @NotNull String getString(String rawName) {

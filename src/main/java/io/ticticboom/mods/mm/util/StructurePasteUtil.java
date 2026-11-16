@@ -129,14 +129,14 @@ public final class StructurePasteUtil {
             return null;
         }
 
-        BlockState state = block.defaultBlockState().rotate(rotation);
+        BlockState state = block.defaultBlockState();
         List<StructurePieceModifier> modifiers = layoutPiece.modifiers();
         if (modifiers != null) {
             for (StructurePieceModifier modifier : modifiers) {
                 state = modifier.modifyBlockState(state, null, pos);
             }
         }
-        return state;
+        return state.rotate(rotation);
     }
 
     private static List<FramedCamo> camosFor(StructureLayoutPiece layoutPiece) {

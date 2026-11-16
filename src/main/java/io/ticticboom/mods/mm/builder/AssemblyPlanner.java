@@ -87,7 +87,7 @@ public final class AssemblyPlanner {
                 continue;
             }
             BlockPos pos = positioned.findAbsolutePos(controllerPos);
-            BlockState state = block.defaultBlockState().rotate(rotation);
+            BlockState state = block.defaultBlockState();
             List<StructurePieceModifier> modifiers = positioned.piece().modifiers();
             var camos = new ArrayList<FramedCamo>();
             if (modifiers != null) {
@@ -98,6 +98,7 @@ public final class AssemblyPlanner {
                     }
                 }
             }
+            state = state.rotate(rotation);
             List<Block> candidates = piece.createBlocksSupplier().get();
             List<Block> accepted = candidates == null ? List.of() : candidates.stream().filter(Objects::nonNull).toList();
             steps.add(new Planned(pos, state, accepted, List.copyOf(camos)));
