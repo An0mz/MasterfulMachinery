@@ -48,6 +48,10 @@ public record StructureLayoutPiece(StructurePiece piece, List<StructurePieceModi
         return true;
     }
 
+    public boolean allowsHelper() {
+        return json != null && json.has("allowHelper") && json.get("allowHelper").getAsBoolean();
+    }
+
     @SuppressWarnings("unused")
     public static StructureLayoutPiece parse(JsonObject json, ResourceLocation structureId, String keyChar) {
         var piece = MMStructurePieceRegistry.findPieceType(json);

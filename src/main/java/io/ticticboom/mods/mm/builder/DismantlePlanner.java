@@ -257,7 +257,8 @@ public final class DismantlePlanner {
             } else if (isPort(piece)) {
                 fits = candidates != null && candidates.contains(existing);
             } else {
-                fits = existing == gateway || (candidates != null && candidates.contains(existing));
+                boolean helper = existing == gateway && StructureLayout.helperAllowed(level, structure, positioned);
+                fits = helper || (candidates != null && candidates.contains(existing));
             }
             if (fits) {
                 count++;
