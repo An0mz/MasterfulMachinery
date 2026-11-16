@@ -35,7 +35,7 @@ import java.util.Objects;
 @EventBusSubscriber(modid = Ref.ID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
 public class ToolKeys {
     public static final KeyMapping DISMANTLE = new KeyMapping("key.mm.dismantle", KeyConflictContext.IN_GAME,
-            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, "key.categories.mm");
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F, "key.categories.mm");
     public static final int HOLD_TICKS = 20;
     private static final int BAR_SEGMENTS = 10;
     private static final int ROTATE_PREVIEW_TICKS = 40;
@@ -99,6 +99,22 @@ public class ToolKeys {
     @EventBusSubscriber(modid = Ref.ID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.GAME)
     public static final class Input {
         private Input() {
+        }
+
+        @SubscribeEvent
+        public static void swallowOffhandSwap(ClientTickEvent.Pre event) {
+            Minecraft mc = Minecraft.getInstance();
+            Player player = mc.player;
+            while (DISMANTLE.consumeClick()) {
+            }
+            if (player == null || mc.screen != null || heldTool(player).isEmpty()) {
+                return;
+            }
+            KeyMapping swap = mc.options.keySwapOffhand;
+            if (!DISMANTLE.isUnbound() && DISMANTLE.getKey().equals(swap.getKey())) {
+                while (swap.consumeClick()) {
+                }
+            }
         }
 
         @SubscribeEvent
