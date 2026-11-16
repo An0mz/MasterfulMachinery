@@ -157,6 +157,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private ControllerState linkedState = null;
     private int comparatorSignal = 0;
     private boolean soundMuted = false;
+    private ModelDisplay modelDisplay = ModelDisplay.ON;
     private LinkData networkLink = null;
     private boolean linkExportRequested = false;
     private long lastLinkExport = -1L;
@@ -979,6 +980,15 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         markChanged();
     }
 
+    public ModelDisplay getModelDisplay() {
+        return modelDisplay;
+    }
+
+    public void setModelDisplay(@Nullable ModelDisplay display) {
+        modelDisplay = display == null ? ModelDisplay.ON : display;
+        markChanged();
+    }
+
     public RecipeSelectionMode getRecipeSelectionMode() {
         return recipeModeOverride != null ? recipeModeOverride : model.recipeSelectionMode();
     }
@@ -1088,6 +1098,9 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (soundMuted) {
             tag.putBoolean("SoundMuted", true);
         }
+        if (modelDisplay != ModelDisplay.ON) {
+            tag.putString("ModelDisplay", modelDisplay.serializedName());
+        }
         if (networkLink != null) {
             tag.put("NetworkLink", networkLink.save());
         }
@@ -1136,6 +1149,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         recipeModeOverride = tag.contains("RecipeSelectionMode") ? RecipeSelectionMode.parse(tag.getString("RecipeSelectionMode")) : null;
         customName = tag.contains("CustomName") ? tag.getString("CustomName") : null;
         soundMuted = tag.getBoolean("SoundMuted");
+        var display = ModelDisplay.parse(tag.getString("ModelDisplay"));
+        modelDisplay = display == null ? ModelDisplay.ON : display;
         networkLink = tag.contains("NetworkLink") ? LinkData.load(tag.getCompound("NetworkLink")) : null;
         lastLinkExport = tag.contains("LastLinkExport") ? tag.getLong("LastLinkExport") : -1L;
         assemblyTiers.copyFrom(TierPrefs.load(tag.getCompound("AssemblyTiers")));

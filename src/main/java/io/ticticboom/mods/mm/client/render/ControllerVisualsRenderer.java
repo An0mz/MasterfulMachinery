@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.client.render;
 
+import io.ticticboom.mods.mm.controller.machine.register.ModelDisplay;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -49,7 +50,7 @@ public class ControllerVisualsRenderer implements BlockEntityRenderer<MachineCon
         }
         GeoModelConfig config = be.geoModel();
         GeoBridge bridge = GeoBridge.get();
-        if (config == null || bridge == null) {
+        if (config == null || bridge == null || be.getModelDisplay() == ModelDisplay.HIDDEN) {
             return;
         }
         Direction facing = blockState.getValue(HorizontalDirectionalBlock.FACING);

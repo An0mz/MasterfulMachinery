@@ -8,6 +8,7 @@ import io.ticticboom.mods.mm.networklink.NetworkLink;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.client.gui.widgets.ControllerPortList;
 import io.ticticboom.mods.mm.client.gui.widgets.PortContentIcon;
+import io.ticticboom.mods.mm.client.geo.GeoBridge;
 import io.ticticboom.mods.mm.client.util.NineSliceUtil;
 import io.ticticboom.mods.mm.compat.jei.JeiRecipeLookup;
 import io.ticticboom.mods.mm.config.MMConfigSetup;
@@ -97,7 +98,7 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
     private static final int PREVIEW_ARROW = 32;
     private static final boolean JEI = ModList.get().isLoaded("jei");
 
-    private enum Row { STRUCTURE, TIER, PARALLEL, REDSTONE, MODE, SOUND, LINK, RECIPE }
+    private enum Row { STRUCTURE, TIER, PARALLEL, REDSTONE, MODE, SOUND, MODEL, LINK, RECIPE }
 
     private static final Pattern TIER = Pattern.compile("(?i)\\s*\\b(?:tier|level|lvl|mk)\\s*[.:#-]?\\s*(\\d+(?:[.,]\\d+)?|[ivx]+)\\b");
 
@@ -455,6 +456,9 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         if (hasWorkingSound()) {
             rows.add(Row.SOUND);
         }
+        if (hasGeoModel()) {
+            rows.add(Row.MODEL);
+        }
         if (NetworkLink.AVAILABLE) {
             rows.add(Row.LINK);
         }
@@ -519,6 +523,10 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         if (hasWorkingSound()) {
             int sy = y + rowY(Row.SOUND) - 2;
             drawButtonFrame(gfx, x + VALUE_X - 2, sy, valueRight - VALUE_X + 2, BUTTON_HEIGHT, isOnRow(Row.SOUND, mouseX, mouseY));
+        }
+        if (hasGeoModel()) {
+            int gy = y + rowY(Row.MODEL) - 2;
+            drawButtonFrame(gfx, x + VALUE_X - 2, gy, valueRight - VALUE_X + 2, BUTTON_HEIGHT, isOnRow(Row.MODEL, mouseX, mouseY));
         }
 
         if (rows().contains(Row.RECIPE)) {
@@ -630,6 +638,10 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
             drawClipped(gfx, Component.translatable(be.isSoundMuted() ? "gui.mm.controller.sound.off" : "gui.mm.controller.sound.on"),
                     VALUE_X + 1, rowY(Row.SOUND), valueRight - VALUE_X - 3, TEXT);
         }
+        if (hasGeoModel()) {
+            drawClipped(gfx, Component.translatable("gui.mm.controller.model." + be.getModelDisplay().serializedName()),
+                    VALUE_X + 1, rowY(Row.MODEL), valueRight - VALUE_X - 3, TEXT);
+        }
         if (rows().contains(Row.LINK)) {
             LinkData link = be.getNetworkLink();
             if (link != null) {
@@ -654,6 +666,10 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         long seconds = Math.max(0, (be.getLevel().getGameTime() - last) / 20);
         String ago = seconds < 60 ? seconds + "s" : seconds < 3600 ? seconds / 60 + "m" : seconds / 3600 + "h";
         return Component.translatable("gui.mm.controller.link.last_sent", ago).withStyle(ChatFormatting.GRAY);
+    }
+
+    private boolean hasGeoModel() {
+        return be.geoModel() != null && GeoBridge.get() != null;
     }
 
     private boolean hasWorkingSound() {
@@ -887,6 +903,10 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
                         lines.add(Component.translatable("gui.mm.controller.sound.none.hint").withStyle(ChatFormatting.GRAY));
                     }
                 }
+                case MODEL -> {
+                    lines.add(Component.translatable("gui.mm.controller.model." + be.getModelDisplay().serializedName() + ".hint").withStyle(ChatFormatting.GRAY));
+                    lines.add(Component.translatable("gui.mm.controller.model.hint").withStyle(ChatFormatting.YELLOW));
+                }
                 case LINK -> {
                     LinkData link = be.getNetworkLink();
                     if (link != null) {
@@ -1005,6 +1025,12 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
             }
             if (hasWorkingSound() && isOnRow(Row.SOUND, mouseX, mouseY)) {
                 PacketDistributor.sendToServer(new ControllerSettingsPkt(be.getBlockPos(), ControllerSettingsPkt.Setting.SOUND_MUTED, Boolean.toString(!be.isSoundMuted())));
+                playClick();
+                return true;
+            }
+            if (hasGeoModel() && isOnRow(Row.MODEL, mouseX, mouseY)) {
+                var next = be.getModelDisplay().next(be.geoModel().animations() != null);
+                PacketDistributor.sendToServer(new ControllerSettingsPkt(be.getBlockPos(), ControllerSettingsPkt.Setting.MODEL_DISPLAY, next.serializedName()));
                 playClick();
                 return true;
             }

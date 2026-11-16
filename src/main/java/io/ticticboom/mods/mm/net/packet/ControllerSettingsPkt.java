@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.net.packet;
 
+import io.ticticboom.mods.mm.controller.machine.register.ModelDisplay;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
 import io.ticticboom.mods.mm.controller.machine.register.MachineControllerMenu;
@@ -16,7 +17,8 @@ public record ControllerSettingsPkt(BlockPos pos, Setting setting, String value)
     public enum Setting {
         NAME,
         RECIPE_ORDER,
-        SOUND_MUTED
+        SOUND_MUTED,
+        MODEL_DISPLAY
     }
 
     public static final Type<ControllerSettingsPkt> TYPE = new Type<>(Ref.id("controller_settings"));
@@ -38,6 +40,7 @@ public record ControllerSettingsPkt(BlockPos pos, Setting setting, String value)
                 case NAME -> controller.setCustomName(pkt.value);
                 case RECIPE_ORDER -> controller.setRecipeSelectionMode(RecipeSelectionMode.parse(pkt.value));
                 case SOUND_MUTED -> controller.setSoundMuted(Boolean.parseBoolean(pkt.value));
+                case MODEL_DISPLAY -> controller.setModelDisplay(ModelDisplay.parse(pkt.value));
             }
         });
     }
