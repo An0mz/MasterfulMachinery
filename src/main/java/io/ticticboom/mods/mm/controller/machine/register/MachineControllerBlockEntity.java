@@ -67,6 +67,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 import java.util.Collections;
 import io.ticticboom.mods.mm.client.geo.GeoModelConfig;
@@ -127,9 +128,13 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private long lastStorageChangeCount = -1;
     private final Map<ResourceLocation, Long> recipeNextCheckTime = new HashMap<>();
 
-    private List<RecipeModel> cachedStructureRecipes = null;
+    private RecipeCandidateIndex cachedStructureRecipes = null;
+    private final IntArrayList candidatePositions = new IntArrayList();
+    private boolean candidatesValid = false;
+    private final Set<ResourceLocation> candidateItems = new HashSet<>();
+    private final Set<ResourceLocation> candidateFluids = new HashSet<>();
+    private boolean candidateEnergy = false;
     private int cachedRecipeVersion = -1;
-    private final Map<ResourceLocation, RecipeRequirements> requirements = new HashMap<>();
     private int nextRecipeCheckIndex = 0;
     private ResourceLocation lastStartedRecipeId = null;
     private long lastRecipeStartTime = Long.MIN_VALUE;
@@ -532,6 +537,14 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             }
         }
         storageContentCacheValid = true;
+        if (cachedHasEnergy != candidateEnergy || !cachedItemIds.equals(candidateItems) || !cachedFluidIds.equals(candidateFluids)) {
+            candidateItems.clear();
+            candidateItems.addAll(cachedItemIds);
+            candidateFluids.clear();
+            candidateFluids.addAll(cachedFluidIds);
+            candidateEnergy = cachedHasEnergy;
+            candidatesValid = false;
+        }
         recipeNextCheckTime.clear();
     }
 
@@ -556,13 +569,18 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
 
     private void scanAndStartRecipes(long gameTime) {
         if (cachedStructureRecipes == null || cachedRecipeVersion != MachineRecipeManager.RECIPE_VERSION) {
-            cachedStructureRecipes = new ArrayList<>(MachineRecipeManager.getRecipesByStrucutreId(structure.id()));
+            cachedStructureRecipes = new RecipeCandidateIndex(new ArrayList<>(MachineRecipeManager.getRecipesByStrucutreId(structure.id())));
             cachedRecipeVersion = MachineRecipeManager.RECIPE_VERSION;
-            requirements.clear();
+            candidatesValid = false;
             failedRecipes.clear();
             recipeNextCheckTime.clear();
         }
-        int total = cachedStructureRecipes.size();
+        boolean filtered = storageContentCacheValid;
+        if (filtered && !candidatesValid) {
+            cachedStructureRecipes.collect(cachedItemIds, cachedFluidIds, cachedHasEnergy, candidatePositions);
+            candidatesValid = true;
+        }
+        int total = filtered ? candidatePositions.size() : cachedStructureRecipes.size();
         if (total == 0) {
             return;
         }
@@ -574,12 +592,13 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         Candidate deferred = null;
         boolean started = false;
         for (int performed = 0; performed < checks; performed++) {
-            RecipeModel recipe = cachedStructureRecipes.get(index);
+            int position = filtered ? candidatePositions.getInt(index) : index;
+            RecipeModel recipe = cachedStructureRecipes.recipe(position);
             index = (index + 1) % total;
             if (!isEligible(recipe, requested, gameTime)) {
                 continue;
             }
-            var needs = requirements.computeIfAbsent(recipe.id(), id -> RecipeRequirements.of(recipe));
+            var needs = cachedStructureRecipes.requirements(position);
             if (!mayHaveInputs(needs)) {
                 recipeNextCheckTime.put(recipe.id(), gameTime + SKIP_COOLDOWN);
                 continue;
@@ -648,9 +667,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (!storageContentCacheValid) {
             return true;
         }
-        return cachedItemIds.containsAll(needs.itemIds())
-                && cachedFluidIds.containsAll(needs.fluidIds())
-                && (!needs.energy() || cachedHasEnergy);
+        return RecipeCandidateIndex.matches(needs, cachedItemIds, cachedFluidIds, cachedHasEnergy);
     }
 
     private boolean canStart(RecipeModel recipe, RecipeStateModel state) {
