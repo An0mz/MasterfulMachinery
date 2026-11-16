@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.Ref;
+import io.ticticboom.mods.mm.port.IPortIngredient;
 import io.ticticboom.mods.mm.recipe.input.IRecipeIngredientEntry;
 import io.ticticboom.mods.mm.recipe.output.IRecipeOutputEntry;
 import net.minecraft.world.level.Level;
@@ -32,7 +33,88 @@ public record RecipeOutputs(
                 return false;
             }
         }
+        if (storages != null && sharesPorts(level, model, false) && !fitTogether(level, storages, model, false)) {
+            return false;
+        }
         return true;
+    }
+
+    public boolean canProcessTick(Level level, RecipeStorages storages, RecipeStateModel model) {
+        int simulated = 0;
+        for (int e = 0; e < outputs.size(); e++) {
+            var planned = outputs.get(e).plannedTickOutputs(level, model);
+            for (int i = 0; i < planned.size(); i++) {
+                IPortIngredient ingredient = planned.get(i);
+                if (!ingredient.canOutput(level, storages, model)) {
+                    return false;
+                }
+                if (ingredient.canSimulateOutput()) {
+                    simulated++;
+                }
+            }
+        }
+        if (simulated >= 2 && sharesPorts(level, model, true) && !fitTogether(level, storages, model, true)) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean sharesPorts(Level level, RecipeStateModel model, boolean perTick) {
+        for (int a = 0; a < outputs.size(); a++) {
+            var first = perTick ? outputs.get(a).plannedTickOutputs(level, model) : outputs.get(a).plannedOutputs(level, model);
+            for (int i = 0; i < first.size(); i++) {
+                IPortIngredient one = first.get(i);
+                if (!one.canSimulateOutput()) {
+                    continue;
+                }
+                if (i + 1 < first.size()) {
+                    for (int j = i + 1; j < first.size(); j++) {
+                        if (first.get(j).canSimulateOutput() && samePorts(one, first.get(j))) {
+                            return true;
+                        }
+                    }
+                }
+                for (int b = a + 1; b < outputs.size(); b++) {
+                    var second = perTick ? outputs.get(b).plannedTickOutputs(level, model) : outputs.get(b).plannedOutputs(level, model);
+                    for (int j = 0; j < second.size(); j++) {
+                        if (second.get(j).canSimulateOutput() && samePorts(one, second.get(j))) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean samePorts(IPortIngredient a, IPortIngredient b) {
+        return a.getClass() == b.getClass()
+                || (a instanceof io.ticticboom.mods.mm.port.item.BaseItemPortIngredient && b instanceof io.ticticboom.mods.mm.port.item.BaseItemPortIngredient);
+    }
+
+    private boolean fitTogether(Level level, RecipeStorages storages, RecipeStateModel model, boolean perTick) {
+        int count = 0;
+        for (IRecipeOutputEntry output : outputs) {
+            var planned = perTick ? output.plannedTickOutputs(level, model) : output.plannedOutputs(level, model);
+            for (int i = 0; i < planned.size(); i++) {
+                if (planned.get(i).canSimulateOutput()) {
+                    count++;
+                }
+            }
+        }
+        if (count < 2) {
+            return true;
+        }
+        var simulated = new ArrayList<IPortIngredient>(count);
+        for (IRecipeOutputEntry output : outputs) {
+            var planned = perTick ? output.plannedTickOutputs(level, model) : output.plannedOutputs(level, model);
+            for (int i = 0; i < planned.size(); i++) {
+                if (planned.get(i).canSimulateOutput()) {
+                    simulated.add(planned.get(i));
+                }
+            }
+        }
+        return OutputSimulation.fitTogether(level, storages, model, simulated);
     }
 
     public boolean usesConsumedItems() {

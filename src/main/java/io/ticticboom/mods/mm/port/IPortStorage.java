@@ -62,4 +62,8 @@ public interface IPortStorage {
     default void setPriority(int priority) {
         // default no-op for storage implementations that don't track priority
     }
+
+    default @Nullable IPortStorage simulationCopy(HolderLookup.Provider registries) {
+        return null;
+    }
 }

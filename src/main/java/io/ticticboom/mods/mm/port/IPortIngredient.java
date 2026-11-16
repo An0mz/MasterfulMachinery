@@ -39,4 +39,8 @@ public interface IPortIngredient {
     JsonObject debugInput(Level level, RecipeStorages storages, JsonObject json);
     JsonObject debugOutput(Level level, RecipeStorages storages, JsonObject json);
 
+
+    default boolean canSimulateOutput() {
+        return false;
+    }
 }

@@ -185,4 +185,9 @@ public class MekanismChemicalPortIngredient implements IPortIngredient {
         }
         recipeSlot.addTooltipCallback((a, c) -> c.add(1, Component.translatable("jei.mm.ingredient.mekanism_chemical.amount", amount)));
     }
+
+    @Override
+    public boolean canSimulateOutput() {
+        return true;
+    }
 }

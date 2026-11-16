@@ -539,7 +539,11 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         activeRecipes.entrySet().removeIf(entry -> {
             var recipe = MachineRecipeManager.RECIPES.get(entry.getKey());
             var state = entry.getValue();
-            if (recipe == null || !state.isCanFinish() || !recipe.outputs().canProcess(level, portStorages, state)) {
+            if (recipe == null || !state.isCanFinish() || recipeNextCheckTime.getOrDefault(entry.getKey(), 0L) > level.getGameTime()) {
+                return false;
+            }
+            if (!recipe.outputs().canProcess(level, portStorages, state)) {
+                recipeNextCheckTime.put(entry.getKey(), level.getGameTime() + OUTPUT_BLOCKED_COOLDOWN);
                 return false;
             }
             recipe.outputs().process(level, portStorages, state);
@@ -753,7 +757,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (!state.isCanFinish()) {
             boolean fed;
             try {
-                fed = processTickInputs(recipe, state);
+                fed = recipe.outputs().canProcessTick(level, portStorages, state) && processTickInputs(recipe, state);
                 if (fed) {
                     recipe.outputs().processTick(level, portStorages, state);
                 }
@@ -774,6 +778,9 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             return false;
         }
         state.setCanFinish(true);
+        if (recipeNextCheckTime.getOrDefault(recipe.id(), 0L) > gameTime) {
+            return false;
+        }
         if (recipe.outputs().canProcess(level, portStorages, state)) {
             lastProgressTime = gameTime;
             recipe.outputs().process(level, portStorages, state);

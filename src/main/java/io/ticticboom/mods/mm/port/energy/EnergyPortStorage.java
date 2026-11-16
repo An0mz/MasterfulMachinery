@@ -102,4 +102,11 @@ public class EnergyPortStorage implements IPortStorage {
     public List<PortContent> contents() {
         return List.of(PortContent.energy(handler.getStored(), handler.getCapacity()));
     }
+
+    @Override
+    public IPortStorage simulationCopy(HolderLookup.Provider registries) {
+        var copy = new EnergyPortStorage(model, () -> {});
+        copy.load(save(new CompoundTag(), registries), registries);
+        return copy;
+    }
 }

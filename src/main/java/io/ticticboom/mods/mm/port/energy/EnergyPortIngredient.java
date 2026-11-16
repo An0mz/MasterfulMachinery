@@ -150,4 +150,9 @@ public class EnergyPortIngredient implements ITickSpreadIngredient {
     public net.minecraft.network.chat.Component displayName() {
         return net.minecraft.network.chat.Component.translatable("port.mm.energy.name");
     }
+
+    @Override
+    public boolean canSimulateOutput() {
+        return true;
+    }
 }

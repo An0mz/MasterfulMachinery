@@ -27,13 +27,14 @@ public class SimpleRecipeOutputEntry implements IRecipeOutputEntry {
     private final double chance;
     private final boolean perTick;
     private final String chanceRollKey;
+    private final java.util.List<IPortIngredient> planned;
 
     public SimpleRecipeOutputEntry(IPortIngredient ingredient, double chance, boolean perTick) {
-
         this.ingredient = ingredient;
         this.chance = chance;
         this.perTick = perTick;
         this.chanceRollKey = "c" + AmountRange.nextRollKey();
+        this.planned = java.util.List.of(ingredient);
     }
 
     @Override
@@ -76,6 +77,16 @@ public class SimpleRecipeOutputEntry implements IRecipeOutputEntry {
             ingredient.output(level, storages, state);
         }
         ingredient.outputTick(level, storages, state);
+    }
+
+    @Override
+    public java.util.List<IPortIngredient> plannedOutputs(Level level, RecipeStateModel state) {
+        return !perTick && shouldRun(state) ? planned : java.util.List.of();
+    }
+
+    @Override
+    public java.util.List<IPortIngredient> plannedTickOutputs(Level level, RecipeStateModel state) {
+        return perTick && chance >= 1 ? planned : java.util.List.of();
     }
 
     @Override

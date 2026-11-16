@@ -156,4 +156,9 @@ public class SingleItemPortIngredient extends BaseItemPortIngredient {
         json.add("searchedStorages", searchedStorages);
         return json;
     }
+
+    @Override
+    public boolean canSimulateOutput() {
+        return true;
+    }
 }

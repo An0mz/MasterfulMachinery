@@ -211,4 +211,11 @@ public class ItemPortStorage implements IPortStorage {
         }
         return contents;
     }
+
+    @Override
+    public IPortStorage simulationCopy(HolderLookup.Provider registries) {
+        var copy = new ItemPortStorage(model, () -> {});
+        copy.load(save(new CompoundTag(), registries), registries);
+        return copy;
+    }
 }
