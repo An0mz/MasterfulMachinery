@@ -56,6 +56,9 @@ public class EntityPortIngredient implements IPortIngredient {
         if (entityId != null) {
             return entityId.equals(entry.type());
         }
+        if (tagId == null) {
+            return true;
+        }
         return EntityTypes.inTagById(entry.type(), tagId);
     }
 
@@ -123,7 +126,7 @@ public class EntityPortIngredient implements IPortIngredient {
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, RecipeModel model, IFocusGroup focus, IJeiHelpers helpers, SlotGrid grid, IRecipeSlotBuilder recipeSlot) {
         recipeSlot.addIngredient(MMJeiIngredients.ENTITY,
-                new EntityIngredient(entityId != null ? entityId : tagId, entityId == null, amount.max()));
+                new EntityIngredient(entityId != null ? entityId : tagId, entityId == null && tagId != null, amount.max()));
     }
 
     @Override

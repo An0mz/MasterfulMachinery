@@ -217,6 +217,7 @@
   "jei.mm.ingredient.mekanism_heat.amount": "%s Heat",
   "jei.mm.ingredient.entity.title": "%s:",
   "jei.mm.ingredient.entity.amount": "%s Entity",
+  "jei.mm.ingredient.entity.any": "Any Entity",
   "jei.mm.ingredient.replication_matter.title": "%s Matter:",
   "jei.mm.ingredient.replication_matter.amount": "%s Matter",
   "jei.mm.ingredient.nuclear_radiation.any": "Any radiation",

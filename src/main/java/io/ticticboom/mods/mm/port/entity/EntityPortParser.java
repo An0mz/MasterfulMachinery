@@ -17,10 +17,6 @@ public class EntityPortParser implements IPortParser {
     public IPortIngredient parseRecipeIngredient(JsonObject json) {
         var entity = ParserUtils.parseOptionalId(json, "entity");
         var tag = ParserUtils.parseOptionalId(json, "tag");
-        if (entity == null && tag == null) {
-            throw new RuntimeException(String.format(
-                    "An MM entity ingredient needs either 'entity' or 'tag': %s", json));
-        }
         var amount = json.has("amount") ? AmountRange.parse(json, "amount") : AmountRange.of(1);
         return new EntityPortIngredient(entity, tag, amount);
     }

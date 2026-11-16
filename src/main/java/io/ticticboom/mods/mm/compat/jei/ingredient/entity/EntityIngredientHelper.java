@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.compat.jei.ingredient.entity;
 
+import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.compat.jei.ingredient.MMJeiIngredients;
 import mezz.jei.api.ingredients.IIngredientHelper;
 import mezz.jei.api.ingredients.IIngredientType;
@@ -21,12 +22,15 @@ public class EntityIngredientHelper implements IIngredientHelper<EntityIngredien
 
     @Override
     public @NotNull String getUniqueId(@NotNull EntityIngredient ingredient, @NotNull UidContext context) {
+        if (ingredient.id() == null) {
+            return "entity/any";
+        }
         return "entity/" + (ingredient.tag() ? "tag/" : "") + ingredient.id();
     }
 
     @Override
     public @NotNull ResourceLocation getResourceLocation(@NotNull EntityIngredient ingredient) {
-        return ingredient.id();
+        return ingredient.id() == null ? Ref.id("any_entity") : ingredient.id();
     }
 
     @Override
@@ -36,6 +40,9 @@ public class EntityIngredientHelper implements IIngredientHelper<EntityIngredien
 
     @Override
     public @NotNull String getErrorInfo(@Nullable EntityIngredient ingredient) {
-        return ingredient == null || ingredient.id() == null ? "Error" : ingredient.id().toString();
+        if (ingredient == null) {
+            return "Error";
+        }
+        return ingredient.id() == null ? "any" : ingredient.id().toString();
     }
 }

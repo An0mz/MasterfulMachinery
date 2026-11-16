@@ -12,8 +12,11 @@ import net.minecraft.world.item.SpawnEggItem;
 public class EntityIngredientNames {
 
     public static Component displayName(EntityIngredient ingredient) {
-        if (ingredient == null || ingredient.id() == null) {
+        if (ingredient == null) {
             return Component.literal("?");
+        }
+        if (ingredient.id() == null) {
+            return Component.translatable("jei.mm.ingredient.entity.any");
         }
         if (ingredient.tag()) {
             return Component.literal("#" + ingredient.id());
