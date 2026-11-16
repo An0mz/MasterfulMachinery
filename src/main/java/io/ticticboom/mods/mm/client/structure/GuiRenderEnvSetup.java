@@ -10,6 +10,7 @@ import lombok.Setter;
 import net.minecraft.client.Minecraft;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 @Getter
 public class GuiRenderEnvSetup {
@@ -18,6 +19,8 @@ public class GuiRenderEnvSetup {
     private static Minecraft mc = Minecraft.getInstance();
     private static final float FOV_DEGREES = 85;
     private static final float FIT_MARGIN = 1.1f;
+    private static final Vector3f FLAT_LIGHT_0 = new Vector3f(3.0f, 3.3f, 3.7f);
+    private static final Vector3f FLAT_LIGHT_1 = new Vector3f(-3.0f, -3.3f, -3.7f);
 
     public GuiRenderEnvSetup() {
     }
@@ -50,7 +53,7 @@ public class GuiRenderEnvSetup {
         RenderSystem.clear(256, Minecraft.ON_OSX);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        Lighting.setupFor3DItems();
+        RenderSystem.setShaderLights(FLAT_LIGHT_0, FLAT_LIGHT_1);
 
 
     }
