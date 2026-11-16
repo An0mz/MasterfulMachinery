@@ -29,11 +29,27 @@ public class RecipeStateModel {
     private double tickPercentage = 0;
     private boolean canFinish = false;
     private double progressCarry = 0;
+    private RecipeBlockReason.Kind blockedKind;
+    private int blockedIndex = -1;
 
     private final Map<String, Double> rollTokens = new HashMap<>();
 
     @Nullable
     private List<ItemStack> consumedItems = null;
+
+    public void markBlocked(@Nullable RecipeBlockReason.Kind kind, int index) {
+        blockedKind = kind;
+        blockedIndex = index;
+    }
+
+    @Nullable
+    public RecipeBlockReason.Kind getBlockedKind() {
+        return blockedKind;
+    }
+
+    public int getBlockedIndex() {
+        return blockedIndex;
+    }
 
     public void trackConsumedItems() {
         if (consumedItems == null) {

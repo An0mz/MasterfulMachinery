@@ -22,8 +22,10 @@ public record RecipeInputs(
     }
 
     public boolean canProcess(Level level, RecipeStorages storages, RecipeStateModel model) {
-        for (IRecipeIngredientEntry input : inputs) {
-            if (!input.canProcess(level, storages, model)) {
+        model.markBlocked(null, -1);
+        for (int i = 0; i < inputs.size(); i++) {
+            if (!inputs.get(i).canProcess(level, storages, model)) {
+                model.markBlocked(RecipeBlockReason.Kind.INPUT, i);
                 return false;
             }
         }

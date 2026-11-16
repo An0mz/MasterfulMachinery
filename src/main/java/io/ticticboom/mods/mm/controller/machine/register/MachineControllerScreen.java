@@ -8,7 +8,9 @@ import io.ticticboom.mods.mm.networklink.NetworkLink;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.client.gui.widgets.ControllerPortList;
 import io.ticticboom.mods.mm.client.gui.widgets.PortContentIcon;
+import io.ticticboom.mods.mm.client.util.BlockReasonText;
 import io.ticticboom.mods.mm.client.geo.GeoBridge;
+import io.ticticboom.mods.mm.recipe.RecipeBlockReason;
 import io.ticticboom.mods.mm.client.util.NineSliceUtil;
 import io.ticticboom.mods.mm.compat.jei.JeiRecipeLookup;
 import io.ticticboom.mods.mm.config.MMConfigSetup;
@@ -60,6 +62,7 @@ import java.util.regex.Pattern;
 
 public class MachineControllerScreen extends AbstractContainerScreen<MachineControllerMenu> {
     private static final int TEXT = 0xDDDDDD;
+    private static final int BLOCKED = 0xFFAA00;
     private static final int LABEL = 0x8A8A8A;
     private static final int DIVIDER = 0xFF3A3A3A;
     private static final int LEFT = 10;
@@ -498,6 +501,13 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
             }
         }
 
+        var blocked = rowBlockReason();
+        var blockedContent = blocked == null ? null : blocked.content();
+        if (blockedContent != null) {
+            gfx.blit(Ref.UiTextures.SLOT_PARTS, x + LEFT, y + RECIPE_Y, 0, 26, 18, 18);
+            PortContentIcon.draw(gfx, blockedContent, x + LEFT, y + RECIPE_Y);
+        }
+
         var row = recipeRow();
         if (!row.slots().isEmpty()) {
             for (Shown s : row.slots()) {
@@ -596,6 +606,11 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
             int countWidth = Math.min(this.font.width(count), right - LEFT - 9 - 40);
             drawClipped(gfx, count, right - countWidth, STATUS_Y, countWidth, Status.NOT_FORMED.color);
             statusWidth -= countWidth + 4;
+        } else if (status == Status.STALLED && be.getBlockReason() != null) {
+            var why = BlockReasonText.title(be.getBlockReason());
+            int whyWidth = Math.min(this.font.width(why), right - LEFT - 9 - 40);
+            drawClipped(gfx, why, right - whyWidth, STATUS_Y, whyWidth, BLOCKED);
+            statusWidth -= whyWidth + 4;
         }
         drawClipped(gfx, Component.translatable(status.key()), LEFT + 9, STATUS_Y, statusWidth, status.color);
 
@@ -604,6 +619,11 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
             var first = menu.getDiagnosis().missing().get(0);
             drawClipped(gfx, first.required(), LEFT + 21, RECIPE_Y, right - LEFT - 21, TEXT);
             drawClipped(gfx, offsetText(first.pos()), LEFT + 21, RECIPE_Y + 10, right - LEFT - 21, LABEL);
+        } else if (rowBlockReason() != null) {
+            var blocked = rowBlockReason();
+            int textX = blocked.content() != null ? LEFT + 21 : LEFT;
+            drawClipped(gfx, BlockReasonText.title(blocked), textX, RECIPE_Y, right - textX, BLOCKED);
+            drawClipped(gfx, BlockReasonText.detail(blocked), textX, RECIPE_Y + 10, right - textX, TEXT);
         } else if (recipe.slots().isEmpty()) {
             gfx.drawString(this.font, Component.translatable("gui.mm.controller.recipe.none"), LEFT, RECIPE_Y + 5, LABEL, false);
         } else {
@@ -730,6 +750,14 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         int next = Math.floorMod(index + 1 + step, recipes.size() + 1) - 1;
         String id = next < 0 ? "" : recipes.get(next).id().toString();
         PacketDistributor.sendToServer(new SelectRecipePkt(be.getBlockPos(), id));
+    }
+
+    @Nullable
+    private RecipeBlockReason rowBlockReason() {
+        if (showsDiagnosis() || status() != Status.IDLE) {
+            return null;
+        }
+        return be.getBlockReason();
     }
 
     private boolean showsDiagnosis() {
@@ -871,8 +899,30 @@ public class MachineControllerScreen extends AbstractContainerScreen<MachineCont
         if (showsDiagnosis() && WidgetUtils.isPointerWithinSized(mouseX, mouseY, this.leftPos + LEFT, this.topPos + RECIPE_Y - 1, right - LEFT, 20)) {
             return diagnosisTooltip();
         }
+        var blocked = rowBlockReason();
+        if (blocked != null && WidgetUtils.isPointerWithinSized(mouseX, mouseY, this.leftPos + LEFT, this.topPos + RECIPE_Y - 1, right - LEFT, 20)) {
+            var lines = new ArrayList<Component>();
+            lines.add(BlockReasonText.title(blocked).copy().withStyle(ChatFormatting.GOLD));
+            lines.add(BlockReasonText.detail(blocked).copy().withStyle(ChatFormatting.GRAY));
+            var others = be.getOtherBlockReasons();
+            if (!others.isEmpty()) {
+                lines.add(Component.translatable("gui.mm.controller.blocked.others").withStyle(ChatFormatting.DARK_GRAY));
+                for (var other : others) {
+                    lines.add(BlockReasonText.title(other).copy().withStyle(ChatFormatting.YELLOW)
+                            .append(Component.literal(": ").withStyle(ChatFormatting.YELLOW))
+                            .append(BlockReasonText.detail(other).copy().withStyle(ChatFormatting.GRAY)));
+                }
+            }
+            return lines;
+        }
         if (WidgetUtils.isPointerWithinSized(mouseX, mouseY, this.leftPos + LEFT, this.topPos + STATUS_Y - 1, right - LEFT, 10)) {
-            return List.of(Component.translatable(status().key() + ".hint").withStyle(ChatFormatting.GRAY));
+            var lines = new ArrayList<Component>();
+            lines.add(Component.translatable(status().key() + ".hint").withStyle(ChatFormatting.GRAY));
+            if (status() == Status.STALLED && be.getBlockReason() != null) {
+                lines.add(BlockReasonText.title(be.getBlockReason()).copy().withStyle(ChatFormatting.GOLD));
+                lines.add(BlockReasonText.detail(be.getBlockReason()).copy().withStyle(ChatFormatting.GRAY));
+            }
+            return lines;
         }
         for (Row row : rows()) {
             if (!isOnRow(row, mouseX, mouseY)) continue;

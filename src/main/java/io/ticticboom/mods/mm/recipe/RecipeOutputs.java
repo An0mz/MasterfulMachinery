@@ -29,11 +29,12 @@ public record RecipeOutputs(
             IRecipeOutputEntry output = outputs.get(i);
             boolean ok = output.canOutput(level, storages, model);
             if (!ok) {
-                // debug suppressed
+                model.markBlocked(RecipeBlockReason.Kind.OUTPUT, i);
                 return false;
             }
         }
         if (storages != null && sharesPorts(level, model, false) && !fitTogether(level, storages, model, false)) {
+            model.markBlocked(RecipeBlockReason.Kind.OUTPUT, -1);
             return false;
         }
         return true;
@@ -46,6 +47,7 @@ public record RecipeOutputs(
             for (int i = 0; i < planned.size(); i++) {
                 IPortIngredient ingredient = planned.get(i);
                 if (!ingredient.canOutput(level, storages, model)) {
+                    model.markBlocked(RecipeBlockReason.Kind.OUTPUT, e);
                     return false;
                 }
                 if (ingredient.canSimulateOutput()) {
@@ -54,6 +56,7 @@ public record RecipeOutputs(
             }
         }
         if (simulated >= 2 && sharesPorts(level, model, true) && !fitTogether(level, storages, model, true)) {
+            model.markBlocked(RecipeBlockReason.Kind.OUTPUT, -1);
             return false;
         }
         return true;
