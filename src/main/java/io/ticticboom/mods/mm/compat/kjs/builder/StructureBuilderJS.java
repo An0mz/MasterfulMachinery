@@ -27,6 +27,7 @@ public class StructureBuilderJS {
     private String name;
     private Consumer<StructureLayoutBuilderJS> layoutConsumer;
     private int maxParallelRecipes = -1;
+    private int maxRecipeCopies = 1;
     private final List<FluidVolumeVisual> fluidVolumes = new ArrayList<>();
     private JsonElement geoModel;
     private final List<StructureBoost> boosts = new ArrayList<>();
@@ -55,6 +56,11 @@ public class StructureBuilderJS {
     public StructureBuilderJS maxParallelRecipes(int maxParallelRecipes) {
         if (maxParallelRecipes < 0) this.maxParallelRecipes = -1;
         else this.maxParallelRecipes = Math.min(maxParallelRecipes, 100);
+        return this;
+    }
+
+    public StructureBuilderJS maxRecipeCopies(int maxRecipeCopies) {
+        this.maxRecipeCopies = Math.max(1, Math.min(maxRecipeCopies, 100));
         return this;
     }
 
@@ -117,6 +123,9 @@ public class StructureBuilderJS {
         IdList controllerIds = new IdList(controllers);
         StructureLayout layout = event.build();
         var json = StructureModel.paramsToJson(id, name, controllerIds, layout, maxParallelRecipes);
+        if (maxRecipeCopies > 1) {
+            json.addProperty("maxRecipeCopies", maxRecipeCopies);
+        }
         if (!fluidVolumes.isEmpty()) {
             var visuals = new JsonArray();
             fluidVolumes.forEach(volume -> visuals.add(volume.toJson()));

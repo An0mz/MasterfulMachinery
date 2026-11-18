@@ -70,6 +70,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -130,7 +131,10 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private boolean pendingValidation = true;
     private long lastTick = Long.MIN_VALUE;
 
-    private final Map<ResourceLocation, RecipeStateModel> activeRecipes = new HashMap<>();
+    private final List<ActiveRun> activeRecipes = new ArrayList<>();
+    private final Object2IntOpenHashMap<ResourceLocation> runCounts = new Object2IntOpenHashMap<>();
+    private int syncedRunCount = 0;
+    private double tickSpeedMultiplier = 1;
     @Getter
     private RecipeModel currentRecipe;
     private RecipeStorages portStorages = null;
@@ -414,8 +418,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         double percent = 100;
         if (!activeRecipes.isEmpty()) {
             percent = 0;
-            for (var recipeState : activeRecipes.values()) {
-                percent = Math.max(percent, recipeState.getTickPercentage());
+            for (int i = 0; i < activeRecipes.size(); i++) {
+                percent = Math.max(percent, activeRecipes.get(i).state().getTickPercentage());
             }
         }
         return 1 + (int) Math.round(Math.max(0, Math.min(100, percent)) / 100 * 14);
@@ -460,10 +464,11 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     private void switchStructure(StructureModel next) {
-        activeRecipes.keySet().removeIf(id -> {
-            var recipe = MachineRecipeManager.RECIPES.get(id);
+        activeRecipes.removeIf(run -> {
+            var recipe = MachineRecipeManager.RECIPES.get(run.id());
             return recipe == null || !recipe.runsIn(next.id());
         });
+        recountRuns();
         structure = next;
         blockReasons.clear();
         formedRotation = null;
@@ -577,24 +582,25 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     private void processActiveRecipeOutputs() {
-        activeRecipes.entrySet().removeIf(entry -> {
-            var recipe = MachineRecipeManager.RECIPES.get(entry.getKey());
-            var state = entry.getValue();
-            if (recipe == null || !state.isCanFinish() || recipeNextCheckTime.getOrDefault(entry.getKey(), 0L) > level.getGameTime()) {
+        activeRecipes.removeIf(run -> {
+            var recipe = MachineRecipeManager.RECIPES.get(run.id());
+            var state = run.state();
+            if (recipe == null || !state.isCanFinish() || recipeNextCheckTime.getOrDefault(run.id(), 0L) > level.getGameTime()) {
                 return false;
             }
             if (!recipe.outputs().canProcess(level, portStorages, state)) {
-                noteBlocked(entry.getKey(), state, level.getGameTime());
-                recipeNextCheckTime.put(entry.getKey(), level.getGameTime() + OUTPUT_BLOCKED_COOLDOWN);
+                noteBlocked(run.id(), state, level.getGameTime());
+                recipeNextCheckTime.put(run.id(), level.getGameTime() + OUTPUT_BLOCKED_COOLDOWN);
                 return false;
             }
             recipe.outputs().process(level, portStorages, state);
             recipeFinished(recipe);
-            blockReasons.remove(entry.getKey());
+            blockReasons.remove(run.id());
             storageContentCacheValid = false;
             lastProgressTime = level.getGameTime();
             return true;
         });
+        recountRuns();
     }
 
     private void scanAndStartRecipes(long gameTime) {
@@ -679,7 +685,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     private boolean isEligible(RecipeModel recipe, @Nullable ResourceLocation requested, long gameTime) {
-        if (activeRecipes.containsKey(recipe.id())) {
+        if (runningCopies(recipe.id()) >= maxRecipeCopies()) {
             return false;
         }
         if (requested != null) {
@@ -714,8 +720,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     private boolean canStart(RecipeModel recipe, RecipeStateModel state) {
-        return !activeRecipes.containsKey(recipe.id())
-                && canRunAlongside(recipe)
+        return canRunAlongside(recipe)
                 && recipe.inputs().canProcess(level, portStorages, state)
                 && recipe.outputs().canProcess(level, portStorages, state);
     }
@@ -730,13 +735,37 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     private boolean canRunAlongside(RecipeModel recipe) {
+        int copies = runningCopies(recipe.id());
+        if (copies > 0) {
+            return copies < maxRecipeCopies();
+        }
+        int running = distinctRunning();
         boolean allowParallel = recipe.parallelProcessing();
         if (recipe.parallelProcessing() == MMConfig.PARALLEL_PROCESSING_DEFAULT) {
             allowParallel = model.parallelProcessingDefault();
         }
         int limit = parallelLimit();
-        boolean underLimit = limit == 0 ? activeRecipes.isEmpty() : activeRecipes.size() < limit;
-        return (allowParallel || activeRecipes.isEmpty()) && underLimit;
+        boolean underLimit = limit == 0 ? running == 0 : running < limit;
+        return (allowParallel || running == 0) && underLimit;
+    }
+
+    public int runningCopies(ResourceLocation recipeId) {
+        return runCounts.getInt(recipeId);
+    }
+
+    private int distinctRunning() {
+        return runCounts.size();
+    }
+
+    private void recountRuns() {
+        runCounts.clear();
+        for (int i = 0; i < activeRecipes.size(); i++) {
+            runCounts.addTo(activeRecipes.get(i).id(), 1);
+        }
+    }
+
+    private int maxRecipeCopies() {
+        return structure == null ? 1 : structure.maxRecipeCopies();
     }
 
     private boolean startRecipe(RecipeModel recipe, long gameTime, @Nullable ResourceLocation inputKey, RecipeStateModel state) {
@@ -755,7 +784,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         }
         storageContentCacheValid = false;
         state.setCanProcess(true);
-        activeRecipes.put(recipe.id(), state);
+        activeRecipes.add(new ActiveRun(recipe.id(), state));
+        runCounts.addTo(recipe.id(), 1);
         blockReasons.remove(recipe.id());
         lastStartedRecipeId = recipe.id();
         lastRecipeStartTime = gameTime;
@@ -820,10 +850,12 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
 
     private void performRecipeTick(long gameTime, boolean allowed) {
         if (allowed) {
-            activeRecipes.entrySet().removeIf(entry -> {
-                var recipe = MachineRecipeManager.RECIPES.get(entry.getKey());
-                return recipe == null || tickRecipe(recipe, entry.getValue(), gameTime);
+            tickSpeedMultiplier = recipeSpeedMultiplier();
+            activeRecipes.removeIf(run -> {
+                var recipe = MachineRecipeManager.RECIPES.get(run.id());
+                return recipe == null || tickRecipe(recipe, run.state(), gameTime);
             });
+            recountRuns();
         }
         updateCurrentRecipe();
     }
@@ -852,7 +884,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             }
             storageContentCacheValid = false;
             if (fed) {
-                state.proceedTick(recipeSpeedMultiplier());
+                state.proceedTick(tickSpeedMultiplier);
                 lastProgressTime = gameTime;
                 blockReasons.remove(recipe.id());
             } else {
@@ -962,8 +994,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         RecipeBlockReason shown = null;
         List<RecipeBlockReason> others = List.of();
         if (isFormed && structure != null && isAllowedByRedstone()) {
-            for (ResourceLocation running : activeRecipes.keySet()) {
-                var note = blockReasons.get(running);
+            for (int i = 0; i < activeRecipes.size(); i++) {
+                var note = blockReasons.get(activeRecipes.get(i).id());
                 if (note != null) {
                     shown = note.reason;
                     break;
@@ -1025,7 +1057,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     private void updateCurrentRecipe() {
-        currentRecipe = activeRecipes.isEmpty() ? null : MachineRecipeManager.RECIPES.get(activeRecipes.keySet().iterator().next());
+        currentRecipe = activeRecipes.isEmpty() ? null : MachineRecipeManager.RECIPES.get(activeRecipes.get(0).id());
     }
 
     public void invalidateProgress() {
@@ -1033,6 +1065,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         linkedStorages = null;
         linkedState = null;
         activeRecipes.clear();
+        runCounts.clear();
         blockReasons.clear();
         currentRecipe = null;
         structure = null;
@@ -1229,14 +1262,12 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     public int getActiveRecipeCount() {
-        return activeRecipes.size();
+        return level != null && level.isClientSide ? syncedRunCount : activeRecipes.size();
     }
 
     public int getDisplayedParallelLimit() {
-        if (!model.parallelProcessingDefault()) {
-            return 1;
-        }
-        return Math.max(1, parallelLimit());
+        int recipes = model.parallelProcessingDefault() ? Math.max(1, parallelLimit()) : 1;
+        return recipes * maxRecipeCopies();
     }
 
     private int parallelLimit() {
@@ -1282,11 +1313,15 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
 
     @Override
     protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.Provider registries) {
-        CompoundTag recipesTag = new CompoundTag();
-        for (Map.Entry<ResourceLocation, RecipeStateModel> entry : activeRecipes.entrySet()) {
-            recipesTag.put(entry.getKey().toString(), entry.getValue().save(new CompoundTag(), registries));
+        ListTag runsTag = new ListTag();
+        for (int i = 0; i < activeRecipes.size(); i++) {
+            var run = activeRecipes.get(i);
+            CompoundTag runTag = new CompoundTag();
+            runTag.putString("id", run.id().toString());
+            runTag.put("state", run.state().save(new CompoundTag(), registries));
+            runsTag.add(runTag);
         }
-        tag.put("activeRecipes", recipesTag);
+        tag.put("activeRuns", runsTag);
         if (structure != null) {
             tag.putString("structureId", structure.id().toString());
         }
@@ -1341,13 +1376,26 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         super.loadAdditional(tag, registries);
         loadFluidVolumes(tag, registries);
         activeRecipes.clear();
-        CompoundTag recipesTag = tag.getCompound("activeRecipes");
-        for (String key : recipesTag.getAllKeys()) {
-            ResourceLocation recipeId = ResourceLocation.tryParse(key);
-            if (recipeId != null) {
-                activeRecipes.put(recipeId, RecipeStateModel.load(recipesTag.getCompound(key), registries));
+        if (tag.contains("activeRuns")) {
+            ListTag runsTag = tag.getList("activeRuns", Tag.TAG_COMPOUND);
+            for (int i = 0; i < runsTag.size(); i++) {
+                CompoundTag runTag = runsTag.getCompound(i);
+                ResourceLocation recipeId = ResourceLocation.tryParse(runTag.getString("id"));
+                if (recipeId != null) {
+                    activeRecipes.add(new ActiveRun(recipeId, RecipeStateModel.load(runTag.getCompound("state"), registries)));
+                }
+            }
+        } else {
+            CompoundTag recipesTag = tag.getCompound("activeRecipes");
+            for (String key : recipesTag.getAllKeys()) {
+                ResourceLocation recipeId = ResourceLocation.tryParse(key);
+                if (recipeId != null) {
+                    activeRecipes.add(new ActiveRun(recipeId, RecipeStateModel.load(recipesTag.getCompound(key), registries)));
+                }
             }
         }
+        recountRuns();
+        syncedRunCount = tag.contains("activeRunCount") ? tag.getInt("activeRunCount") : activeRecipes.size();
         structure = tag.contains("structureId") ? StructureManager.STRUCTURES.get(ResourceLocation.tryParse(tag.getString("structureId"))) : null;
         isFormed = tag.contains("isFormed") ? tag.getBoolean("isFormed") : structure != null;
         lastStartedRecipeId = tag.contains("lastStartedRecipeId") ? ResourceLocation.tryParse(tag.getString("lastStartedRecipeId")) : null;
@@ -1392,6 +1440,13 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         var tag = new CompoundTag();
         saveAdditional(tag, registries);
+        if (activeRecipes.size() > 1) {
+            ListTag runsTag = tag.getList("activeRuns", Tag.TAG_COMPOUND);
+            while (runsTag.size() > 1) {
+                runsTag.remove(runsTag.size() - 1);
+            }
+            tag.putInt("activeRunCount", activeRecipes.size());
+        }
         if (shownBlockReason != null) {
             tag.put("BlockReason", shownBlockReason.save());
         }
@@ -1423,7 +1478,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         if (activeRecipes.isEmpty()) {
             return null;
         }
-        return activeRecipes.values().iterator().next();
+        return activeRecipes.get(0).state();
     }
 
     public int getRedstoneModeOrdinal() {
@@ -1528,7 +1583,10 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     public boolean isRecipeRunning(ResourceLocation recipeId) {
-        return activeRecipes.containsKey(recipeId);
+        return runningCopies(recipeId) > 0;
+    }
+
+    private record ActiveRun(ResourceLocation id, RecipeStateModel state) {
     }
 
     private @Nullable ResourceLocation activeRequest(long gameTime) {
