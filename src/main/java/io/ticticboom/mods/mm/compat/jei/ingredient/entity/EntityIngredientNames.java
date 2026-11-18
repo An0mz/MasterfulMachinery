@@ -15,6 +15,9 @@ public class EntityIngredientNames {
         if (ingredient == null) {
             return Component.literal("?");
         }
+        if (ingredient.group() != null) {
+            return Component.translatable("jei.mm.ingredient.entity.group." + ingredient.group().serialize());
+        }
         if (ingredient.id() == null) {
             return Component.translatable("jei.mm.ingredient.entity.any");
         }
@@ -26,6 +29,9 @@ public class EntityIngredientNames {
     }
 
     public static EntityType<?> type(EntityIngredient ingredient) {
+        if (ingredient != null && ingredient.group() != null) {
+            return ingredient.group().representative();
+        }
         if (ingredient == null || ingredient.id() == null) {
             return null;
         }

@@ -22,6 +22,9 @@ public class EntityIngredientHelper implements IIngredientHelper<EntityIngredien
 
     @Override
     public @NotNull String getUniqueId(@NotNull EntityIngredient ingredient, @NotNull UidContext context) {
+        if (ingredient.group() != null) {
+            return "entity/group/" + ingredient.group().serialize();
+        }
         if (ingredient.id() == null) {
             return "entity/any";
         }
@@ -30,18 +33,24 @@ public class EntityIngredientHelper implements IIngredientHelper<EntityIngredien
 
     @Override
     public @NotNull ResourceLocation getResourceLocation(@NotNull EntityIngredient ingredient) {
+        if (ingredient.group() != null) {
+            return Ref.id("entity_group/" + ingredient.group().serialize());
+        }
         return ingredient.id() == null ? Ref.id("any_entity") : ingredient.id();
     }
 
     @Override
     public @NotNull EntityIngredient copyIngredient(@NotNull EntityIngredient ingredient) {
-        return new EntityIngredient(ingredient.id(), ingredient.tag(), ingredient.amount());
+        return new EntityIngredient(ingredient.id(), ingredient.tag(), ingredient.group(), ingredient.amount());
     }
 
     @Override
     public @NotNull String getErrorInfo(@Nullable EntityIngredient ingredient) {
         if (ingredient == null) {
             return "Error";
+        }
+        if (ingredient.group() != null) {
+            return "group/" + ingredient.group().serialize();
         }
         return ingredient.id() == null ? "any" : ingredient.id().toString();
     }
