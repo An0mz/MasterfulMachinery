@@ -27,6 +27,7 @@ public record FxDefinition(ResourceLocation id, double rise, double fall, double
                     case "seep" -> layers.add(SeepLayer.parse(layer));
                     case "emitter" -> layers.add(EmitterLayer.parse(layer));
                     case "beam" -> layers.add(BeamLayer.parse(layer));
+                    case "glow" -> layers.add(GlowLayer.parse(layer));
                     default -> throw new IllegalArgumentException("Unknown effect layer type: " + type);
                 }
             }
