@@ -55,7 +55,6 @@ public class NuclearRadiationPortScreen extends AbstractContainerScreen<NuclearR
 
     @Override
     public void render(GuiGraphics gfx, int mouseX, int mouseY, float partialTick) {
-        renderBackground(gfx, mouseX, mouseY, partialTick);
         super.render(gfx, mouseX, mouseY, partialTick);
         renderTooltip(gfx, mouseX, mouseY);
     }

@@ -138,7 +138,6 @@ public class SlottedContainerScreen<T extends AbstractContainerMenu & IPortMenu 
 
     @Override
     public void render(GuiGraphics gfx, int mouseX, int mouseY, float partialTicks) {
-        renderBackground(gfx, mouseX, mouseY, partialTicks);
         super.render(gfx, mouseX, mouseY, partialTicks);
         configPanel.render(gfx, this.font, mouseX, mouseY);
         if (configPanel.isWithin(mouseX, mouseY)) {

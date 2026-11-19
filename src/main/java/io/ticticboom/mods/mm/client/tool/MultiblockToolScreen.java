@@ -953,7 +953,6 @@ public class MultiblockToolScreen extends AbstractContainerScreen<MultiblockTool
 
     @Override
     public void render(@NotNull GuiGraphics gfx, int mouseX, int mouseY, float partialTick) {
-        renderBackground(gfx, mouseX, mouseY, partialTick);
         super.render(gfx, mouseX, mouseY, partialTick);
         renderTooltip(gfx, mouseX, mouseY);
         if (this.hoveredSlot != null && this.hoveredSlot.hasItem()) {

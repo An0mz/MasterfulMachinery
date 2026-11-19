@@ -73,7 +73,6 @@ public class EnergyPortScreen extends AbstractContainerScreen<EnergyPortMenu> {
 
     @Override
     public void render(GuiGraphics gfx, int mouseX, int mouseY, float partialTick) {
-        renderBackground(gfx, mouseX, mouseY, partialTick);
         super.render(gfx, mouseX, mouseY, partialTick);
         configPanel.render(gfx, this.font, mouseX, mouseY);
         if (configPanel.isWithin(mouseX, mouseY)) {
