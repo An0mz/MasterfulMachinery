@@ -179,13 +179,9 @@ public class ControllerVisualsRenderer implements BlockEntityRenderer<MachineCon
             return AABB.INFINITE;
         }
         var bounds = be.getVisualBounds();
-        var effects = be.effects();
+        var effects = FxRenderer.enabled() ? be.effects() : null;
         if (effects != null) {
             return FxRenderer.instance(be, effects).renderBounds(be.getBlockPos(), bounds);
-        }
-        var fx = be.effectBounds();
-        if (fx != null) {
-            bounds = fx;
         }
         return bounds != null ? bounds : BlockEntityRenderer.super.getRenderBoundingBox(be);
     }

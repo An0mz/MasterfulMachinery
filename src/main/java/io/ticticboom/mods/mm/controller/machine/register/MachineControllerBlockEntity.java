@@ -15,6 +15,7 @@ import io.ticticboom.mods.mm.structure.StructureDiagnosis;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.compat.oritech.BlackHoleShield;
 import io.ticticboom.mods.mm.config.MMConfig;
+import io.ticticboom.mods.mm.config.MMConfigSetup;
 import io.ticticboom.mods.mm.controller.IControllerBlockEntity;
 import io.ticticboom.mods.mm.controller.IControllerPart;
 import io.ticticboom.mods.mm.model.ControllerModel;
@@ -214,14 +215,6 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
 
     private record EffectsCache(StructureModel structure, @Nullable List<EffectVisual> effects) {
     }
-    @Nullable
-    private AABB fxBounds;
-    @Nullable
-    private AABB fxBoundsVisual;
-    @Nullable
-    private StructureModel fxBoundsStructure;
-    @Nullable
-    private Rotation fxBoundsRotation;
 
     public MachineControllerBlockEntity(ControllerModel model, RegistryGroupHolder groupHolder, BlockPos pos, BlockState state) {
         super(groupHolder.getBe().get(), pos, state);
@@ -300,7 +293,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     private void spawnVisualParticles() {
-        if (!isFormed || structure == null || formedRotation == null || !getBlockState().hasProperty(ControllerState.PROPERTY)) {
+        if (!MMConfigSetup.CLIENT.machineEffects.get() || !isFormed || structure == null || formedRotation == null || !getBlockState().hasProperty(ControllerState.PROPERTY)) {
             return;
         }
         var visuals = structure.getAttachments().get(Ref.StructureAttachments.VISUALS, VisualsStructureAttachment.class);
@@ -1174,27 +1167,6 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         return cache.effects();
     }
 
-    @Nullable
-    public AABB effectBounds() {
-        var effects = effects();
-        if (effects == null) {
-            return null;
-        }
-        if (fxBounds == null || fxBoundsStructure != structure || fxBoundsRotation != formedRotation || fxBoundsVisual != visualBounds) {
-            AABB bounds = visualBounds != null ? visualBounds : new AABB(getBlockPos());
-            for (int i = 0; i < effects.size(); i++) {
-                var resolved = effects.get(i).resolve(structure.layout(), formedRotation);
-                if (resolved.bounds() != null) {
-                    bounds = bounds.minmax(resolved.bounds().move(getBlockPos()));
-                }
-            }
-            fxBounds = bounds;
-            fxBoundsStructure = structure;
-            fxBoundsRotation = formedRotation;
-            fxBoundsVisual = visualBounds;
-        }
-        return fxBounds;
-    }
 
     @Nullable
     public Object getFxState() {

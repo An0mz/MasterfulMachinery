@@ -85,6 +85,7 @@ public final class MMConfigOptions {
             color("controller.idleColor", "Idle color", C.controllerIdleColor),
             color("controller.workingColor", "Working color", C.controllerWorkingColor),
             bool("controller.workingEffects", "Working sounds and particles", Scope.CLIENT, C.workingEffects),
+            bool("controller.machineEffects", "Machine effects", Scope.CLIENT, C.machineEffects),
             bool("controller.bigScreen", "Large controller screen", Scope.CLIENT, C.bigControllerScreen),
             bool("ports.statusLight", "Port status light", Scope.CLIENT, C.portStatusLight)
     );

@@ -10,6 +10,7 @@ public class MMClientConfig {
     public final ModConfigSpec.ConfigValue<String> controllerWorkingColor;
     public final ModConfigSpec.BooleanValue bigControllerScreen;
     public final ModConfigSpec.BooleanValue workingEffects;
+    public final ModConfigSpec.BooleanValue machineEffects;
     public final ModConfigSpec.BooleanValue portStatusLight;
 
     public MMClientConfig(ModConfigSpec.Builder builder) {
@@ -26,6 +27,9 @@ public class MMClientConfig {
         workingEffects = builder.comment("Play the sound and show the particles a controller sets with workingSound / workingParticle",
                         "while its machine is working. Controllers that set neither stay silent either way.")
                 .define("workingEffects", true);
+        machineEffects = builder.comment("Show the visual effects a structure adds, such as streams, drips, particles, beams and glows.",
+                        "Turn off to save frame time. Fluid shown inside tanks stays visible.")
+                .define("machineEffects", true);
         bigControllerScreen = builder.comment("Open the controller screen large (sized to the window) instead of small.",
                         "The button in the screen's top-right corner switches it too.")
                 .define("bigScreen", true);

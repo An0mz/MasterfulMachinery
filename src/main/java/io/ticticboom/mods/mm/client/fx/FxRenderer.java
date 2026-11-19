@@ -1,6 +1,7 @@
 package io.ticticboom.mods.mm.client.fx;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import io.ticticboom.mods.mm.config.MMConfigSetup;
 import io.ticticboom.mods.mm.controller.machine.register.ControllerState;
 import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
 import io.ticticboom.mods.mm.structure.attachment.visuals.EffectVisual;
@@ -14,6 +15,10 @@ public final class FxRenderer {
     private static final FxContext CONTEXT = new FxContext();
 
     private FxRenderer() {
+    }
+
+    public static boolean enabled() {
+        return MMConfigSetup.CLIENT.machineEffects.get();
     }
 
     public static FxInstance instance(MachineControllerBlockEntity be, List<EffectVisual> visuals) {
@@ -30,7 +35,7 @@ public final class FxRenderer {
     public static void render(MachineControllerBlockEntity be, float partialTick, PoseStack pose, MultiBufferSource buffers) {
         List<EffectVisual> visuals = be.effects();
         var level = be.getLevel();
-        if (visuals == null || level == null || !be.getBlockState().hasProperty(ControllerState.PROPERTY)) {
+        if (visuals == null || level == null || !enabled() || !be.getBlockState().hasProperty(ControllerState.PROPERTY)) {
             be.setFxState(null);
             return;
         }
