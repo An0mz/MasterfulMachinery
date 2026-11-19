@@ -8,7 +8,6 @@ import io.ticticboom.mods.mm.recipe.RecipeStorages;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import io.ticticboom.mods.mm.structure.attachment.StructureAttachment;
 import io.ticticboom.mods.mm.structure.layout.PositionedLayoutPiece;
-import io.ticticboom.mods.mm.structure.layout.StructureKeyChar;
 import io.ticticboom.mods.mm.structure.layout.StructureLayout;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
@@ -23,9 +22,12 @@ import java.util.List;
 public class VisualsStructureAttachment extends StructureAttachment {
     @Getter
     private final List<FluidVolumeVisual> fluidVolumes;
+    @Getter
+    private final List<ParticleVisual> particles;
 
-    public VisualsStructureAttachment(List<FluidVolumeVisual> fluidVolumes) {
+    public VisualsStructureAttachment(List<FluidVolumeVisual> fluidVolumes, List<ParticleVisual> particles) {
         this.fluidVolumes = fluidVolumes;
+        this.particles = particles;
     }
 
     @Override
@@ -37,34 +39,14 @@ public class VisualsStructureAttachment extends StructureAttachment {
     public void validate(StructurePieceSetupMetadata meta) {
         var layout = meta.model().layout();
         for (FluidVolumeVisual volume : fluidVolumes) {
-            if (volume.getPort() != null && !isKey(layout, volume.getPort())) {
+            if (volume.getPort() != null && !VisualRegion.isKey(layout, volume.getPort())) {
                 Ref.LOG.warn("Structure {}: fluid_volume port '{}' is not a key in the layout", meta.structureId(), volume.getPort());
             }
-            if (volume.getArea() != null) {
-                if (!isKey(layout, volume.getArea())) {
-                    Ref.LOG.warn("Structure {}: fluid_volume area '{}' is not a key in the layout", meta.structureId(), volume.getArea());
-                }
-                continue;
-            }
-            var min = volume.min();
-            var max = volume.max();
-            boolean open = false;
-            for (int x = min.getX(); x <= max.getX() && !open; x++) {
-                for (int y = min.getY(); y <= max.getY() && !open; y++) {
-                    for (int z = min.getZ(); z <= max.getZ() && !open; z++) {
-                        open = layout.getCharGrid().valueFromBottom(x, y, z) == ' ';
-                    }
-                }
-            }
-            if (open) {
-                Ref.LOG.warn("Structure {}: fluid_volume from {} to {} covers spaces in the layout, so blocks placed there will hide the fluid. Use a key that requires minecraft:air.",
-                        meta.structureId(), volume.getFrom().toShortString(), volume.getTo().toShortString());
-            }
+            volume.getRegion().validate(meta.structureId(), layout, "fluid_volume", "fluid");
         }
-    }
-
-    private static boolean isKey(StructureLayout layout, String key) {
-        return key.length() == 1 && layout.getPieces().containsKey(new StructureKeyChar(key.charAt(0)));
+        for (ParticleVisual particle : particles) {
+            particle.validate(meta.structureId(), layout);
+        }
     }
 
     public List<FluidVolumeState> snapshot(Level level, BlockPos controllerPos, StructureModel structure, Rotation rotation, RecipeStorages storages) {

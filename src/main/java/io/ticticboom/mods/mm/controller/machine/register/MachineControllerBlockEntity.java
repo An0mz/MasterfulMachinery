@@ -223,6 +223,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             if (getBlockState().getBlock() instanceof MachineControllerBlock block) {
                 block.tickWorkingEffects(getBlockState(), level, getBlockPos(), soundMuted);
             }
+            spawnVisualParticles();
             return;
         }
         long gameTime = level.getGameTime();
@@ -282,6 +283,35 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         }
     }
 
+    private void spawnVisualParticles() {
+        if (!isFormed || structure == null || formedRotation == null || !getBlockState().hasProperty(ControllerState.PROPERTY)) {
+            return;
+        }
+        var visuals = structure.getAttachments().get(Ref.StructureAttachments.VISUALS, VisualsStructureAttachment.class);
+        if (visuals == null) {
+            return;
+        }
+        var particles = visuals.getParticles();
+        if (particles.isEmpty()) {
+            return;
+        }
+        var state = getBlockState().getValue(ControllerState.PROPERTY);
+        var layout = structure.layout();
+        for (int i = 0; i < particles.size(); i++) {
+            particles.get(i).spawn(level, getBlockPos(), layout, formedRotation, state);
+        }
+    }
+
+    @Nullable
+    private static Rotation parseRotation(String name) {
+        for (Rotation rotation : Rotation.values()) {
+            if (rotation.name().equals(name)) {
+                return rotation;
+            }
+        }
+        return null;
+    }
+
     private void loadFluidVolumes(CompoundTag tag, HolderLookup.Provider registries) {
         fluidVolumes = tag.contains("FluidVolumes") ? FluidVolumeState.loadAll(tag.getList("FluidVolumes", Tag.TAG_COMPOUND), registries) : List.of();
         AABB bounds = null;
@@ -329,6 +359,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     private void formed(Rotation rotation) {
+        boolean rotated = formedRotation != rotation;
         formedRotation = rotation;
         BlackHoleShield.shield(level, getBlockPos(), structure, rotation);
         portStorages = collectStorages(rotation);
@@ -341,6 +372,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         }
         if (!isFormed) {
             isFormed = true;
+            markChanged();
+        } else if (rotated) {
             markChanged();
         }
     }
@@ -1415,6 +1448,11 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         syncedRunCount = tag.contains("activeRunCount") ? tag.getInt("activeRunCount") : activeRecipes.size();
         structure = tag.contains("structureId") ? StructureManager.STRUCTURES.get(ResourceLocation.tryParse(tag.getString("structureId"))) : null;
         isFormed = tag.contains("isFormed") ? tag.getBoolean("isFormed") : structure != null;
+        if (tag.contains("FormedRotation")) {
+            formedRotation = parseRotation(tag.getString("FormedRotation"));
+        } else if (level == null || level.isClientSide()) {
+            formedRotation = null;
+        }
         lastStartedRecipeId = tag.contains("lastStartedRecipeId") ? ResourceLocation.tryParse(tag.getString("lastStartedRecipeId")) : null;
         lastRecipeStartTime = tag.contains("lastRecipeStartTime") ? tag.getLong("lastRecipeStartTime") : Long.MIN_VALUE;
         lastProgressTime = tag.contains("lastProgressTime") ? tag.getLong("lastProgressTime") : Long.MIN_VALUE;
@@ -1476,6 +1514,9 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         }
         if (!fluidVolumes.isEmpty()) {
             tag.put("FluidVolumes", FluidVolumeState.saveAll(fluidVolumes, registries));
+        }
+        if (isFormed && formedRotation != null) {
+            tag.putString("FormedRotation", formedRotation.name());
         }
         return tag;
     }
