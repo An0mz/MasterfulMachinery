@@ -673,7 +673,10 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
                 }
                 continue;
             }
-            started |= startRecipe(recipe, gameTime, primary, state);
+            if (startRecipe(recipe, gameTime, primary, state)) {
+                started = true;
+                startCopies(recipe, requested, gameTime, primary);
+            }
         }
         nextRecipeCheckIndex = index;
         if (!started && roundRobin != null && canStart(roundRobin.recipe(), roundRobin.state())) {
@@ -681,6 +684,18 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         }
         if (!started && deferred != null && canStart(deferred.recipe(), deferred.state())) {
             startRecipe(deferred.recipe(), gameTime, deferred.inputKey(), deferred.state());
+        }
+    }
+
+    private void startCopies(RecipeModel recipe, @Nullable ResourceLocation requested, long gameTime, @Nullable ResourceLocation inputKey) {
+        while (isEligible(recipe, requested, gameTime)) {
+            if (!recipe.conditions().isEmpty() && recipe.conditions().firstFailingStart(conditionContext()) >= 0) {
+                return;
+            }
+            var state = newRecipeProbe();
+            if (!canStart(recipe, state) || !startRecipe(recipe, gameTime, inputKey, state)) {
+                return;
+            }
         }
     }
 
