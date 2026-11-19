@@ -9,6 +9,7 @@ import io.ticticboom.mods.mm.model.IdList;
 import io.ticticboom.mods.mm.structure.StructureBoost;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import io.ticticboom.mods.mm.structure.attachment.StructureAttachments;
+import io.ticticboom.mods.mm.structure.attachment.visuals.EffectVisual;
 import io.ticticboom.mods.mm.structure.attachment.visuals.FluidVolumeVisual;
 import io.ticticboom.mods.mm.structure.attachment.visuals.ParticleVisual;
 import io.ticticboom.mods.mm.structure.layout.StructureLayout;
@@ -31,6 +32,7 @@ public class StructureBuilderJS {
     private int maxRecipeCopies = 1;
     private final List<FluidVolumeVisual> fluidVolumes = new ArrayList<>();
     private final List<ParticleVisual> particles = new ArrayList<>();
+    private final List<EffectVisual> effects = new ArrayList<>();
     private JsonElement geoModel;
     private final List<StructureBoost> boosts = new ArrayList<>();
     private final JsonObject stateLists = new JsonObject();
@@ -119,6 +121,11 @@ public class StructureBuilderJS {
         return this;
     }
 
+    public StructureBuilderJS effect(JsonObject effect) {
+        this.effects.add(EffectVisual.parse(effect));
+        return this;
+    }
+
     private static BlockPos toPos(List<Number> values) {
         return new BlockPos(values.get(0).intValue(), values.get(1).intValue(), values.get(2).intValue());
     }
@@ -133,10 +140,11 @@ public class StructureBuilderJS {
         if (maxRecipeCopies > 1) {
             json.addProperty("maxRecipeCopies", maxRecipeCopies);
         }
-        if (!fluidVolumes.isEmpty() || !particles.isEmpty()) {
+        if (!fluidVolumes.isEmpty() || !particles.isEmpty() || !effects.isEmpty()) {
             var visuals = new JsonArray();
             fluidVolumes.forEach(volume -> visuals.add(volume.toJson()));
             particles.forEach(particle -> visuals.add(particle.toJson()));
+            effects.forEach(effect -> visuals.add(effect.toJson()));
             json.add("visuals", visuals);
         }
         if (geoModel != null) {

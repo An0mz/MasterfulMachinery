@@ -4,6 +4,7 @@ import io.ticticboom.mods.mm.controller.machine.register.ModelDisplay;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import io.ticticboom.mods.mm.client.fx.FxRenderer;
 import io.ticticboom.mods.mm.client.geo.GeoBridge;
 import io.ticticboom.mods.mm.client.geo.GeoModelConfig;
 import io.ticticboom.mods.mm.controller.machine.register.ControllerState;
@@ -36,6 +37,7 @@ public class ControllerVisualsRenderer implements BlockEntityRenderer<MachineCon
                 renderFluidVolume(be, volume, pose, buffers);
             }
         }
+        FxRenderer.render(be, partialTick, pose, buffers);
         renderGeoModel(be, pose, buffers, light, partialTick);
     }
 
@@ -163,7 +165,7 @@ public class ControllerVisualsRenderer implements BlockEntityRenderer<MachineCon
 
     @Override
     public boolean shouldRenderOffScreen(MachineControllerBlockEntity be) {
-        return be.getVisualBounds() != null || be.geoModel() != null;
+        return be.getVisualBounds() != null || be.geoModel() != null || be.effects() != null;
     }
 
     @Override
@@ -177,6 +179,14 @@ public class ControllerVisualsRenderer implements BlockEntityRenderer<MachineCon
             return AABB.INFINITE;
         }
         var bounds = be.getVisualBounds();
+        var effects = be.effects();
+        if (effects != null) {
+            return FxRenderer.instance(be, effects).renderBounds(be.getBlockPos(), bounds);
+        }
+        var fx = be.effectBounds();
+        if (fx != null) {
+            bounds = fx;
+        }
         return bounds != null ? bounds : BlockEntityRenderer.super.getRenderBoundingBox(be);
     }
 }

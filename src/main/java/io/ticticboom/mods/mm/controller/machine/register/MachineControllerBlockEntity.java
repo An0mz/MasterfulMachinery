@@ -42,6 +42,7 @@ import io.ticticboom.mods.mm.structure.StructureManager;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import io.ticticboom.mods.mm.structure.StructureTier;
 import io.ticticboom.mods.mm.structure.attachment.visuals.FluidVolumeState;
+import io.ticticboom.mods.mm.structure.attachment.visuals.EffectVisual;
 import io.ticticboom.mods.mm.structure.attachment.visuals.VisualsStructureAttachment;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
@@ -206,6 +207,16 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     private long lastVisualChangeCount = -1;
     @Nullable
     private Object geoAnimatable;
+    @Nullable
+    private Object fxState;
+    @Nullable
+    private AABB fxBounds;
+    @Nullable
+    private AABB fxBoundsVisual;
+    @Nullable
+    private StructureModel fxBoundsStructure;
+    @Nullable
+    private Rotation fxBoundsRotation;
 
     public MachineControllerBlockEntity(ControllerModel model, RegistryGroupHolder groupHolder, BlockPos pos, BlockState state) {
         super(groupHolder.getBe().get(), pos, state);
@@ -1144,6 +1155,46 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     }
 
     @Nullable
+    public List<EffectVisual> effects() {
+        if (!isFormed || structure == null || formedRotation == null) {
+            return null;
+        }
+        var visuals = structure.getAttachments().get(Ref.StructureAttachments.VISUALS, VisualsStructureAttachment.class);
+        return visuals == null || visuals.getEffects().isEmpty() ? null : visuals.getEffects();
+    }
+
+    @Nullable
+    public AABB effectBounds() {
+        var effects = effects();
+        if (effects == null) {
+            return null;
+        }
+        if (fxBounds == null || fxBoundsStructure != structure || fxBoundsRotation != formedRotation || fxBoundsVisual != visualBounds) {
+            AABB bounds = visualBounds != null ? visualBounds : new AABB(getBlockPos());
+            for (int i = 0; i < effects.size(); i++) {
+                var resolved = effects.get(i).resolve(structure.layout(), formedRotation);
+                if (resolved.bounds() != null) {
+                    bounds = bounds.minmax(resolved.bounds().move(getBlockPos()));
+                }
+            }
+            fxBounds = bounds;
+            fxBoundsStructure = structure;
+            fxBoundsRotation = formedRotation;
+            fxBoundsVisual = visualBounds;
+        }
+        return fxBounds;
+    }
+
+    @Nullable
+    public Object getFxState() {
+        return fxState;
+    }
+
+    public void setFxState(@Nullable Object fxState) {
+        this.fxState = fxState;
+    }
+
+    @Nullable
     public Object getGeoAnimatable() {
         return geoAnimatable;
     }
@@ -1446,12 +1497,17 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         }
         recountRuns();
         syncedRunCount = tag.contains("activeRunCount") ? tag.getInt("activeRunCount") : activeRecipes.size();
+        var previousStructure = structure;
+        var previousRotation = formedRotation;
         structure = tag.contains("structureId") ? StructureManager.STRUCTURES.get(ResourceLocation.tryParse(tag.getString("structureId"))) : null;
         isFormed = tag.contains("isFormed") ? tag.getBoolean("isFormed") : structure != null;
         if (tag.contains("FormedRotation")) {
             formedRotation = parseRotation(tag.getString("FormedRotation"));
         } else if (level == null || level.isClientSide()) {
             formedRotation = null;
+        }
+        if (level != null && level.isClientSide() && (previousStructure != structure || previousRotation != formedRotation)) {
+            level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
         }
         lastStartedRecipeId = tag.contains("lastStartedRecipeId") ? ResourceLocation.tryParse(tag.getString("lastStartedRecipeId")) : null;
         lastRecipeStartTime = tag.contains("lastRecipeStartTime") ? tag.getLong("lastRecipeStartTime") : Long.MIN_VALUE;

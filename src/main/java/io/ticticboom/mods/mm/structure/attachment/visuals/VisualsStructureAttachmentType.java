@@ -16,6 +16,7 @@ public class VisualsStructureAttachmentType extends MMStructureAttachmentType {
     public StructureAttachment parse(JsonObject json) {
         var fluidVolumes = new ArrayList<FluidVolumeVisual>();
         var particles = new ArrayList<ParticleVisual>();
+        var effects = new ArrayList<EffectVisual>();
         for (var element : json.getAsJsonArray("visuals")) {
             var visual = element.getAsJsonObject();
             String type = visual.get("type").getAsString();
@@ -23,10 +24,12 @@ public class VisualsStructureAttachmentType extends MMStructureAttachmentType {
                 fluidVolumes.add(FluidVolumeVisual.parse(visual));
             } else if (type.equals("particles")) {
                 particles.add(ParticleVisual.parse(visual));
+            } else if (type.equals("effect")) {
+                effects.add(EffectVisual.parse(visual));
             } else {
                 throw new IllegalArgumentException("Unknown structure visual type: " + type);
             }
         }
-        return new VisualsStructureAttachment(fluidVolumes, particles);
+        return new VisualsStructureAttachment(fluidVolumes, particles, effects);
     }
 }

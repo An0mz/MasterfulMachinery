@@ -24,10 +24,13 @@ public class VisualsStructureAttachment extends StructureAttachment {
     private final List<FluidVolumeVisual> fluidVolumes;
     @Getter
     private final List<ParticleVisual> particles;
+    @Getter
+    private final List<EffectVisual> effects;
 
-    public VisualsStructureAttachment(List<FluidVolumeVisual> fluidVolumes, List<ParticleVisual> particles) {
+    public VisualsStructureAttachment(List<FluidVolumeVisual> fluidVolumes, List<ParticleVisual> particles, List<EffectVisual> effects) {
         this.fluidVolumes = fluidVolumes;
         this.particles = particles;
+        this.effects = effects;
     }
 
     @Override
@@ -46,6 +49,9 @@ public class VisualsStructureAttachment extends StructureAttachment {
         }
         for (ParticleVisual particle : particles) {
             particle.validate(meta.structureId(), layout);
+        }
+        for (EffectVisual effect : effects) {
+            effect.validate(meta.structureId(), layout);
         }
     }
 
