@@ -1,0 +1,449 @@
+package io.ticticboom.mods.mm.client.fx;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import io.ticticboom.mods.mm.Ref;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Arrays;
+
+public final class SeepLayer implements FxLayer {
+    private static final int[] DEFAULT_PALETTE = {0x240306, 0x37050a, 0x4c080d, 0x5f0c11, 0x741416, 0x8c2421, 0xa8473f};
+    private static final int MAX_BLOCKS = 16;
+    private static final int UNDER = 8;
+    private static final double OFF = 0.0045;
+    private static final int[][] DIRECTIONS = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+    private final String at;
+    private final String top;
+    private final ResourceLocation texture;
+    private final int[] palette;
+    private final double alpha;
+    private final double chance;
+    private final double speed;
+    private final boolean stains;
+    private final boolean dripPatch;
+
+    private SeepLayer(JsonObject json) {
+        at = json.has("at") ? json.get("at").getAsString() : "drips";
+        top = json.has("top") ? json.get("top").getAsString() : "seep_top";
+        texture = FxTexture.required(json, "seep");
+        palette = json.has("palette") ? parsePalette(json.getAsJsonArray("palette")) : DEFAULT_PALETTE;
+        alpha = json.has("alpha") ? json.get("alpha").getAsDouble() : 1.0;
+        chance = json.has("chance") ? json.get("chance").getAsDouble() : 0.6;
+        speed = json.has("speed") ? json.get("speed").getAsDouble() : 1.0;
+        stains = !json.has("stains") || json.get("stains").getAsBoolean();
+        dripPatch = !json.has("drip_patch") || json.get("drip_patch").getAsBoolean();
+    }
+
+    private static int[] parsePalette(JsonArray array) {
+        if (array.size() != 7) {
+            throw new IllegalArgumentException("seep 'palette' needs 7 colours, darkest first");
+        }
+        int[] result = new int[7];
+        for (int i = 0; i < 7; i++) {
+            var holder = new JsonObject();
+            holder.add("c", array.get(i));
+            result[i] = FxColor.parse(holder, "c", 0);
+        }
+        return result;
+    }
+
+    public static SeepLayer parse(JsonObject json) {
+        return new SeepLayer(json);
+    }
+
+    @Override
+    @Nullable
+    public State create(FxShared shared) {
+        FxColumn[] columns = shared.columns(at, null);
+        Double seepTop = shared.height(top);
+        if (columns == null) {
+            return null;
+        }
+        if (seepTop == null) {
+            Ref.LOG.warn("Seep layer: no height anchor named '{}'", top);
+            return null;
+        }
+        var faces = new Face[columns.length][];
+        for (int i = 0; i < columns.length; i++) {
+            FxColumn c = columns[i];
+            int rows = (int) Math.round((seepTop - c.top) * 16);
+            if (rows <= 0) {
+                continue;
+            }
+            rows = Math.min(rows, MAX_BLOCKS * 16);
+            RandomSource random = RandomSource.create(shared.seed() ^ 0x5DEECE66DL ^ (c.index * 0x9E3779B97F4A7C15L));
+            faces[i] = new Face[4];
+            for (int d = 0; d < 4; d++) {
+                faces[i][d] = new Face(c, DIRECTIONS[d][0], DIRECTIONS[d][1], seepTop, rows, random);
+            }
+        }
+        return new Seeps(columns, faces);
+    }
+
+    private int color(int index, double a) {
+        int al = (int) Math.max(0, Math.min(255, a));
+        return al << 24 | palette[Math.max(0, Math.min(6, index))];
+    }
+
+    private static final class Face {
+        final FxColumn column;
+        final boolean xFace;
+        final int sign;
+        final int nx;
+        final int nz;
+        final int cellX;
+        final int cellZ;
+        final double plane;
+        final double uCenter;
+        final double u0;
+        final double phase;
+        final double flowSpeed;
+        final double seepTop;
+        final int rows;
+        final int[] path;
+        final long seed;
+        final double pickRoll;
+        final double stainY;
+        final double stainU;
+        final double stainLen;
+        final double stainPhase;
+        final int[] light = new int[MAX_BLOCKS];
+        final int cellMin;
+        double crawl;
+        boolean exposed;
+        boolean stainExposed;
+        boolean ringAbove;
+        boolean rivulet;
+        boolean stain;
+
+        Face(FxColumn column, int dx, int dz, double seepTop, int rows, RandomSource random) {
+            this.column = column;
+            this.xFace = dx != 0;
+            this.sign = xFace ? dx : dz;
+            this.nx = dx;
+            this.nz = dz;
+            this.cellX = (int) Math.floor(column.x);
+            this.cellZ = (int) Math.floor(column.z);
+            this.plane = xFace ? (sign < 0 ? cellX : cellX + 1) : (sign < 0 ? cellZ : cellZ + 1);
+            this.uCenter = xFace ? column.z : column.x;
+            this.seepTop = seepTop;
+            this.rows = rows;
+            this.pickRoll = random.nextDouble();
+            this.u0 = uCenter + (random.nextDouble() - 0.5) * 0.3;
+            this.phase = random.nextDouble();
+            this.flowSpeed = 0.8 + 0.4 * random.nextDouble();
+            this.seed = (long) (phase * 1e9);
+            double base = (xFace ? cellZ : cellX) + 0.5;
+            int seams = Math.max(1, (int) Math.round(seepTop - column.top));
+            this.stainY = seepTop - random.nextInt(seams);
+            this.stainU = base + (random.nextDouble() - 0.5) * 0.5;
+            this.stainLen = 0.2 + 0.35 * random.nextDouble();
+            this.stainPhase = random.nextDouble();
+            this.path = new int[rows];
+            this.cellMin = (xFace ? cellZ : cellX) * 16;
+            int target = (int) Math.floor(uCenter * 16);
+            int start = Math.max(cellMin + 3, Math.min(cellMin + 12, target + (u0 < uCenter ? -1 : 1) * (FxNoise.hash(7, seed) < 0.5 ? 1 : 0)));
+            int cur = start;
+            for (int row = 0; row < rows; row++) {
+                boolean seamRow = row > 0 && row % 16 == 0;
+                if ((seamRow && FxNoise.hash(row, seed) < 0.45) || FxNoise.hash(row + 900, seed) < 0.02) {
+                    int next = cur + (FxNoise.hash(row, seed + 3) < 0.5 ? -1 : 1);
+                    if (Math.abs(next - start) <= 1) {
+                        cur = next;
+                    }
+                }
+                path[row] = cur;
+            }
+        }
+    }
+
+    private final class Seeps implements State {
+        private final FxColumn[] columns;
+        private final Face[][] faces;
+        private final int[] lastMask;
+
+        Seeps(FxColumn[] columns, Face[][] faces) {
+            this.columns = columns;
+            this.faces = faces;
+            this.lastMask = new int[columns.length];
+            Arrays.fill(lastMask, -1);
+        }
+
+        @Override
+        public void scan(FxContext ctx) {
+            for (int i = 0; i < columns.length; i++) {
+                Face[] list = faces[i];
+                if (list == null) {
+                    continue;
+                }
+                int mask = 0;
+                for (int d = 0; d < 4; d++) {
+                    Face f = list[d];
+                    int topBlock = (int) Math.round(f.seepTop);
+                    boolean ok = f.column.blockAbove;
+                    for (int y = topBlock - 1; y >= (int) Math.round(f.column.top) && ok; y--) {
+                        ok = ctx.passable(f.cellX + f.nx, y, f.cellZ + f.nz) && ctx.solid(f.cellX, y, f.cellZ);
+                    }
+                    f.exposed = ok;
+                    f.ringAbove = ctx.solid(f.cellX + f.nx, topBlock, f.cellZ + f.nz);
+                    int by = (int) Math.floor(f.stainY - 0.001);
+                    f.stainExposed = ctx.solid(f.cellX, by, f.cellZ) && ctx.passable(f.cellX + f.nx, by, f.cellZ + f.nz);
+                    if (ok) {
+                        mask |= 1 << d;
+                    }
+                    int blocks = Math.min(MAX_BLOCKS, (f.rows + 15) / 16);
+                    for (int k = 0; k < blocks; k++) {
+                        f.light[k] = ctx.light(f.cellX + f.nx + 0.5, topBlock - 1 - k + 0.5, f.cellZ + f.nz + 0.5);
+                    }
+                }
+                if (mask != lastMask[i]) {
+                    lastMask[i] = mask;
+                    pick(list, mask);
+                }
+            }
+        }
+
+        private void pick(Face[] list, int mask) {
+            boolean any = false;
+            for (int d = 0; d < 4; d++) {
+                Face f = list[d];
+                f.rivulet = f.exposed && f.pickRoll < chance;
+                any |= f.rivulet;
+            }
+            if (!any && mask != 0) {
+                int first = (int) (FxNoise.hash(11, list[0].column.seed) * 4);
+                for (int n = 0; n < 4; n++) {
+                    Face f = list[(first + n) % 4];
+                    if (f.exposed) {
+                        f.rivulet = true;
+                        break;
+                    }
+                }
+            }
+            for (int d = 0; d < 4; d++) {
+                list[d].stain = stains && !list[d].rivulet;
+            }
+        }
+
+        @Override
+        public void update(FxContext ctx) {
+            double ws = ctx.intensity.now();
+            double base = (1.6 + 9.0 * ws) * speed * ctx.dt;
+            for (Face[] list : faces) {
+                if (list == null) {
+                    continue;
+                }
+                for (Face f : list) {
+                    f.crawl += base * f.flowSpeed;
+                }
+            }
+        }
+
+        @Override
+        public void render(FxContext ctx) {
+            VertexConsumer vc = null;
+            double ws = ctx.intensity.now();
+            for (int i = 0; i < columns.length; i++) {
+                Face[] list = faces[i];
+                if (list == null || !columns[i].blockAbove) {
+                    continue;
+                }
+                if (vc == null) {
+                    vc = ctx.buffers.getBuffer(RenderType.entityTranslucent(texture));
+                }
+                for (Face f : list) {
+                    if (f.rivulet && f.exposed) {
+                        rivulet(vc, ctx, f, ws);
+                    } else if (f.stain && f.stainExposed) {
+                        stain(vc, ctx, f, ws);
+                    }
+                }
+                if (dripPatch) {
+                    patch(vc, ctx, columns[i], ws);
+                }
+            }
+        }
+
+        private void rivulet(VertexConsumer vc, FxContext ctx, Face r, double ws) {
+            long seed = r.seed;
+            int[] col = r.path;
+            int rows = r.rows;
+            double a = (215 + 35 * ws) * ctx.fade * alpha;
+            int moved = (int) Math.floor(r.crawl + r.phase * 37);
+            int period = ws > 0.5 ? 9 : 26;
+            int topPx = (int) Math.round(r.seepTop * 16);
+            int underLight = ctx.light(r.cellX + 0.5, r.column.top - 0.5, r.cellZ + 0.5);
+            int light0 = r.light[0];
+
+            int lw = 2 + (int) (FxNoise.hash(1, seed) * 3);
+            for (int k = -lw; k <= lw; k++) {
+                if (FxNoise.hash(k + 50, seed) < 0.25 && Math.abs(k) > 1) {
+                    continue;
+                }
+                px(vc, ctx, r, inCell(r, col[0] + k), topPx, 1, Math.abs(k) <= 1 ? 2 : 1, color(1, a), light0);
+            }
+            int side = FxNoise.hash(2, seed) < 0.5 ? -lw : lw;
+            int sideLen = 2 + (int) (FxNoise.hash(3, seed) * 4);
+            for (int k = 0; k < sideLen; k++) {
+                boolean last = k == sideLen - 1;
+                px(vc, ctx, r, inCell(r, col[0] + side), topPx - 1 - k, 1, 1, color(last ? 1 : 2, a * (last ? 0.7 : 1)), light0);
+            }
+            if (r.ringAbove) {
+                ringJoint(vc, ctx, r, col[0], lw, seed, a, light0);
+            }
+            for (int row = 0; row < rows; row++) {
+                int y = topPx - row;
+                int l = r.light[Math.min(r.light.length - 1, row / 16)];
+                int x = col[row];
+                int ph = Math.floorMod(row - moved, period);
+                boolean bead = ph < 3;
+                boolean wide = ws > 0.5 || FxNoise.hash(row + 200, seed) < 0.2 + 0.6 * ws;
+                boolean wider = ws > 0.4 && FxNoise.hash(row + 400, seed) < 0.45 * ws;
+                int core = ws > 0.6 ? 4 : (ws > 0.3 ? 3 : 2);
+                if (ws > 0.3 && Math.floorMod(row - moved * 2, 5) == 0) {
+                    core = 5;
+                }
+                if (wider && !bead) {
+                    px(vc, ctx, r, x - 1, y, 1, 1, color(1, a * 0.9), l);
+                }
+                if (bead) {
+                    px(vc, ctx, r, x - 1, y, 1, 1, color(1, a), l);
+                    px(vc, ctx, r, x, y, 1, 1, color(ph == 0 ? 4 : 3, a), l);
+                    px(vc, ctx, r, x + 1, y, 1, 1, color(2, a), l);
+                } else {
+                    px(vc, ctx, r, x, y, 1, 1, color(core, a), l);
+                    if (wide) {
+                        px(vc, ctx, r, x + 1, y, 1, 1, color(ws > 0.5 ? 2 : 1, a * 0.95), l);
+                    }
+                }
+                if (row > 0 && col[row - 1] != x) {
+                    px(vc, ctx, r, Math.min(x, col[row - 1]), y + 1, 1, 1, color(2, a), l);
+                }
+            }
+            int edgeU = col[rows - 1];
+            int inward = -r.sign;
+            int dripU = (int) Math.floor((r.xFace ? r.column.z : r.column.x) * 16);
+            int planePx = (int) Math.round(r.plane * 16);
+            int u = edgeU;
+            for (int k = 0; k < UNDER; k++) {
+                if (u != dripU && FxNoise.hash(k + 300, seed) < 0.4) {
+                    u += Integer.signum(dripU - u);
+                }
+                int across = planePx + inward * k + (inward < 0 ? -1 : 0);
+                int ph = Math.floorMod(rows + k - moved, period);
+                int idx = ph < 3 ? 4 : (ws > 0.5 ? 3 : 2);
+                under(vc, ctx, r.xFace, r.column.top, across, u, color(idx, a), underLight);
+                if (ph < 3) {
+                    under(vc, ctx, r.xFace, r.column.top, across, u + 1, color(2, a), underLight);
+                }
+            }
+            int phEdge = Math.floorMod(rows - 1 - moved, period);
+            if (phEdge < 3) {
+                double ex = r.xFace ? r.plane - r.sign * 0.5 / 16 : (edgeU + 0.5) / 16.0;
+                double ez = r.xFace ? (edgeU + 0.5) / 16.0 : r.plane - r.sign * 0.5 / 16;
+                double hh = 0.5 / 16 * (1 + phEdge * 0.5);
+                FxMesh.box(vc, ctx.pose, ex, r.column.top - hh, ez, 0.5 / 16, hh, color(3, a), underLight);
+            }
+        }
+
+        private static int inCell(Face f, int u) {
+            return Math.max(f.cellMin, Math.min(f.cellMin + 15, u));
+        }
+
+        private void ringJoint(VertexConsumer vc, FxContext ctx, Face r, int colPx, int lw, long seed, double a, int light) {
+            int planePx = (int) Math.round(r.plane * 16);
+            double y = r.seepTop - OFF;
+            for (int k = -lw; k <= lw; k++) {
+                int depth = Math.abs(k) <= 1 ? 2 : (FxNoise.hash(k + 80, seed) < 0.5 ? 1 : 0);
+                for (int d = 0; d < depth; d++) {
+                    int out = planePx + (r.sign > 0 ? d : -d - 1);
+                    int u = inCell(r, colPx + k);
+                    int col = color(d == 0 ? 1 : 0, a);
+                    if (r.xFace) {
+                        flat(vc, ctx, out / 16.0, (out + 1) / 16.0, y, u / 16.0, (u + 1) / 16.0, col, light, -1);
+                    } else {
+                        flat(vc, ctx, u / 16.0, (u + 1) / 16.0, y, out / 16.0, (out + 1) / 16.0, col, light, -1);
+                    }
+                }
+            }
+        }
+
+        private void stain(VertexConsumer vc, FxContext ctx, Face st, double ws) {
+            long seed = (long) (st.stainPhase * 1e9) + 7;
+            int by = (int) Math.floor(st.stainY - 0.001);
+            int l = ctx.light(st.cellX + st.nx + 0.5, by + 0.5, st.cellZ + st.nz + 0.5);
+            double a = (200 + 30 * ws) * ctx.fade * alpha;
+            int y = (int) Math.round(st.stainY * 16);
+            int u0 = (int) Math.floor(st.stainU * 16);
+            int cellMin = (st.xFace ? st.cellZ : st.cellX) * 16;
+            int len = 2 + (int) (st.stainLen * 4);
+            u0 = Math.max(cellMin + 4, Math.min(cellMin + 12 - len, u0));
+            for (int k = 0; k < len; k++) {
+                px(vc, ctx, st, u0 + k, y, 1, 1, color(1, a * (k == 0 || k == len - 1 ? 0.75 : 1)), l);
+            }
+            int dripU = u0 + len / 2;
+            int dl = 2 + (int) (FxNoise.hash(10, seed) * 4);
+            for (int k = 1; k <= dl; k++) {
+                px(vc, ctx, st, dripU, y - k, 1, 1, color(k == dl ? 1 : 2, a * (k == dl ? 0.75 : 1)), l);
+            }
+        }
+
+        private void patch(VertexConsumer vc, FxContext ctx, FxColumn c, double ws) {
+            double a = (220 + 30 * ws) * ctx.fade * alpha;
+            int light = ctx.light(c.x, c.top - 0.5, c.z);
+            int x = (int) Math.floor(c.x * 16);
+            int z = (int) Math.floor(c.z * 16);
+            long seed = c.seed;
+            underPixel(vc, ctx, c.top, x, z, color(3, a), light);
+            underPixel(vc, ctx, c.top, x - 1, z, color(1, a), light);
+            underPixel(vc, ctx, c.top, x + 1, z, color(2, a), light);
+            underPixel(vc, ctx, c.top, x, z - 1, color(2, a), light);
+            underPixel(vc, ctx, c.top, x, z + 1, color(1, a), light);
+            if (FxNoise.hash(1, seed) < 0.6) {
+                underPixel(vc, ctx, c.top, x + 1, z + 1, color(1, a * 0.8), light);
+            }
+            if (FxNoise.hash(2, seed) < 0.5) {
+                underPixel(vc, ctx, c.top, x - 1, z - 1, color(1, a * 0.8), light);
+            }
+            if (ws > 0.4) {
+                underPixel(vc, ctx, c.top, x + 2, z, color(1, a * 0.8), light);
+                underPixel(vc, ctx, c.top, x, z - 2, color(1, a * 0.8), light);
+            }
+        }
+
+        private void px(VertexConsumer vc, FxContext ctx, Face f, int uPx, int yPx, int wPx, int hPx, int col, int light) {
+            double u0 = uPx / 16.0;
+            double u1 = (uPx + wPx) / 16.0;
+            double y1 = yPx / 16.0;
+            double y0 = (yPx - hPx) / 16.0;
+            double p = f.plane + f.sign * OFF;
+            if (f.xFace) {
+                FxMesh.quad(vc, ctx.pose, p, y1, u0, 0, 0, p, y1, u1, 1, 0, p, y0, u1, 1, 1, p, y0, u0, 0, 1, col, light, f.sign, 0, 0);
+            } else {
+                FxMesh.quad(vc, ctx.pose, u0, y1, p, 0, 0, u1, y1, p, 1, 0, u1, y0, p, 1, 1, u0, y0, p, 0, 1, col, light, 0, 0, f.sign);
+            }
+        }
+
+        private void under(VertexConsumer vc, FxContext ctx, boolean xFace, double bottom, int across, int u, int col, int light) {
+            if (xFace) {
+                underPixel(vc, ctx, bottom, across, u, col, light);
+            } else {
+                underPixel(vc, ctx, bottom, u, across, col, light);
+            }
+        }
+
+        private void underPixel(VertexConsumer vc, FxContext ctx, double bottom, int xPx, int zPx, int col, int light) {
+            flat(vc, ctx, xPx / 16.0, (xPx + 1) / 16.0, bottom - OFF, zPx / 16.0, (zPx + 1) / 16.0, col, light, -1);
+        }
+
+        private void flat(VertexConsumer vc, FxContext ctx, double x0, double x1, double y, double z0, double z1, int col, int light, int ny) {
+            FxMesh.quad(vc, ctx.pose, x0, y, z0, 0, 0, x1, y, z0, 1, 0, x1, y, z1, 1, 1, x0, y, z1, 0, 1, col, light, 0, ny, 0);
+        }
+    }
+}

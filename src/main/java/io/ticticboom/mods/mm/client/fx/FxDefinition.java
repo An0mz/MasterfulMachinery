@@ -24,6 +24,7 @@ public record FxDefinition(ResourceLocation id, double rise, double fall, double
                     case "drops" -> layers.add(DropsLayer.parse(layer));
                     case "pool" -> layers.add(PoolLayer.parse(layer));
                     case "ripple" -> layers.add(RippleLayer.parse(layer));
+                    case "seep" -> layers.add(SeepLayer.parse(layer));
                     default -> throw new IllegalArgumentException("Unknown effect layer type: " + type);
                 }
             }
