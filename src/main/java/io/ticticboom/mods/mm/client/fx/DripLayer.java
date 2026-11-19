@@ -63,6 +63,7 @@ public final class DripLayer implements FxLayer {
         private final FxColumn[] columns;
         private final double[] radius = new double[5];
         private final double[] dy = new double[5];
+        private RenderType renderType;
 
         Beads(FxShared shared, FxColumn[] columns) {
             this.shared = shared;
@@ -114,9 +115,12 @@ public final class DripLayer implements FxLayer {
                 radius[4] = 0;
                 dy[4] = -rb * 2.0 - neck;
                 if (vc == null) {
-                    vc = ctx.buffers.getBuffer(RenderType.entityTranslucentCull(texture));
+                    if (renderType == null) {
+                        renderType = RenderType.entityTranslucentCull(texture);
+                    }
+                    vc = ctx.buffers.getBuffer(renderType);
                 }
-                FxMesh.lathe(vc, ctx.pose, c.x, c.top - 0.002, c.z, radius, dy, 5, sides, col, ctx.light(c.x, c.top - 0.5, c.z),
+                FxMesh.lathe(vc, ctx.pose, c.x, c.top - 0.002, c.z, radius, dy, 5, sides, col, c.lightAt(c.top - 0.5),
                         c.index * 0.25, ctx.time * 0.05);
             }
         }

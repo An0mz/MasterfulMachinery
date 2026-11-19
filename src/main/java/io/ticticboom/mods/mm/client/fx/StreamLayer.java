@@ -10,7 +10,6 @@ public final class StreamLayer implements FxLayer {
     private static final int MAX_SEGMENTS = 44;
     private static final int MAX_FALL = 64;
     private static final double BREAK_MIN_INTENSITY = 0.3;
-    private static final double LIGHT_INTERVAL = 0.25;
 
     private final String from;
     private final String to;
@@ -110,13 +109,16 @@ public final class StreamLayer implements FxLayer {
     }
 
     double streamRadius(FxIntensity intensity, FxColumn c, double d, double te) {
+        return streamRadius(intensity, c, d, te, Math.pow(startSpeed / speedAt(d), 0.18), Math.pow(d / c.fall, 1.2));
+    }
+
+    double streamRadius(FxIntensity intensity, FxColumn c, double d, double te, double thin, double depthShape) {
         double q = flow(intensity, c, te);
         double shape = Math.sqrt(Math.max(0, (q - 0.07) / 0.93));
         if (shape <= 0) {
             return 0;
         }
-        double thin = Math.pow(startSpeed / speedAt(d), 0.18);
-        double vari = 1 + bulge * Math.pow(d / c.fall, 1.2) * Math.sin(te * Math.PI * 2 * 5.3 + c.phase);
+        double vari = 1 + bulge * depthShape * Math.sin(te * Math.PI * 2 * 5.3 + c.phase);
         double flareScale = d < 0.14 ? 1 + flare * (1 - d / 0.14) : 1;
         if (breakup) {
             double breakAt = breakupStart + breakupLength * Math.min(1, q) + 1.2 * FxNoise.value(te * 0.3, c.seed + 9);
@@ -132,17 +134,23 @@ public final class StreamLayer implements FxLayer {
     }
 
     double centerX(FxColumn c, double d, double te, double time) {
-        double k = d / c.fall;
-        double amp = 0.003 + sway * k * k;
-        double wx = 0.6 * Math.sin(te * 2.7 + c.phase) + 0.4 * Math.sin(te * 6.1 + c.phase * 1.7);
-        return c.x + amp * wx + sway * 0.3 * k * Math.sin(time * 0.37 + c.phase);
+        return sideX(c, d / c.fall, te, sway * 0.3 * Math.sin(time * 0.37 + c.phase));
     }
 
     double centerZ(FxColumn c, double d, double te, double time) {
-        double k = d / c.fall;
+        return sideZ(c, d / c.fall, te, sway * 0.3 * Math.sin(time * 0.37 + c.phase));
+    }
+
+    private double sideX(FxColumn c, double k, double te, double drift) {
+        double amp = 0.003 + sway * k * k;
+        double wx = 0.6 * Math.sin(te * 2.7 + c.phase) + 0.4 * Math.sin(te * 6.1 + c.phase * 1.7);
+        return c.x + amp * wx + drift * k;
+    }
+
+    private double sideZ(FxColumn c, double k, double te, double drift) {
         double amp = 0.003 + sway * k * k;
         double wz = 0.6 * Math.cos(te * 2.3 + c.phase * 0.6) + 0.4 * Math.sin(te * 5.3 + c.phase * 2.3);
-        return c.z + amp * wz + sway * 0.3 * k * Math.sin(time * 0.37 + c.phase) * 0.6;
+        return c.z + amp * wz + drift * k * 0.6;
     }
 
     private static final class Track {
@@ -152,8 +160,12 @@ public final class StreamLayer implements FxLayer {
         final double[] pz = new double[MAX_SEGMENTS + 1];
         final double[] pr = new double[MAX_SEGMENTS + 1];
         final double[] pv = new double[MAX_SEGMENTS + 1];
-        final int[] light = new int[MAX_FALL + 2];
-        double lightTime = -1e9;
+        final double[] depth = new double[MAX_SEGMENTS + 1];
+        final double[] delay = new double[MAX_SEGMENTS + 1];
+        final double[] thin = new double[MAX_SEGMENTS + 1];
+        final double[] depthShape = new double[MAX_SEGMENTS + 1];
+        final double[] along = new double[MAX_SEGMENTS + 1];
+        int cachedSegments = -1;
 
         Track(FxColumn column) {
             this.column = column;
@@ -163,6 +175,8 @@ public final class StreamLayer implements FxLayer {
     private final class StreamState implements State {
         private final FxShared shared;
         private final Track[] tracks;
+        private final int[] sideColor = new int[6];
+        private RenderType renderType;
 
         StreamState(FxShared shared, Track[] tracks) {
             this.shared = shared;
@@ -203,21 +217,39 @@ public final class StreamLayer implements FxLayer {
             int segments = ctx.distance < 32 ? 44 : (ctx.distance < 60 ? 28 : 18);
             int sides = ctx.distance < 48 ? 6 : 4;
             int a = (int) (255 * FxNoise.clamp(alpha.at(ctx.intensity.now())) * ctx.fade);
+            double[] cos = FxTrig.cos(sides);
+            double[] sin = FxTrig.sin(sides);
+            for (int s = 0; s < sides; s++) {
+                double nx = (cos[s] + cos[s + 1]) * 0.5;
+                double nz = (sin[s] + sin[s + 1]) * 0.5;
+                sideColor[s] = FxColor.argb(a, color, 0.86 + 0.14 * (nx * 0.6 - nz * 0.8));
+            }
             for (Track track : tracks) {
                 if (track == null || !visible(track.column)) {
                     continue;
                 }
                 FxColumn c = track.column;
+                if (track.cachedSegments != segments) {
+                    track.cachedSegments = segments;
+                    for (int k = 0; k <= segments; k++) {
+                        double d = Math.pow((double) k / segments, 1.35) * (c.fall - 0.012);
+                        track.depth[k] = d;
+                        track.delay[k] = fallTime(d);
+                        track.thin[k] = Math.pow(startSpeed / speedAt(d), 0.18);
+                        track.depthShape[k] = Math.pow(d / c.fall, 1.2);
+                        track.along[k] = d / c.fall;
+                    }
+                }
                 double scrollBase = Math.floor(ctx.time * textureSpeed);
+                double drift = sway * 0.3 * Math.sin(ctx.time * 0.37 + c.phase);
                 boolean any = false;
                 for (int k = 0; k <= segments; k++) {
-                    double f = (double) k / segments;
-                    double d = Math.pow(f, 1.35) * (c.fall - 0.012);
-                    double te = ctx.time - fallTime(d);
-                    track.px[k] = centerX(c, d, te, ctx.time);
-                    track.pz[k] = centerZ(c, d, te, ctx.time);
+                    double d = track.depth[k];
+                    double te = ctx.time - track.delay[k];
+                    track.px[k] = sideX(c, track.along[k], te, drift);
+                    track.pz[k] = sideZ(c, track.along[k], te, drift);
                     track.py[k] = c.top - d;
-                    track.pr[k] = streamRadius(ctx.intensity, c, d, te);
+                    track.pr[k] = streamRadius(ctx.intensity, c, d, te, track.thin[k], track.depthShape[k]);
                     track.pv[k] = te * textureSpeed - scrollBase;
                     if (track.pr[k] > 0.004) {
                         any = true;
@@ -226,16 +258,11 @@ public final class StreamLayer implements FxLayer {
                 if (!any) {
                     continue;
                 }
-                int topBlock = (int) Math.floor(c.top - 1e-6);
-                int blocks = Math.min(track.light.length, (int) Math.ceil(c.fall) + 1);
-                if (Math.abs(ctx.time - track.lightTime) > LIGHT_INTERVAL) {
-                    track.lightTime = ctx.time;
-                    for (int b = 0; b < blocks; b++) {
-                        track.light[b] = ctx.light(c.x, topBlock - b + 0.5, c.z);
-                    }
-                }
                 if (vc == null) {
-                    vc = ctx.buffers.getBuffer(RenderType.entityTranslucentCull(texture));
+                    if (renderType == null) {
+                        renderType = RenderType.entityTranslucentCull(texture);
+                    }
+                    vc = ctx.buffers.getBuffer(renderType);
                 }
                 double uOff = (c.index * 4 % 12) / 16.0;
                 for (int k = 0; k < segments; k++) {
@@ -244,17 +271,14 @@ public final class StreamLayer implements FxLayer {
                     if (r0 < 0.004 && r1 < 0.004) {
                         continue;
                     }
-                    int lightIndex = Math.max(0, Math.min(blocks - 1, topBlock - (int) Math.floor((track.py[k] + track.py[k + 1]) * 0.5)));
-                    int light = track.light[lightIndex];
+                    int light = c.lightAt((track.py[k] + track.py[k + 1]) * 0.5);
                     for (int s = 0; s < sides; s++) {
-                        double a0 = s * Math.PI * 2 / sides;
-                        double a1 = (s + 1) * Math.PI * 2 / sides;
-                        double c0 = Math.cos(a0), s0 = Math.sin(a0), c1 = Math.cos(a1), s1 = Math.sin(a1);
+                        double c0 = cos[s], s0 = sin[s], c1 = cos[s + 1], s1 = sin[s + 1];
                         float u0 = (float) (uOff + s * textureWidth / sides);
                         float u1 = (float) (uOff + (s + 1) * textureWidth / sides);
                         double nx = (c0 + c1) * 0.5;
                         double nz = (s0 + s1) * 0.5;
-                        int col = FxColor.argb(a, color, 0.86 + 0.14 * (nx * 0.6 - nz * 0.8));
+                        int col = sideColor[s];
                         FxMesh.quad(vc, ctx.pose,
                                 track.px[k] + c0 * r0, track.py[k], track.pz[k] + s0 * r0, u0, (float) track.pv[k],
                                 track.px[k + 1] + c0 * r1, track.py[k + 1], track.pz[k + 1] + s0 * r1, u0, (float) track.pv[k + 1],

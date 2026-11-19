@@ -115,6 +115,7 @@ public final class SeepLayer implements FxLayer {
         final double stainPhase;
         final int[] light = new int[MAX_BLOCKS];
         final int cellMin;
+        int stainLight;
         double crawl;
         boolean exposed;
         boolean stainExposed;
@@ -167,6 +168,7 @@ public final class SeepLayer implements FxLayer {
         private final FxColumn[] columns;
         private final Face[][] faces;
         private final int[] lastMask;
+        private RenderType renderType;
 
         Seeps(FxColumn[] columns, Face[][] faces) {
             this.columns = columns;
@@ -194,6 +196,7 @@ public final class SeepLayer implements FxLayer {
                     f.ringAbove = ctx.solid(f.cellX + f.nx, topBlock, f.cellZ + f.nz);
                     int by = (int) Math.floor(f.stainY - 0.001);
                     f.stainExposed = ctx.solid(f.cellX, by, f.cellZ) && ctx.passable(f.cellX + f.nx, by, f.cellZ + f.nz);
+                    f.stainLight = ctx.light(f.cellX + f.nx + 0.5, by + 0.5, f.cellZ + f.nz + 0.5);
                     if (ok) {
                         mask |= 1 << d;
                     }
@@ -255,7 +258,10 @@ public final class SeepLayer implements FxLayer {
                     continue;
                 }
                 if (vc == null) {
-                    vc = ctx.buffers.getBuffer(RenderType.entityTranslucent(texture));
+                    if (renderType == null) {
+                        renderType = RenderType.entityTranslucent(texture);
+                    }
+                    vc = ctx.buffers.getBuffer(renderType);
                 }
                 for (Face f : list) {
                     if (f.rivulet && f.exposed) {
@@ -278,7 +284,7 @@ public final class SeepLayer implements FxLayer {
             int moved = (int) Math.floor(r.crawl + r.phase * 37);
             int period = ws > 0.5 ? 9 : 26;
             int topPx = (int) Math.round(r.seepTop * 16);
-            int underLight = ctx.light(r.cellX + 0.5, r.column.top - 0.5, r.cellZ + 0.5);
+            int underLight = r.column.lightAt(r.column.top - 0.5);
             int light0 = r.light[0];
 
             int lw = 2 + (int) (FxNoise.hash(1, seed) * 3);
@@ -377,7 +383,7 @@ public final class SeepLayer implements FxLayer {
         private void stain(VertexConsumer vc, FxContext ctx, Face st, double ws) {
             long seed = (long) (st.stainPhase * 1e9) + 7;
             int by = (int) Math.floor(st.stainY - 0.001);
-            int l = ctx.light(st.cellX + st.nx + 0.5, by + 0.5, st.cellZ + st.nz + 0.5);
+            int l = st.stainLight;
             double a = (200 + 30 * ws) * ctx.fade * alpha;
             int y = (int) Math.round(st.stainY * 16);
             int u0 = (int) Math.floor(st.stainU * 16);
@@ -396,7 +402,7 @@ public final class SeepLayer implements FxLayer {
 
         private void patch(VertexConsumer vc, FxContext ctx, FxColumn c, double ws) {
             double a = (220 + 30 * ws) * ctx.fade * alpha;
-            int light = ctx.light(c.x, c.top - 0.5, c.z);
+            int light = c.lightAt(c.top - 0.5);
             int x = (int) Math.floor(c.x * 16);
             int z = (int) Math.floor(c.z * 16);
             long seed = c.seed;

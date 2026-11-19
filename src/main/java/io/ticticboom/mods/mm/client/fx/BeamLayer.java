@@ -144,6 +144,7 @@ public final class BeamLayer implements FxLayer {
     private final class Beams implements State {
         private final FxShared shared;
         private final Beam[] beams;
+        private RenderType renderType;
 
         @Override
         public double reach() {
@@ -187,7 +188,10 @@ public final class BeamLayer implements FxLayer {
             if (w <= 0.001 || a <= 0.005) {
                 return;
             }
-            VertexConsumer vc = ctx.buffers.getBuffer(additive ? RenderType.eyes(texture) : RenderType.entityTranslucent(texture));
+            if (renderType == null) {
+                renderType = additive ? RenderType.eyes(texture) : RenderType.entityTranslucent(texture);
+            }
+            VertexConsumer vc = ctx.buffers.getBuffer(renderType);
             double base = Math.floor(ctx.time * scroll / textureLength);
             for (Beam beam : beams) {
                 if (beam.length < 1e-3) {

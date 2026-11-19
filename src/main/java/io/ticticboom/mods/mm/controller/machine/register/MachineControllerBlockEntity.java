@@ -210,6 +210,11 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     @Nullable
     private Object fxState;
     @Nullable
+    private volatile EffectsCache effectsCache;
+
+    private record EffectsCache(StructureModel structure, @Nullable List<EffectVisual> effects) {
+    }
+    @Nullable
     private AABB fxBounds;
     @Nullable
     private AABB fxBoundsVisual;
@@ -1156,11 +1161,17 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
 
     @Nullable
     public List<EffectVisual> effects() {
-        if (!isFormed || structure == null || formedRotation == null) {
+        StructureModel current = structure;
+        if (!isFormed || current == null || formedRotation == null) {
             return null;
         }
-        var visuals = structure.getAttachments().get(Ref.StructureAttachments.VISUALS, VisualsStructureAttachment.class);
-        return visuals == null || visuals.getEffects().isEmpty() ? null : visuals.getEffects();
+        EffectsCache cache = effectsCache;
+        if (cache == null || cache.structure() != current) {
+            var visuals = current.getAttachments().get(Ref.StructureAttachments.VISUALS, VisualsStructureAttachment.class);
+            cache = new EffectsCache(current, visuals == null || visuals.getEffects().isEmpty() ? null : visuals.getEffects());
+            effectsCache = cache;
+        }
+        return cache.effects();
     }
 
     @Nullable

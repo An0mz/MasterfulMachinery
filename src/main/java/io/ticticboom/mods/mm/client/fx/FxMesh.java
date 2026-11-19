@@ -64,6 +64,8 @@ public final class FxMesh {
                              int sides, int color, int light, double uSeed, double vSeed) {
         float u0b = (float) frac(uSeed) * 0.75f;
         float v0b = (float) frac(vSeed * 0.37);
+        double[] cos = FxTrig.cos(sides);
+        double[] sin = FxTrig.sin(sides);
         for (int k = 0; k < count - 1; k++) {
             double r0 = radius[k];
             double y0 = y + dy[k];
@@ -71,9 +73,7 @@ public final class FxMesh {
             double y1 = y + dy[k + 1];
             double slope = (r0 - r1) / Math.max(1e-4, y0 - y1);
             for (int s = 0; s < sides; s++) {
-                double a0 = s * Math.PI * 2 / sides;
-                double a1 = (s + 1) * Math.PI * 2 / sides;
-                double c0 = Math.cos(a0), s0 = Math.sin(a0), c1 = Math.cos(a1), s1 = Math.sin(a1);
+                double c0 = cos[s], s0 = sin[s], c1 = cos[s + 1], s1 = sin[s + 1];
                 double nx = (c0 + c1) * 0.5;
                 double nz = (s0 + s1) * 0.5;
                 double ny = -slope * 0.5;

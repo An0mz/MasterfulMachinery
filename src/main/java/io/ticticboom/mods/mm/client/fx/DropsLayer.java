@@ -60,6 +60,7 @@ public final class DropsLayer implements FxLayer {
         private final double[] radius = new double[5];
         private final double[] dy = new double[5];
         private int count;
+        private RenderType renderType;
 
         Drops(FxShared shared) {
             this.shared = shared;
@@ -136,7 +137,10 @@ public final class DropsLayer implements FxLayer {
             if (count == 0) {
                 return;
             }
-            VertexConsumer vc = ctx.buffers.getBuffer(RenderType.entityTranslucentCull(texture));
+            if (renderType == null) {
+                renderType = RenderType.entityTranslucentCull(texture);
+            }
+            VertexConsumer vc = ctx.buffers.getBuffer(renderType);
             int col = FxColor.argb((int) (255 * alpha * ctx.fade), color, 1.0);
             for (int i = 0; i < count; i++) {
                 double a = age(i, ctx.time);
@@ -159,7 +163,7 @@ public final class DropsLayer implements FxLayer {
                 dy[3] = -h * 0.5;
                 radius[4] = 0;
                 dy[4] = -h * 0.75;
-                FxMesh.lathe(vc, ctx.pose, x, y, z, radius, dy, 5, 5, col, ctx.light(x, y, z), size[i] * 37 % 1, t0[i]);
+                FxMesh.lathe(vc, ctx.pose, x, y, z, radius, dy, 5, 5, col, column[i].lightAt(y), size[i] * 37 % 1, t0[i]);
             }
         }
     }

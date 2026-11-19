@@ -166,6 +166,7 @@ public final class EmitterLayer implements FxLayer {
         private final double boxZ;
         private int count;
         private double pending;
+        private RenderType renderType;
         private final BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 
         Particles(FxShared shared, @Nullable double[] points, @Nullable long[] cells) {
@@ -300,7 +301,10 @@ public final class EmitterLayer implements FxLayer {
             if (count == 0) {
                 return;
             }
-            VertexConsumer vc = ctx.buffers.getBuffer(additive ? RenderType.eyes(texture) : RenderType.entityTranslucent(texture));
+            if (renderType == null) {
+                renderType = additive ? RenderType.eyes(texture) : RenderType.entityTranslucent(texture);
+            }
+            VertexConsumer vc = ctx.buffers.getBuffer(renderType);
             float frameHeight = 1f / frames;
             for (int i = 0; i < count; i++) {
                 double f = Math.min(1, age[i] / life[i]);

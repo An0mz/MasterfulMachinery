@@ -81,6 +81,7 @@ public final class PoolLayer implements FxLayer {
         private final float[][] us = new float[RINGS.length][POINTS];
         private final float[][] vs = new float[RINGS.length][POINTS];
         private final int[] colors = new int[RINGS.length];
+        private RenderType renderType;
 
         Pools(FxShared shared, FxColumn[] columns) {
             this.shared = shared;
@@ -113,7 +114,10 @@ public final class PoolLayer implements FxLayer {
                     continue;
                 }
                 if (vc == null) {
-                    vc = ctx.buffers.getBuffer(RenderType.entityTranslucent(texture));
+                    if (renderType == null) {
+                        renderType = RenderType.entityTranslucent(texture);
+                    }
+                    vc = ctx.buffers.getBuffer(renderType);
                 }
                 double p = c.pool;
                 double r = base + size * Math.sqrt(p);
@@ -126,21 +130,23 @@ public final class PoolLayer implements FxLayer {
                 double ph = c.phase;
                 double uo = 0.5 + 0.12 * Math.cos(ph);
                 double vo = 0.5 + 0.12 * Math.sin(ph);
+                double[] cos = FxTrig.cos(POINTS);
+                double[] sin = FxTrig.sin(POINTS);
                 for (int i = 0; i < POINTS; i++) {
                     double a = i * Math.PI * 2 / POINTS;
                     double shape = 1 + 0.16 * Math.sin(2 * a + ph + 0.21 * ctx.time) + 0.11 * Math.sin(3 * a + ph * 2.3 - 0.13 * ctx.time)
                             + 0.07 * Math.sin(5 * a + ph * 3.1 + 0.33 * ctx.time) + 0.12 * (FxNoise.value(i * 0.7 + ph * 5, 21) - 0.5);
                     for (int k = 0; k < RINGS.length; k++) {
                         double rr = r * RINGS[k] * shape + GROW[k];
-                        xs[k][i] = c.x + Math.cos(a) * rr;
-                        zs[k][i] = c.z + Math.sin(a) * rr;
+                        xs[k][i] = c.x + cos[i] * rr;
+                        zs[k][i] = c.z + sin[i] * rr;
                         double ta = a + turn * (1.15 - RINGS[k]);
                         double tr = rr * 0.5;
                         us[k][i] = (float) (uo + Math.cos(ta) * tr);
                         vs[k][i] = (float) (vo + Math.sin(ta) * tr);
                     }
                 }
-                int light = ctx.light(c.x, c.landing() + 0.5, c.z);
+                int light = c.lightAt(c.landing() + 0.5);
                 for (int k = 0; k < RINGS.length - 1; k++) {
                     for (int i = 0; i < POINTS; i++) {
                         int j = (i + 1) % POINTS;

@@ -13,6 +13,7 @@ import java.util.List;
 
 public final class FxInstance {
     private static final double SCAN_INTERVAL = 1.0;
+    private static final double LIGHT_INTERVAL = 0.25;
 
     final StructureModel structure;
     final Rotation rotation;
@@ -23,6 +24,8 @@ public final class FxInstance {
     final double centerZ;
     private double lastTime = -1;
     private double lastScan = -1e9;
+    private double lastLight = -1e9;
+    private final double maxView;
     private final AABB relativeBounds;
     private AABB renderBounds;
     private AABB renderBoundsVisual;
@@ -35,6 +38,11 @@ public final class FxInstance {
         this.rotation = rotation;
         this.generation = generation;
         this.effects = effects;
+        double view = 0;
+        for (Effect effect : effects) {
+            view = Math.max(view, effect.viewDistance());
+        }
+        this.maxView = view;
         this.relativeBounds = bounds == null ? new AABB(0, 0, 0, 1, 1, 1) : bounds.minmax(new AABB(0, 0, 0, 1, 1, 1));
         var center = bounds == null ? new Vec3(0.5, 0.5, 0.5) : bounds.getCenter();
         this.centerX = center.x;
@@ -113,6 +121,13 @@ public final class FxInstance {
             lastTime = time;
         }
         ctx.time = Math.max(time, lastTime);
+        boolean relight = (time - lastLight > LIGHT_INTERVAL || time < lastLight) && ctx.distance <= maxView;
+        if (relight) {
+            lastLight = time;
+            for (int i = 0; i < effects.size(); i++) {
+                effects.get(i).shared().refreshLight(ctx);
+            }
+        }
         boolean scan = time - lastScan > SCAN_INTERVAL || time < lastScan;
         if (scan) {
             lastScan = time;

@@ -52,6 +52,7 @@ public final class RippleLayer implements FxLayer {
         private final double[] strength = new double[max];
         private final FxColumn[] column = new FxColumn[max];
         private int count;
+        private RenderType renderType;
 
         public void clear() {
             for (int i = 0; i < count; i++) {
@@ -109,19 +110,22 @@ public final class RippleLayer implements FxLayer {
                     continue;
                 }
                 if (vc == null) {
-                    vc = ctx.buffers.getBuffer(RenderType.entityTranslucent(texture));
+                    if (renderType == null) {
+                        renderType = RenderType.entityTranslucent(texture);
+                    }
+                    vc = ctx.buffers.getBuffer(renderType);
                 }
                 int col = FxColor.argb(a, color, 1.25);
-                int light = ctx.light(c.x, c.landing() + 0.5, c.z);
+                int light = c.lightAt(c.landing() + 0.5);
                 double y = c.landing() + 0.017;
                 double ri = Math.max(0, rr - width);
+                double[] cos = FxTrig.cos(SIDES);
+                double[] sin = FxTrig.sin(SIDES);
                 for (int s = 0; s < SIDES; s++) {
-                    double a0 = s * Math.PI * 2 / SIDES;
-                    double a1 = (s + 1) * Math.PI * 2 / SIDES;
-                    FxMesh.vertex(vc, ctx.pose, x[i] + Math.cos(a0) * ri, y, z[i] + Math.sin(a0) * ri, 0.1f, 0.1f, col, light, 0, 1, 0);
-                    FxMesh.vertex(vc, ctx.pose, x[i] + Math.cos(a0) * rr, y, z[i] + Math.sin(a0) * rr, 0.12f, 0.1f, col, light, 0, 1, 0);
-                    FxMesh.vertex(vc, ctx.pose, x[i] + Math.cos(a1) * rr, y, z[i] + Math.sin(a1) * rr, 0.12f, 0.12f, col, light, 0, 1, 0);
-                    FxMesh.vertex(vc, ctx.pose, x[i] + Math.cos(a1) * ri, y, z[i] + Math.sin(a1) * ri, 0.1f, 0.12f, col, light, 0, 1, 0);
+                    FxMesh.vertex(vc, ctx.pose, x[i] + cos[s] * ri, y, z[i] + sin[s] * ri, 0.1f, 0.1f, col, light, 0, 1, 0);
+                    FxMesh.vertex(vc, ctx.pose, x[i] + cos[s] * rr, y, z[i] + sin[s] * rr, 0.12f, 0.1f, col, light, 0, 1, 0);
+                    FxMesh.vertex(vc, ctx.pose, x[i] + cos[s + 1] * rr, y, z[i] + sin[s + 1] * rr, 0.12f, 0.12f, col, light, 0, 1, 0);
+                    FxMesh.vertex(vc, ctx.pose, x[i] + cos[s + 1] * ri, y, z[i] + sin[s + 1] * ri, 0.1f, 0.12f, col, light, 0, 1, 0);
                 }
             }
         }

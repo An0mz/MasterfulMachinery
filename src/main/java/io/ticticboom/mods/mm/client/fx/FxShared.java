@@ -128,6 +128,18 @@ public final class FxShared {
         }
     }
 
+    void refreshLight(FxContext ctx) {
+        for (FxColumn[] list : columns.values()) {
+            for (FxColumn c : list) {
+                c.lightTop = (int) Math.floor(c.top - 1e-6);
+                c.lightCount = c.hasLanding() ? Math.min(c.light.length, (int) Math.ceil(c.fall) + 1) : 1;
+                for (int b = 0; b < c.lightCount; b++) {
+                    c.light[b] = ctx.light(c.x, c.lightTop - b + 0.5, c.z);
+                }
+            }
+        }
+    }
+
     void scan(FxContext ctx) {
         for (FxColumn[] list : columns.values()) {
             for (FxColumn c : list) {

@@ -19,6 +19,9 @@ public final class FxColumn {
     public double inflow;
     public double rootRadius;
     public double swirl;
+    final int[] light = new int[66];
+    int lightTop;
+    int lightCount;
     public double nextBreak;
     public double nextRipple;
 
@@ -38,5 +41,13 @@ public final class FxColumn {
 
     public boolean hasLanding() {
         return fall > 0;
+    }
+
+    public int lightAt(double y) {
+        if (lightCount == 0) {
+            return 0;
+        }
+        int index = lightTop - (int) Math.floor(y);
+        return light[Math.max(0, Math.min(lightCount - 1, index))];
     }
 }
