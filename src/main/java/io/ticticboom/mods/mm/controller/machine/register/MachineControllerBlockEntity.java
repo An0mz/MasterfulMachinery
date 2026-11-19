@@ -675,7 +675,9 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             }
             if (startRecipe(recipe, gameTime, primary, state)) {
                 started = true;
-                startCopies(recipe, requested, gameTime, primary);
+                if (!mode.fairScheduling()) {
+                    startCopies(recipe, requested, gameTime, primary);
+                }
             }
         }
         nextRecipeCheckIndex = index;
