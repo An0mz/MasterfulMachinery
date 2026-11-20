@@ -3,6 +3,7 @@ package io.ticticboom.mods.mm.client.fx;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.ticticboom.mods.mm.Ref;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 
@@ -12,6 +13,7 @@ public final class RippleLayer implements FxLayer {
     private final ResourceLocation texture;
     private final int color;
     private final boolean portColor;
+    private final boolean glow;
     private final double alpha;
     private final double life;
     private final double width;
@@ -22,6 +24,7 @@ public final class RippleLayer implements FxLayer {
         texture = FxTexture.required(json, "ripple");
         color = FxColor.parse(json, "color", 0xFFFFFF);
         portColor = FxColor.port(json);
+        glow = json.has("glow") && json.get("glow").getAsBoolean();
         alpha = number(json, "alpha", 1.0);
         life = Math.max(0.05, number(json, "life", 0.55));
         width = number(json, "width", 0.014);
@@ -118,7 +121,7 @@ public final class RippleLayer implements FxLayer {
                     vc = ctx.buffers.getBuffer(renderType);
                 }
                 int col = FxColor.argb(a, FxColor.pick(portColor, color, ctx), 1.25);
-                int light = c.lightAt(c.landing() + 0.5);
+                int light = glow ? LightTexture.FULL_BRIGHT : c.lightAt(c.landing() + 0.5);
                 double y = c.landing() + 0.017;
                 double ri = Math.max(0, rr - width);
                 double[] cos = FxTrig.cos(SIDES);

@@ -3,6 +3,7 @@ package io.ticticboom.mods.mm.client.fx;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.ticticboom.mods.mm.Ref;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 
@@ -10,6 +11,7 @@ public final class DropsLayer implements FxLayer {
     private final ResourceLocation texture;
     private final int color;
     private final boolean portColor;
+    private final boolean glow;
     private final double alpha;
     private final double gravity;
     private final int max;
@@ -20,6 +22,7 @@ public final class DropsLayer implements FxLayer {
         texture = FxTexture.required(json, "drops");
         color = FxColor.parse(json, "color", 0xFFFFFF);
         portColor = FxColor.port(json);
+        glow = json.has("glow") && json.get("glow").getAsBoolean();
         alpha = number(json, "alpha", 0.96);
         gravity = number(json, "gravity", 9.81);
         max = Math.max(1, Math.min(256, (int) number(json, "max", 48)));
@@ -165,7 +168,7 @@ public final class DropsLayer implements FxLayer {
                 dy[3] = -h * 0.5;
                 radius[4] = 0;
                 dy[4] = -h * 0.75;
-                FxMesh.lathe(vc, ctx.pose, x, y, z, radius, dy, 5, 5, col, column[i].lightAt(y), size[i] * 37 % 1, t0[i]);
+                FxMesh.lathe(vc, ctx.pose, x, y, z, radius, dy, 5, 5, col, glow ? LightTexture.FULL_BRIGHT : column[i].lightAt(y), size[i] * 37 % 1, t0[i]);
             }
         }
     }

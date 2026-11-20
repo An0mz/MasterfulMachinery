@@ -3,6 +3,7 @@ package io.ticticboom.mods.mm.client.fx;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.ticticboom.mods.mm.Ref;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
@@ -20,6 +21,7 @@ public final class PoolLayer implements FxLayer {
     private final ResourceLocation texture;
     private final int color;
     private final boolean portColor;
+    private final boolean glow;
     private final double alpha;
     private final double size;
     private final double base;
@@ -34,6 +36,7 @@ public final class PoolLayer implements FxLayer {
         texture = FxTexture.required(json, "pool");
         color = FxColor.parse(json, "color", 0xFFFFFF);
         portColor = FxColor.port(json);
+        glow = json.has("glow") && json.get("glow").getAsBoolean();
         alpha = number(json, "alpha", 1.0);
         size = number(json, "size", 0.21);
         base = number(json, "base", 0.05);
@@ -149,7 +152,7 @@ public final class PoolLayer implements FxLayer {
                         vs[k][i] = (float) (vo + Math.sin(ta) * tr);
                     }
                 }
-                int light = c.lightAt(c.landing() + 0.5);
+                int light = glow ? LightTexture.FULL_BRIGHT : c.lightAt(c.landing() + 0.5);
                 for (int k = 0; k < RINGS.length - 1; k++) {
                     for (int i = 0; i < POINTS; i++) {
                         int j = (i + 1) % POINTS;

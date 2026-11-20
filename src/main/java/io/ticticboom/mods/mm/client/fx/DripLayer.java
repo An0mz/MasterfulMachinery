@@ -3,6 +3,7 @@ package io.ticticboom.mods.mm.client.fx;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.ticticboom.mods.mm.Ref;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
@@ -14,6 +15,7 @@ public final class DripLayer implements FxLayer {
     private final ResourceLocation texture;
     private final int color;
     private final boolean portColor;
+    private final boolean glow;
     private final double alpha;
     private final FxValue rate;
     private final double size;
@@ -26,6 +28,7 @@ public final class DripLayer implements FxLayer {
         texture = FxTexture.required(json, "drip");
         color = FxColor.parse(json, "color", 0xFFFFFF);
         portColor = FxColor.port(json);
+        glow = json.has("glow") && json.get("glow").getAsBoolean();
         alpha = number(json, "alpha", 0.96);
         rate = FxValue.parse(json, "rate", 1.0);
         size = number(json, "size", 0.03);
@@ -122,7 +125,7 @@ public final class DripLayer implements FxLayer {
                     }
                     vc = ctx.buffers.getBuffer(renderType);
                 }
-                FxMesh.lathe(vc, ctx.pose, c.x, c.top - 0.002, c.z, radius, dy, 5, sides, col, c.lightAt(c.top - 0.5),
+                FxMesh.lathe(vc, ctx.pose, c.x, c.top - 0.002, c.z, radius, dy, 5, sides, col, glow ? LightTexture.FULL_BRIGHT : c.lightAt(c.top - 0.5),
                         c.index * 0.25, ctx.time * 0.05);
             }
         }

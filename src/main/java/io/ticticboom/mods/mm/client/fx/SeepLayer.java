@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.ticticboom.mods.mm.Ref;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
@@ -23,6 +24,7 @@ public final class SeepLayer implements FxLayer {
     private final ResourceLocation texture;
     private final int[] palette;
     private final boolean portColor;
+    private final boolean glow;
     private final double[] shades = new double[7];
     private final double alpha;
     private final double chance;
@@ -36,6 +38,7 @@ public final class SeepLayer implements FxLayer {
         texture = FxTexture.required(json, "seep");
         palette = json.has("palette") ? parsePalette(json.getAsJsonArray("palette")) : DEFAULT_PALETTE;
         portColor = FxColor.port(json);
+        glow = json.has("glow") && json.get("glow").getAsBoolean();
         double mean = 0;
         for (int c : palette) {
             mean += FxColor.luminance(c) / palette.length;
@@ -371,7 +374,7 @@ public final class SeepLayer implements FxLayer {
                 double ex = r.xFace ? r.plane - r.sign * 0.5 / 16 : (edgeU + 0.5) / 16.0;
                 double ez = r.xFace ? (edgeU + 0.5) / 16.0 : r.plane - r.sign * 0.5 / 16;
                 double hh = 0.5 / 16 * (1 + phEdge * 0.5);
-                FxMesh.box(vc, ctx.pose, ex, r.column.top - hh, ez, 0.5 / 16, hh, color(3, a), underLight);
+                FxMesh.box(vc, ctx.pose, ex, r.column.top - hh, ez, 0.5 / 16, hh, color(3, a), glow ? LightTexture.FULL_BRIGHT : underLight);
             }
         }
 
@@ -441,6 +444,9 @@ public final class SeepLayer implements FxLayer {
         }
 
         private void px(VertexConsumer vc, FxContext ctx, Face f, int uPx, int yPx, int wPx, int hPx, int col, int light) {
+            if (glow) {
+                light = LightTexture.FULL_BRIGHT;
+            }
             double u0 = uPx / 16.0;
             double u1 = (uPx + wPx) / 16.0;
             double y1 = yPx / 16.0;
@@ -466,6 +472,9 @@ public final class SeepLayer implements FxLayer {
         }
 
         private void flat(VertexConsumer vc, FxContext ctx, double x0, double x1, double y, double z0, double z1, int col, int light, int ny) {
+            if (glow) {
+                light = LightTexture.FULL_BRIGHT;
+            }
             FxMesh.quad(vc, ctx.pose, x0, y, z0, 0, 0, x1, y, z0, 1, 0, x1, y, z1, 1, 1, x0, y, z1, 0, 1, col, light, 0, ny, 0);
         }
     }

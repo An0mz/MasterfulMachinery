@@ -2,6 +2,7 @@ package io.ticticboom.mods.mm.client.fx;
 
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
@@ -16,6 +17,7 @@ public final class StreamLayer implements FxLayer {
     private final ResourceLocation texture;
     private final int color;
     private final boolean portColor;
+    private final boolean glow;
     private final FxValue alpha;
     private final double radius;
     private final double gravity;
@@ -41,6 +43,7 @@ public final class StreamLayer implements FxLayer {
         texture = FxTexture.required(json, "stream");
         color = FxColor.parse(json, "color", 0xFFFFFF);
         portColor = FxColor.port(json);
+        glow = json.has("glow") && json.get("glow").getAsBoolean();
         alpha = FxValue.parse(json, "alpha", 0.925);
         radius = number(json, "radius", 0.085);
         gravity = number(json, "gravity", 9.81);
@@ -274,7 +277,7 @@ public final class StreamLayer implements FxLayer {
                     if (r0 < 0.004 && r1 < 0.004) {
                         continue;
                     }
-                    int light = c.lightAt((track.py[k] + track.py[k + 1]) * 0.5);
+                    int light = glow ? LightTexture.FULL_BRIGHT : c.lightAt((track.py[k] + track.py[k + 1]) * 0.5);
                     for (int s = 0; s < sides; s++) {
                         double c0 = cos[s], s0 = sin[s], c1 = cos[s + 1], s1 = sin[s + 1];
                         float u0 = (float) (uOff + s * textureWidth / sides);
