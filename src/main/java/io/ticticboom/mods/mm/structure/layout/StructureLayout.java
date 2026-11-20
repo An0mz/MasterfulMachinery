@@ -476,6 +476,9 @@ public class StructureLayout {
         if (maxHelpers >= 0) {
             json.addProperty("maxHelpers", maxHelpers);
         }
+        if (portsAnywhereGlobal) {
+            json.addProperty("portsAnywhere", true);
+        }
         return json;
     }
 
