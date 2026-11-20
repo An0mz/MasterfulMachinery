@@ -34,6 +34,11 @@ public class AutoTransform {
     private static final float MIN_SCALE = 0.05f;
     private static final float MAX_SCALE = 20f;
     private int dragButton = -1;
+    private boolean studio;
+    private boolean cameraReady;
+    private final Vector3f camera = new Vector3f();
+    private float yaw;
+    private float pitch;
     private boolean wasLeft;
     private boolean wasRight;
     private boolean wasMiddle;
@@ -90,7 +95,12 @@ public class AutoTransform {
         double dy = mouseY - lastY;
         boolean shift = GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS
                 || GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
-        if (dragButton == GLFW.GLFW_MOUSE_BUTTON_LEFT && shift) {
+        if (studio) {
+            if (dragButton == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+                yaw += (float) dx * 0.4f;
+                pitch = Math.max(-89, Math.min(89, pitch + (float) dy * 0.4f));
+            }
+        } else if (dragButton == GLFW.GLFW_MOUSE_BUTTON_LEFT && shift) {
             pan.add((float) dx * 0.08f, (float) -dy * 0.08f, 0);
         } else if (dragButton == GLFW.GLFW_MOUSE_BUTTON_LEFT || dragButton == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
             xRotation += dx;
@@ -105,12 +115,49 @@ public class AutoTransform {
         lastY = mouseY;
     }
 
+    public Matrix4f cameraView() {
+        return new Matrix4f().rotateX((float) Math.toRadians(pitch)).rotateY((float) Math.toRadians(yaw))
+                .translate(-camera.x, -camera.y, -camera.z);
+    }
+
+    public void placeCamera(float radius) {
+        if (cameraReady) {
+            return;
+        }
+        cameraReady = true;
+        yaw = -30;
+        pitch = 25;
+        Vector3f look = new Matrix4f().rotateX((float) Math.toRadians(pitch)).rotateY((float) Math.toRadians(yaw))
+                .invert().transformDirection(new Vector3f(0, 0, -1));
+        camera.set(center).add(0.5f, 0.5f, 0.5f).sub(look.mul(radius * 1.8f + 2));
+    }
+
+    public void fly(float forward, float strafe, float up, boolean level) {
+        var inverse = new Matrix4f().rotateX((float) Math.toRadians(pitch)).rotateY((float) Math.toRadians(yaw)).invert();
+        Vector3f look = inverse.transformDirection(new Vector3f(0, 0, -1));
+        Vector3f right = inverse.transformDirection(new Vector3f(1, 0, 0));
+        if (level) {
+            look.y = 0;
+            right.y = 0;
+        }
+        if (look.lengthSquared() > 0) {
+            camera.add(look.normalize().mul(forward));
+        }
+        if (right.lengthSquared() > 0) {
+            camera.add(right.normalize().mul(strafe));
+        }
+        camera.y += up;
+    }
+
     public void zoom(double scrollDelta) {
         scaleFactor = (float) Math.min(MAX_SCALE, Math.max(MIN_SCALE, scaleFactor * Math.pow(1.1, scrollDelta)));
     }
 
     public Matrix4f getModelTransform() {
         var m = new Matrix4f().identity();
+        if (studio) {
+            return m;
+        }
         m.translate(offset.x, offset.y, offset.z);
         m.scale(scaleFactor);
         m.translate(-center.x, -center.y, -center.z);

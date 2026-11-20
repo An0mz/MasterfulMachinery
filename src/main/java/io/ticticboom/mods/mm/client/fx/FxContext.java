@@ -4,11 +4,13 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.Level;
+import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
 
 public final class FxContext {
-    public Level level;
+    public BlockAndTintGetter level;
+    public boolean fullBright;
     public BlockPos origin;
     public FxIntensity intensity;
     public double time;
@@ -33,6 +35,9 @@ public final class FxContext {
     private final BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 
     public int light(double x, double y, double z) {
+        if (fullBright) {
+            return LightTexture.FULL_BRIGHT;
+        }
         cursor.set(origin.getX() + (int) Math.floor(x), origin.getY() + (int) Math.floor(y), origin.getZ() + (int) Math.floor(z));
         return LevelRenderer.getLightColor(level, cursor);
     }

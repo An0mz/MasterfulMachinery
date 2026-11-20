@@ -17,6 +17,7 @@ public final class FxInstance {
     private static final double LIGHT_INTERVAL = 0.25;
 
     final StructureModel structure;
+    final List<EffectVisual> visuals;
     final Rotation rotation;
     final int generation;
     final List<Effect> effects;
@@ -35,8 +36,9 @@ public final class FxInstance {
     record Effect(int visual, FxDefinition definition, FxIntensity intensity, FxShared shared, double viewDistance, List<FxLayer.State> states) {
     }
 
-    private FxInstance(StructureModel structure, Rotation rotation, int generation, List<Effect> effects, AABB bounds) {
+    private FxInstance(StructureModel structure, List<EffectVisual> visuals, Rotation rotation, int generation, List<Effect> effects, AABB bounds) {
         this.structure = structure;
+        this.visuals = visuals;
         this.rotation = rotation;
         this.generation = generation;
         this.effects = effects;
@@ -83,7 +85,7 @@ public final class FxInstance {
             effects.add(new Effect(i, definition, new FxIntensity(definition.rise(), definition.fall(), definition.hold()),
                     shared, definition.viewDistance(), List.copyOf(states)));
         }
-        return new FxInstance(structure, rotation, FxManager.generation(), List.copyOf(effects), bounds);
+        return new FxInstance(structure, visuals, rotation, FxManager.generation(), List.copyOf(effects), bounds);
     }
 
     public AABB renderBounds(BlockPos pos, AABB visual) {
@@ -95,8 +97,8 @@ public final class FxInstance {
         return renderBounds;
     }
 
-    public boolean matches(StructureModel structure, Rotation rotation) {
-        return this.structure == structure && this.rotation == rotation && this.generation == FxManager.generation();
+    public boolean matches(StructureModel structure, Rotation rotation, List<EffectVisual> visuals) {
+        return this.structure == structure && this.visuals == visuals && this.rotation == rotation && this.generation == FxManager.generation();
     }
 
     void colors(List<FluidStack> next) {

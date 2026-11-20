@@ -1,0 +1,15 @@
+{
+  "layers": [
+    {
+      "type": "glow",
+      "texture": "kubejs:textures/fx/glow_face.png",
+      "color": "#28ff6a",
+      "alpha": {
+        "idle": 0.1,
+        "working": 0.45
+      },
+      "pulse": 0.2,
+      "pulse_speed": 0.4
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "layers": [
+    {
+      "type": "beam",
+      "texture": "kubejs:textures/fx/beam.png",
+      "blend": "additive",
+      "color": "#3aff7a",
+      "width": {
+        "idle": 0,
+        "working": 0.5
+      },
+      "taper": 0.7,
+      "scroll": 4,
+      "texture_length": 3,
+      "pulse": 0.2,
+      "pulse_speed": 0.8
+    }
+  ]
+}

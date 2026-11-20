@@ -39,11 +39,22 @@ public class GuiRenderEnvSetup {
         var quat = new Quaternionf().rotateXYZ((float) Math.toRadians(xRot), (float) Math.toRadians(yRot), 0);
         modelViewStack.rotate(quat);
         RenderSystem.applyModelViewMatrix();
+        setup(0.01f, 1000000f);
+    }
 
-        // projection
+    public void preRenderCamera(Matrix4f view) {
+        var modelViewStack = RenderSystem.getModelViewStack();
+        modelViewStack.pushMatrix();
+        modelViewStack.identity();
+        modelViewStack.mul(view);
+        RenderSystem.applyModelViewMatrix();
+        setup(0.05f, 2000f);
+    }
+
+    private void setup(float near, float far) {
         RenderSystem.backupProjectionMatrix();
         var proj = new Matrix4f().identity();
-        proj.setPerspective((float) Math.toRadians(FOV_DEGREES), (float) viewportPos.w() / viewportPos.h(), 0.01f, 1000000f);
+        proj.setPerspective((float) Math.toRadians(FOV_DEGREES), (float) viewportPos.w() / viewportPos.h(), near, far);
         RenderSystem.setProjectionMatrix(proj, VertexSorting.DISTANCE_TO_ORIGIN);
 
         setupViewport();

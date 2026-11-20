@@ -1,0 +1,45 @@
+{
+  "layers": [
+    {
+      "type": "stream",
+      "color": "#ff7a1a",
+      "texture": "kubejs:textures/fx/molten_flow.png",
+      "radius": 0.11,
+      "alpha": {
+        "idle": 0,
+        "working": 0.95
+      },
+      "sway": 0.02,
+      "glow": true
+    },
+    {
+      "type": "drip",
+      "color": "#ff7a1a",
+      "texture": "kubejs:textures/fx/molten_flow.png",
+      "rate": {
+        "idle": 0,
+        "working": 1.5
+      },
+      "glow": true
+    },
+    {
+      "type": "drops",
+      "color": "#ff7a1a",
+      "texture": "kubejs:textures/fx/molten_flow.png",
+      "glow": true
+    },
+    {
+      "type": "pool",
+      "color": "#ff7a1a",
+      "texture": "kubejs:textures/fx/molten_pool.png",
+      "size": 0.45,
+      "glow": true
+    },
+    {
+      "type": "ripple",
+      "color": "#ffb060",
+      "texture": "kubejs:textures/fx/molten_pool.png",
+      "glow": true
+    }
+  ]
+}

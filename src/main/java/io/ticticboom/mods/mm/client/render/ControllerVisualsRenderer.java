@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import io.ticticboom.mods.mm.client.fx.FxRenderer;
+import io.ticticboom.mods.mm.client.fx.studio.EffectStudio;
 import io.ticticboom.mods.mm.client.geo.GeoBridge;
 import io.ticticboom.mods.mm.client.geo.GeoModelConfig;
 import io.ticticboom.mods.mm.controller.machine.register.ControllerState;
@@ -165,7 +166,7 @@ public class ControllerVisualsRenderer implements BlockEntityRenderer<MachineCon
 
     @Override
     public boolean shouldRenderOffScreen(MachineControllerBlockEntity be) {
-        return be.getVisualBounds() != null || be.geoModel() != null || be.effects() != null;
+        return be.getVisualBounds() != null || be.geoModel() != null || EffectStudio.effects(be) != null;
     }
 
     @Override
@@ -179,7 +180,7 @@ public class ControllerVisualsRenderer implements BlockEntityRenderer<MachineCon
             return AABB.INFINITE;
         }
         var bounds = be.getVisualBounds();
-        var effects = FxRenderer.enabled() ? be.effects() : null;
+        var effects = FxRenderer.enabled() ? EffectStudio.effects(be) : null;
         if (effects != null) {
             return FxRenderer.instance(be, effects).renderBounds(be.getBlockPos(), bounds);
         }

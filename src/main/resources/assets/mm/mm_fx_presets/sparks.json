@@ -1,0 +1,48 @@
+{
+  "layers": [
+    {
+      "type": "emitter",
+      "texture": "kubejs:textures/fx/spark.png",
+      "blend": "additive",
+      "rate": {
+        "idle": 0,
+        "working": 18
+      },
+      "life": [
+        0.4,
+        1.0
+      ],
+      "box": [
+        0.2,
+        0,
+        0.2
+      ],
+      "velocity": [
+        0,
+        2.2,
+        0
+      ],
+      "velocity_spread": [
+        1.4,
+        0.8,
+        1.4
+      ],
+      "gravity": 9.8,
+      "drag": 0.4,
+      "size": [
+        0.07,
+        0.02
+      ],
+      "color": [
+        "#fff0a0",
+        "#ff3000"
+      ],
+      "alpha": [
+        1,
+        0
+      ],
+      "collide": true,
+      "max": 64
+    }
+  ]
+}

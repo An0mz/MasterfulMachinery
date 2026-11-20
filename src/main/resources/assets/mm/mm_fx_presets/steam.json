@@ -1,0 +1,49 @@
+{
+  "layers": [
+    {
+      "type": "emitter",
+      "texture": "kubejs:textures/fx/soft.png",
+      "rate": {
+        "idle": 0.6,
+        "working": 7
+      },
+      "life": [
+        2.5,
+        4
+      ],
+      "box": [
+        0.3,
+        0,
+        0.3
+      ],
+      "velocity": [
+        0,
+        1.6,
+        0
+      ],
+      "velocity_spread": [
+        0.3,
+        0.3,
+        0.3
+      ],
+      "drag": 0.6,
+      "size": [
+        0.3,
+        2.0
+      ],
+      "color": [
+        "#ffffff",
+        "#c8d0d8"
+      ],
+      "alpha": [
+        0.6,
+        0
+      ],
+      "spin": [
+        -40,
+        40
+      ],
+      "max": 40
+    }
+  ]
+}
