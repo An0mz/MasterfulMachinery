@@ -22,6 +22,7 @@ public final class FxShared {
     public RippleLayer.Ripples ripples;
 
     public final Rotation rotation;
+    public int portColor = -1;
 
     FxShared(EffectVisual.Resolved anchors, long seed, Rotation rotation) {
         this.anchors = anchors;

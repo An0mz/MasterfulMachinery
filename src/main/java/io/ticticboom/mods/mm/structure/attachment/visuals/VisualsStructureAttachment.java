@@ -15,6 +15,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Rotation;
 import net.neoforged.neoforge.fluids.FluidStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -83,6 +84,68 @@ public class VisualsStructureAttachment extends StructureAttachment {
             result.add(new FluidVolumeState(volume.relativeCells(layout, rotation), shown, fill));
         }
         return result;
+    }
+
+    public List<FluidStack> effectFluids(Level level, BlockPos controllerPos, StructureModel structure, Rotation rotation, List<FluidStack> current) {
+        boolean any = false;
+        for (int e = 0; e < effects.size(); e++) {
+            any |= effects.get(e).getPort() != null;
+        }
+        if (!any) {
+            return List.of();
+        }
+        List<FluidStack> result = current.size() == effects.size() ? current : null;
+        for (int e = 0; e < effects.size(); e++) {
+            FluidStack shown = firstFluid(level, controllerPos, structure.layout(), rotation, effects.get(e).getPort());
+            FluidStack before = result == null ? FluidStack.EMPTY : result.get(e);
+            if (result != null && FluidStack.isSameFluidSameComponents(before, shown)) {
+                continue;
+            }
+            if (result == current) {
+                result = new ArrayList<>(current);
+            } else if (result == null) {
+                result = new ArrayList<>(effects.size());
+                for (int i = 0; i < effects.size(); i++) {
+                    result.add(FluidStack.EMPTY);
+                }
+            }
+            result.set(e, shown.isEmpty() ? FluidStack.EMPTY : shown.copyWithAmount(1));
+        }
+        return result;
+    }
+
+    private static FluidStack firstFluid(Level level, BlockPos controllerPos, StructureLayout layout, Rotation rotation, @Nullable String key) {
+        if (key == null) {
+            return FluidStack.EMPTY;
+        }
+        for (PositionedLayoutPiece piece : layout.getRotatedPositionedPieces().get(rotation)) {
+            if (!key.equals(piece.piece().valueId())) {
+                continue;
+            }
+            if (level.getBlockEntity(piece.findAbsolutePos(controllerPos)) instanceof IPortBlockEntity port
+                    && port.getStorage() instanceof FluidPortStorage storage) {
+                var handler = storage.getHandler();
+                for (int i = 0; i < handler.getTanks(); i++) {
+                    var stack = handler.getFluidInTank(i);
+                    if (!stack.isEmpty()) {
+                        return stack;
+                    }
+                }
+            }
+        }
+        return FluidStack.EMPTY;
+    }
+
+    public static boolean sameFluids(List<FluidStack> a, List<FluidStack> b) {
+        if (a.size() != b.size()) {
+            return false;
+        }
+        for (int i = 0; i < a.size(); i++) {
+            if (!FluidStack.isSameFluidSameComponents(a.get(i), b.get(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static List<FluidPortStorage> allFluidStorages(RecipeStorages storages) {

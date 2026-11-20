@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,8 +30,9 @@ public final class FxInstance {
     private final AABB relativeBounds;
     private AABB renderBounds;
     private AABB renderBoundsVisual;
+    private List<FluidStack> fluids;
 
-    record Effect(FxDefinition definition, FxIntensity intensity, FxShared shared, double viewDistance, List<FxLayer.State> states) {
+    record Effect(int visual, FxDefinition definition, FxIntensity intensity, FxShared shared, double viewDistance, List<FxLayer.State> states) {
     }
 
     private FxInstance(StructureModel structure, Rotation rotation, int generation, List<Effect> effects, AABB bounds) {
@@ -78,7 +80,7 @@ public final class FxInstance {
                 AABB box = anchors.bounds().inflate(reach);
                 bounds = bounds == null ? box : bounds.minmax(box);
             }
-            effects.add(new Effect(definition, new FxIntensity(definition.rise(), definition.fall(), definition.hold()),
+            effects.add(new Effect(i, definition, new FxIntensity(definition.rise(), definition.fall(), definition.hold()),
                     shared, definition.viewDistance(), List.copyOf(states)));
         }
         return new FxInstance(structure, rotation, FxManager.generation(), List.copyOf(effects), bounds);
@@ -95,6 +97,17 @@ public final class FxInstance {
 
     public boolean matches(StructureModel structure, Rotation rotation) {
         return this.structure == structure && this.rotation == rotation && this.generation == FxManager.generation();
+    }
+
+    void colors(List<FluidStack> next) {
+        if (next == fluids) {
+            return;
+        }
+        fluids = next;
+        for (int i = 0; i < effects.size(); i++) {
+            Effect effect = effects.get(i);
+            effect.shared().portColor = effect.visual() < next.size() ? FxPortColor.of(next.get(effect.visual())) : -1;
+        }
     }
 
     void tick(FxContext ctx, boolean working) {
@@ -161,6 +174,7 @@ public final class FxInstance {
             double fadeStart = view * 0.83;
             ctx.fade = (float) Math.min(1.0, (view - ctx.distance) / Math.max(1e-3, view - fadeStart));
             ctx.intensity = effect.intensity();
+            ctx.portColor = effect.shared().portColor;
             var states = effect.states();
             for (int s = 0; s < states.size(); s++) {
                 states.get(s).render(ctx);

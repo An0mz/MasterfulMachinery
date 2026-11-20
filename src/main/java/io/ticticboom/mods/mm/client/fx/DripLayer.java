@@ -13,6 +13,7 @@ public final class DripLayer implements FxLayer {
     private final String to;
     private final ResourceLocation texture;
     private final int color;
+    private final boolean portColor;
     private final double alpha;
     private final FxValue rate;
     private final double size;
@@ -24,6 +25,7 @@ public final class DripLayer implements FxLayer {
         to = json.has("to") ? json.get("to").getAsString() : "floor";
         texture = FxTexture.required(json, "drip");
         color = FxColor.parse(json, "color", 0xFFFFFF);
+        portColor = FxColor.port(json);
         alpha = number(json, "alpha", 0.96);
         rate = FxValue.parse(json, "rate", 1.0);
         size = number(json, "size", 0.03);
@@ -95,7 +97,7 @@ public final class DripLayer implements FxLayer {
         public void render(FxContext ctx) {
             VertexConsumer vc = null;
             int sides = ctx.distance < 48 ? 6 : 4;
-            int col = FxColor.argb((int) (255 * alpha * ctx.fade), color, 1.0);
+            int col = FxColor.argb((int) (255 * alpha * ctx.fade), FxColor.pick(portColor, color, ctx), 1.0);
             for (FxColumn c : columns) {
                 if (!visible(c)) {
                     continue;

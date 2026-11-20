@@ -27,6 +27,7 @@ public final class GlowLayer implements FxLayer {
     private final FxValue size;
     private final FxValue alpha;
     private final int color;
+    private final boolean portColor;
     private final boolean additive;
     private final double pulse;
     private final double pulseSpeed;
@@ -68,6 +69,7 @@ public final class GlowLayer implements FxLayer {
         size = FxValue.parse(json, "size", 1.0);
         alpha = FxValue.parse(json, "alpha", 1.0);
         color = FxColor.parse(json, "color", 0xFFFFFF);
+        portColor = FxColor.port(json);
         String blend = json.has("blend") ? json.get("blend").getAsString() : "additive";
         if (!blend.equals("translucent") && !blend.equals("additive")) {
             throw new IllegalArgumentException("glow 'blend' must be translucent or additive");
@@ -152,8 +154,9 @@ public final class GlowLayer implements FxLayer {
         return (int) (255 * FxNoise.clamp(a));
     }
 
-    private int color(int alphaByte) {
-        return additive ? FxColor.additive(alphaByte, color) : FxColor.argb(alphaByte, color, 1.0);
+    private int color(int alphaByte, FxContext ctx) {
+        int rgb = FxColor.pick(portColor, color, ctx);
+        return additive ? FxColor.additive(alphaByte, rgb) : FxColor.argb(alphaByte, rgb, 1.0);
     }
 
     private float frameV(FxContext ctx, double phase) {
@@ -193,7 +196,7 @@ public final class GlowLayer implements FxLayer {
                 type = renderType();
             }
             VertexConsumer vc = ctx.buffers.getBuffer(type);
-            int col = color(a);
+            int col = color(a, ctx);
             float v0 = frameV(ctx, 0);
             float v1 = v0 + 1f / frames;
             int light = LightTexture.FULL_BRIGHT;
@@ -258,7 +261,7 @@ public final class GlowLayer implements FxLayer {
                         x + lx - ux, y + ly - uy, z + lz - uz, 0, v1,
                         x - lx - ux, y - ly - uy, z - lz - uz, 1, v1,
                         x - lx + ux, y - ly + uy, z - lz + uz, 1, v0,
-                        color(a), LightTexture.FULL_BRIGHT, -ctx.lookX, -ctx.lookY, -ctx.lookZ, 0, 1, 0);
+                        color(a, ctx), LightTexture.FULL_BRIGHT, -ctx.lookX, -ctx.lookY, -ctx.lookZ, 0, 1, 0);
             }
         }
     }

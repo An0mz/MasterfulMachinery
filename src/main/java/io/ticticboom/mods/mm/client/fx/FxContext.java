@@ -15,6 +15,7 @@ public final class FxContext {
     public double dt;
     public float fade;
     public double distance;
+    public int portColor = -1;
     public float leftX;
     public float leftY;
     public float leftZ;

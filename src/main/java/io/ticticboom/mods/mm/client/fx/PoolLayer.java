@@ -19,6 +19,7 @@ public final class PoolLayer implements FxLayer {
     private final String to;
     private final ResourceLocation texture;
     private final int color;
+    private final boolean portColor;
     private final double alpha;
     private final double size;
     private final double base;
@@ -32,6 +33,7 @@ public final class PoolLayer implements FxLayer {
         to = json.has("to") ? json.get("to").getAsString() : "floor";
         texture = FxTexture.required(json, "pool");
         color = FxColor.parse(json, "color", 0xFFFFFF);
+        portColor = FxColor.port(json);
         alpha = number(json, "alpha", 1.0);
         size = number(json, "size", 0.21);
         base = number(json, "base", 0.05);
@@ -108,6 +110,7 @@ public final class PoolLayer implements FxLayer {
         @Override
         public void render(FxContext ctx) {
             VertexConsumer vc = null;
+            int tint = FxColor.pick(portColor, color, ctx);
             double ws = ctx.intensity.now();
             for (FxColumn c : columns) {
                 if (!visible(c)) {
@@ -124,7 +127,7 @@ public final class PoolLayer implements FxLayer {
                 double y = c.landing() + 0.012;
                 double a0 = (0.62 + 0.3 * Math.sqrt(p)) * ctx.fade * alpha;
                 for (int k = 0; k < RINGS.length; k++) {
-                    colors[k] = FxColor.argb((int) (RING_ALPHA[k] * a0), color, SHADE[k]);
+                    colors[k] = FxColor.argb((int) (RING_ALPHA[k] * a0), tint, SHADE[k]);
                 }
                 double turn = c.swirl;
                 double ph = c.phase;

@@ -17,6 +17,7 @@ public final class BeamLayer implements FxLayer {
     private final FxValue width;
     private final FxValue alpha;
     private final int color;
+    private final boolean portColor;
     private final boolean additive;
     private final boolean glow;
     private final int segments;
@@ -37,6 +38,7 @@ public final class BeamLayer implements FxLayer {
         width = FxValue.parse(json, "width", 0.15);
         alpha = FxValue.parse(json, "alpha", 1.0);
         color = FxColor.parse(json, "color", 0xFFFFFF);
+        portColor = FxColor.port(json);
         String blend = json.has("blend") ? json.get("blend").getAsString() : "additive";
         if (!blend.equals("translucent") && !blend.equals("additive")) {
             throw new IllegalArgumentException("beam 'blend' must be translucent or additive");
@@ -202,7 +204,8 @@ public final class BeamLayer implements FxLayer {
                 int light = glow || additive ? LightTexture.FULL_BRIGHT
                         : ctx.light(beam.ax + beam.dx * 0.5, beam.ay + beam.dy * 0.5, beam.az + beam.dz * 0.5);
                 int al = (int) (255 * FxNoise.clamp(a * flick));
-                int col = additive ? FxColor.additive(al, color) : FxColor.argb(al, color, 1.0);
+                int tint = FxColor.pick(portColor, color, ctx);
+                int col = additive ? FxColor.additive(al, tint) : FxColor.argb(al, tint, 1.0);
                 for (int k = 0; k <= segments; k++) {
                     double t = (double) k / segments;
                     double sag = arc * 4 * t * (1 - t);

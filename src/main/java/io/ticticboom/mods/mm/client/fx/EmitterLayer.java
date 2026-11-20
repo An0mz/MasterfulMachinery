@@ -27,6 +27,8 @@ public final class EmitterLayer implements FxLayer {
     private final double sizeEnd;
     private final int colorStart;
     private final int colorEnd;
+    private final boolean portColor;
+    private final double endShade;
     private final double alphaStart;
     private final double alphaEnd;
     private final int frames;
@@ -55,6 +57,9 @@ public final class EmitterLayer implements FxLayer {
         int[] colors = colors(json);
         colorStart = colors[0];
         colorEnd = colors[1];
+        portColor = FxColor.port(json);
+        double startLuma = FxColor.luminance(colorStart);
+        endShade = startLuma <= 0 ? 1 : Math.min(2, FxColor.luminance(colorEnd) / startLuma);
         double[] alpha = pair(json, "alpha", 1.0, 0.0);
         alphaStart = alpha[0];
         alphaEnd = alpha[1];
@@ -306,6 +311,12 @@ public final class EmitterLayer implements FxLayer {
             }
             VertexConsumer vc = ctx.buffers.getBuffer(renderType);
             float frameHeight = 1f / frames;
+            int start = colorStart;
+            int end = colorEnd;
+            if (portColor && ctx.portColor >= 0) {
+                start = ctx.portColor;
+                end = FxColor.argb(0, ctx.portColor, endShade);
+            }
             for (int i = 0; i < count; i++) {
                 double f = Math.min(1, age[i] / life[i]);
                 double size = (sizeStart + (sizeEnd - sizeStart) * f) * 0.5;
@@ -317,7 +328,7 @@ public final class EmitterLayer implements FxLayer {
                 if (alphaByte < 2) {
                     continue;
                 }
-                int col = mix(colorStart, colorEnd, f, alphaByte);
+                int col = mix(start, end, f, alphaByte);
                 double cos = Math.cos(roll[i]);
                 double sin = Math.sin(roll[i]);
                 double ax = (ctx.leftX * cos + ctx.upX * sin) * size;

@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.structure.layout.StructureLayout;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
@@ -46,12 +47,14 @@ public class EffectVisual {
 
     private final ResourceLocation fx;
     private final Map<String, Anchor> anchors;
+    private final @Nullable String port;
     @Getter(lombok.AccessLevel.NONE)
     private final Map<Rotation, Resolved> resolvedCache = new EnumMap<>(Rotation.class);
 
-    public EffectVisual(ResourceLocation fx, Map<String, Anchor> anchors) {
+    public EffectVisual(ResourceLocation fx, Map<String, Anchor> anchors, @Nullable String port) {
         this.fx = fx;
         this.anchors = anchors;
+        this.port = port;
     }
 
     public static EffectVisual parse(JsonObject json) {
@@ -68,7 +71,8 @@ public class EffectVisual {
                 anchors.put(entry.getKey(), parseAnchor(entry.getKey(), entry.getValue()));
             }
         }
-        return new EffectVisual(fx, anchors);
+        String port = json.has("port") ? json.get("port").getAsString() : null;
+        return new EffectVisual(fx, anchors, port);
     }
 
     private static Anchor parseAnchor(String name, JsonElement el) {
@@ -106,6 +110,9 @@ public class EffectVisual {
     }
 
     public void validate(ResourceLocation structureId, StructureLayout layout) {
+        if (port != null && !VisualRegion.isKey(layout, port)) {
+            Ref.LOG.warn("Structure {}: effect port '{}' is not a key in the layout", structureId, port);
+        }
         for (var entry : anchors.entrySet()) {
             var area = entry.getValue().area();
             if (area != null) {
@@ -202,6 +209,9 @@ public class EffectVisual {
         var json = new JsonObject();
         json.addProperty("type", "effect");
         json.addProperty("fx", fx.toString());
+        if (port != null) {
+            json.addProperty("port", port);
+        }
         var anchorJson = new JsonObject();
         for (var entry : anchors.entrySet()) {
             Anchor anchor = entry.getValue();

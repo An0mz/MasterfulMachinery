@@ -9,6 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 public final class DropsLayer implements FxLayer {
     private final ResourceLocation texture;
     private final int color;
+    private final boolean portColor;
     private final double alpha;
     private final double gravity;
     private final int max;
@@ -18,6 +19,7 @@ public final class DropsLayer implements FxLayer {
     private DropsLayer(JsonObject json) {
         texture = FxTexture.required(json, "drops");
         color = FxColor.parse(json, "color", 0xFFFFFF);
+        portColor = FxColor.port(json);
         alpha = number(json, "alpha", 0.96);
         gravity = number(json, "gravity", 9.81);
         max = Math.max(1, Math.min(256, (int) number(json, "max", 48)));
@@ -141,7 +143,7 @@ public final class DropsLayer implements FxLayer {
                 renderType = RenderType.entityTranslucentCull(texture);
             }
             VertexConsumer vc = ctx.buffers.getBuffer(renderType);
-            int col = FxColor.argb((int) (255 * alpha * ctx.fade), color, 1.0);
+            int col = FxColor.argb((int) (255 * alpha * ctx.fade), FxColor.pick(portColor, color, ctx), 1.0);
             for (int i = 0; i < count; i++) {
                 double a = age(i, ctx.time);
                 double x = x0[i] + vx[i] * a;

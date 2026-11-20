@@ -11,6 +11,7 @@ public final class RippleLayer implements FxLayer {
 
     private final ResourceLocation texture;
     private final int color;
+    private final boolean portColor;
     private final double alpha;
     private final double life;
     private final double width;
@@ -20,6 +21,7 @@ public final class RippleLayer implements FxLayer {
     private RippleLayer(JsonObject json) {
         texture = FxTexture.required(json, "ripple");
         color = FxColor.parse(json, "color", 0xFFFFFF);
+        portColor = FxColor.port(json);
         alpha = number(json, "alpha", 1.0);
         life = Math.max(0.05, number(json, "life", 0.55));
         width = number(json, "width", 0.014);
@@ -115,7 +117,7 @@ public final class RippleLayer implements FxLayer {
                     }
                     vc = ctx.buffers.getBuffer(renderType);
                 }
-                int col = FxColor.argb(a, color, 1.25);
+                int col = FxColor.argb(a, FxColor.pick(portColor, color, ctx), 1.25);
                 int light = c.lightAt(c.landing() + 0.5);
                 double y = c.landing() + 0.017;
                 double ri = Math.max(0, rr - width);

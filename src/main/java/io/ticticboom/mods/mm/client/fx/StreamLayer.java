@@ -15,6 +15,7 @@ public final class StreamLayer implements FxLayer {
     private final String to;
     private final ResourceLocation texture;
     private final int color;
+    private final boolean portColor;
     private final FxValue alpha;
     private final double radius;
     private final double gravity;
@@ -39,6 +40,7 @@ public final class StreamLayer implements FxLayer {
         to = json.has("to") ? json.get("to").getAsString() : "floor";
         texture = FxTexture.required(json, "stream");
         color = FxColor.parse(json, "color", 0xFFFFFF);
+        portColor = FxColor.port(json);
         alpha = FxValue.parse(json, "alpha", 0.925);
         radius = number(json, "radius", 0.085);
         gravity = number(json, "gravity", 9.81);
@@ -214,6 +216,7 @@ public final class StreamLayer implements FxLayer {
         @Override
         public void render(FxContext ctx) {
             VertexConsumer vc = null;
+            int tint = FxColor.pick(portColor, color, ctx);
             int segments = ctx.distance < 32 ? 44 : (ctx.distance < 60 ? 28 : 18);
             int sides = ctx.distance < 48 ? 6 : 4;
             int a = (int) (255 * FxNoise.clamp(alpha.at(ctx.intensity.now())) * ctx.fade);
@@ -222,7 +225,7 @@ public final class StreamLayer implements FxLayer {
             for (int s = 0; s < sides; s++) {
                 double nx = (cos[s] + cos[s + 1]) * 0.5;
                 double nz = (sin[s] + sin[s + 1]) * 0.5;
-                sideColor[s] = FxColor.argb(a, color, 0.86 + 0.14 * (nx * 0.6 - nz * 0.8));
+                sideColor[s] = FxColor.argb(a, tint, 0.86 + 0.14 * (nx * 0.6 - nz * 0.8));
             }
             for (Track track : tracks) {
                 if (track == null || !visible(track.column)) {

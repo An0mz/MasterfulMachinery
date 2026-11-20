@@ -72,8 +72,10 @@ public final class FxRenderer {
         ctx.cameraY = camera.y - pos.getY();
         ctx.cameraZ = camera.z - pos.getZ();
         boolean working = be.getBlockState().getValue(ControllerState.PROPERTY) == ControllerState.WORKING;
+        instance.colors(be.getEffectFluids());
         instance.tick(ctx, working);
         instance.render(ctx);
+        ctx.portColor = -1;
         ctx.level = null;
         ctx.buffers = null;
         ctx.pose = null;

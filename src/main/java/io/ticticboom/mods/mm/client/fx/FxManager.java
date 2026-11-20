@@ -40,6 +40,7 @@ public final class FxManager {
             }
         }
         definitions = Map.copyOf(loaded);
+        FxPortColor.clear();
         generation++;
         Ref.LOG.info("Loaded {} machine effects", loaded.size());
     }

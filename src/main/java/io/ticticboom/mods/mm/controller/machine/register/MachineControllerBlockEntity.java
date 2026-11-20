@@ -68,6 +68,7 @@ import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -203,6 +204,8 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     @Getter
     private List<FluidVolumeState> fluidVolumes = List.of();
     @Getter
+    private List<FluidStack> effectFluids = List.of();
+    @Getter
     private AABB visualBounds = null;
     private RecipeStorages visualStorages = null;
     private long lastVisualChangeCount = -1;
@@ -273,8 +276,9 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         var visuals = structure == null ? null : structure.getAttachments().get(Ref.StructureAttachments.VISUALS, VisualsStructureAttachment.class);
         if (!isFormed || portStorages == null || formedRotation == null || visuals == null) {
             visualStorages = null;
-            if (!fluidVolumes.isEmpty()) {
+            if (!fluidVolumes.isEmpty() || !effectFluids.isEmpty()) {
                 fluidVolumes = List.of();
+                effectFluids = List.of();
                 markChanged();
             }
             return;
@@ -288,6 +292,11 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         var next = visuals.snapshot(level, getBlockPos(), structure, formedRotation, portStorages);
         if (!FluidVolumeState.same(fluidVolumes, next)) {
             fluidVolumes = next;
+            markChanged();
+        }
+        var fluids = visuals.effectFluids(level, getBlockPos(), structure, formedRotation, effectFluids);
+        if (fluids != effectFluids) {
+            effectFluids = fluids;
             markChanged();
         }
     }
@@ -331,6 +340,21 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
             }
         }
         visualBounds = bounds == null ? null : bounds.minmax(new AABB(getBlockPos()));
+    }
+
+    private void loadEffectFluids(CompoundTag tag, HolderLookup.Provider registries) {
+        var fluids = List.<FluidStack>of();
+        if (tag.contains("EffectFluids")) {
+            var list = tag.getList("EffectFluids", Tag.TAG_COMPOUND);
+            var loaded = new ArrayList<FluidStack>(list.size());
+            for (int i = 0; i < list.size(); i++) {
+                loaded.add(FluidStack.parseOptional(registries, list.getCompound(i)));
+            }
+            fluids = loaded;
+        }
+        if (!VisualsStructureAttachment.sameFluids(effectFluids, fluids)) {
+            effectFluids = fluids;
+        }
     }
 
     public void scheduleValidation() {
@@ -1459,6 +1483,7 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
     protected void loadAdditional(@NotNull CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         loadFluidVolumes(tag, registries);
+        loadEffectFluids(tag, registries);
         activeRecipes.clear();
         if (tag.contains("activeRuns")) {
             ListTag runsTag = tag.getList("activeRuns", Tag.TAG_COMPOUND);
@@ -1553,6 +1578,13 @@ public class MachineControllerBlockEntity extends BlockEntity implements IContro
         }
         if (!fluidVolumes.isEmpty()) {
             tag.put("FluidVolumes", FluidVolumeState.saveAll(fluidVolumes, registries));
+        }
+        if (!effectFluids.isEmpty()) {
+            var list = new ListTag();
+            for (FluidStack fluid : effectFluids) {
+                list.add(fluid.saveOptional(registries));
+            }
+            tag.put("EffectFluids", list);
         }
         if (isFormed && formedRotation != null) {
             tag.putString("FormedRotation", formedRotation.name());

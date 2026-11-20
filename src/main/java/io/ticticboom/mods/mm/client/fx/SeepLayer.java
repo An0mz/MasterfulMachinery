@@ -22,6 +22,8 @@ public final class SeepLayer implements FxLayer {
     private final String top;
     private final ResourceLocation texture;
     private final int[] palette;
+    private final boolean portColor;
+    private final double[] shades = new double[7];
     private final double alpha;
     private final double chance;
     private final double speed;
@@ -33,6 +35,14 @@ public final class SeepLayer implements FxLayer {
         top = json.has("top") ? json.get("top").getAsString() : "seep_top";
         texture = FxTexture.required(json, "seep");
         palette = json.has("palette") ? parsePalette(json.getAsJsonArray("palette")) : DEFAULT_PALETTE;
+        portColor = FxColor.port(json);
+        double mean = 0;
+        for (int c : palette) {
+            mean += FxColor.luminance(c) / palette.length;
+        }
+        for (int i = 0; i < 7; i++) {
+            shades[i] = mean <= 0 ? 1 : FxColor.luminance(palette[i]) / mean;
+        }
         alpha = json.has("alpha") ? json.get("alpha").getAsDouble() : 1.0;
         chance = json.has("chance") ? json.get("chance").getAsDouble() : 0.6;
         speed = json.has("speed") ? json.get("speed").getAsDouble() : 1.0;
@@ -86,9 +96,10 @@ public final class SeepLayer implements FxLayer {
         return new Seeps(columns, faces);
     }
 
-    private int color(int index, double a) {
+    private int color(int tint, int index, double a) {
         int al = (int) Math.max(0, Math.min(255, a));
-        return al << 24 | palette[Math.max(0, Math.min(6, index))];
+        int i = Math.max(0, Math.min(6, index));
+        return tint >= 0 ? FxColor.argb(al, tint, shades[i]) : al << 24 | palette[i];
     }
 
     private static final class Face {
@@ -168,6 +179,7 @@ public final class SeepLayer implements FxLayer {
         private final FxColumn[] columns;
         private final Face[][] faces;
         private final int[] lastMask;
+        private int tint = -1;
         private RenderType renderType;
 
         Seeps(FxColumn[] columns, Face[][] faces) {
@@ -248,8 +260,13 @@ public final class SeepLayer implements FxLayer {
             }
         }
 
+        private int color(int index, double a) {
+            return SeepLayer.this.color(tint, index, a);
+        }
+
         @Override
         public void render(FxContext ctx) {
+            tint = FxColor.pick(portColor, -1, ctx);
             VertexConsumer vc = null;
             double ws = ctx.intensity.now();
             for (int i = 0; i < columns.length; i++) {

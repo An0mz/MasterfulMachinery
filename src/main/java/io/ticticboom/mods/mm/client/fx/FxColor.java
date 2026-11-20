@@ -20,6 +20,18 @@ public final class FxColor {
         return Integer.parseInt(text, 16);
     }
 
+    public static boolean port(JsonObject json) {
+        return json.has("port_color") && json.get("port_color").getAsBoolean();
+    }
+
+    public static int pick(boolean port, int own, FxContext ctx) {
+        return port && ctx.portColor >= 0 ? ctx.portColor : own;
+    }
+
+    public static double luminance(int rgb) {
+        return (((rgb >> 16) & 0xFF) * 0.299 + ((rgb >> 8) & 0xFF) * 0.587 + (rgb & 0xFF) * 0.114) / 255.0;
+    }
+
     public static int additive(int alpha, int rgb) {
         alpha = Math.max(0, Math.min(255, alpha));
         int r = ((rgb >> 16) & 0xFF) * alpha / 255;
