@@ -154,10 +154,10 @@ public final class FxShared {
                 int landingBlock = (int) Math.ceil(c.landing() - 0.01);
                 boolean clear = true;
                 for (int y = (int) Math.floor(c.top + 1e-6) - 1; y >= landingBlock && clear; y--) {
-                    clear = ctx.passable(bx, y, bz);
+                    clear = ctx.passable(bx, y, bz, c.x - bx, c.z - bz);
                 }
                 c.pathClear = clear;
-                c.landingClear = ctx.passable(bx, landingBlock, bz);
+                c.landingClear = ctx.passable(bx, landingBlock, bz, c.x - bx, c.z - bz);
             }
         }
     }

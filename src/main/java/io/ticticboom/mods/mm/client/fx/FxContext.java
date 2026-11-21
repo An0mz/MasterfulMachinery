@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
@@ -48,6 +49,19 @@ public final class FxContext {
         cursor.set(origin.getX() + x, origin.getY() + y, origin.getZ() + z);
         BlockState state = level.getBlockState(cursor);
         return state.isAir() || (state.getCollisionShape(level, cursor).isEmpty() && state.getFluidState().isEmpty());
+    }
+
+    public boolean passable(int x, int y, int z, double localX, double localZ) {
+        cursor.set(origin.getX() + x, origin.getY() + y, origin.getZ() + z);
+        BlockState state = level.getBlockState(cursor);
+        if (state.isAir()) {
+            return true;
+        }
+        if (!state.getFluidState().isEmpty()) {
+            return false;
+        }
+        VoxelShape shape = state.getShape(level, cursor);
+        return shape.isEmpty() || shape.max(Direction.Axis.Y, localZ, localX) == Double.NEGATIVE_INFINITY;
     }
 
     public VoxelShape shape(long cell) {
