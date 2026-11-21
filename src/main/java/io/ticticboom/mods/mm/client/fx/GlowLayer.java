@@ -9,6 +9,7 @@ import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
@@ -104,25 +105,35 @@ public final class GlowLayer implements FxLayer {
         }
         var set = new LongOpenHashSet(cells);
         var list = new ArrayList<double[]>();
+        var owners = new ArrayList<Long>();
+        var dirs = new ArrayList<Direction>();
         for (long cell : cells) {
             for (Direction listed : faces) {
                 Direction dir = shared.rotation.rotate(listed);
                 if (outerOnly && set.contains(BlockPos.offset(cell, dir))) {
                     continue;
                 }
-                list.add(face(BlockPos.getX(cell), BlockPos.getY(cell), BlockPos.getZ(cell), dir));
+                double[] q = new double[18];
+                face(q, BlockPos.getX(cell), BlockPos.getY(cell), BlockPos.getZ(cell), dir, 0, 0, 0, 1, 1, 1);
+                list.add(q);
+                owners.add(cell);
+                dirs.add(dir);
             }
         }
         if (list.isEmpty()) {
             Ref.LOG.warn("Glow layer: no faces to draw for '{}'", at);
             return null;
         }
-        return new Faces(list.toArray(new double[0][]), shared.seed());
+        long[] cellOf = new long[owners.size()];
+        for (int i = 0; i < cellOf.length; i++) {
+            cellOf[i] = owners.get(i);
+        }
+        return new Faces(list.toArray(new double[0][]), cellOf, dirs.toArray(new Direction[0]), shared.seed());
     }
 
-    private double[] face(int x, int y, int z, Direction dir) {
+    private void face(double[] result, int x, int y, int z, Direction dir, double bx0, double by0, double bz0, double bx1, double by1, double bz1) {
         double o = offset;
-        double x0 = x, x1 = x + 1, y0 = y, y1 = y + 1, z0 = z, z1 = z + 1;
+        double x0 = x + bx0, x1 = x + bx1, y0 = y + by0, y1 = y + by1, z0 = z + bz0, z1 = z + bz1;
         double[] q = switch (dir) {
             case UP -> new double[]{x0, y1 + o, z1, x1, y1 + o, z1, x1, y1 + o, z0, x0, y1 + o, z0};
             case DOWN -> new double[]{x0, y0 - o, z0, x1, y0 - o, z0, x1, y0 - o, z1, x0, y0 - o, z1};
@@ -131,15 +142,13 @@ public final class GlowLayer implements FxLayer {
             case WEST -> new double[]{x0 - o, y1, z0, x0 - o, y0, z0, x0 - o, y0, z1, x0 - o, y1, z1};
             case EAST -> new double[]{x1 + o, y1, z1, x1 + o, y0, z1, x1 + o, y0, z0, x1 + o, y1, z0};
         };
-        double[] result = new double[18];
         System.arraycopy(q, 0, result, 0, 12);
         result[12] = dir.getStepX();
         result[13] = dir.getStepY();
         result[14] = dir.getStepZ();
-        result[15] = x + 0.5 + dir.getStepX() * (0.5 + o);
-        result[16] = y + 0.5 + dir.getStepY() * (0.5 + o);
-        result[17] = z + 0.5 + dir.getStepZ() * (0.5 + o);
-        return result;
+        result[15] = (x0 + x1) / 2 + dir.getStepX() * ((x1 - x0) / 2 + o);
+        result[16] = (y0 + y1) / 2 + dir.getStepY() * ((y1 - y0) / 2 + o);
+        result[17] = (z0 + z1) / 2 + dir.getStepZ() * ((z1 - z0) / 2 + o);
     }
 
     private int strength(FxContext ctx, double phase, long seed) {
@@ -173,12 +182,37 @@ public final class GlowLayer implements FxLayer {
 
     private final class Faces implements State {
         private final double[][] quads;
+        private final long[] cells;
+        private final Direction[] dirs;
+        private final VoxelShape[] shapes;
         private final long seed;
         private RenderType type;
 
-        Faces(double[][] quads, long seed) {
+        Faces(double[][] quads, long[] cells, Direction[] dirs, long seed) {
             this.quads = quads;
+            this.cells = cells;
+            this.dirs = dirs;
+            this.shapes = new VoxelShape[quads.length];
             this.seed = seed;
+        }
+
+        @Override
+        public void scan(FxContext ctx) {
+            for (int i = 0; i < quads.length; i++) {
+                VoxelShape shape = ctx.shape(cells[i]);
+                if (shape == shapes[i]) {
+                    continue;
+                }
+                shapes[i] = shape;
+                long cell = cells[i];
+                if (shape.isEmpty()) {
+                    face(quads[i], BlockPos.getX(cell), BlockPos.getY(cell), BlockPos.getZ(cell), dirs[i], 0, 0, 0, 1, 1, 1);
+                } else {
+                    face(quads[i], BlockPos.getX(cell), BlockPos.getY(cell), BlockPos.getZ(cell), dirs[i],
+                            shape.min(Direction.Axis.X), shape.min(Direction.Axis.Y), shape.min(Direction.Axis.Z),
+                            shape.max(Direction.Axis.X), shape.max(Direction.Axis.Y), shape.max(Direction.Axis.Z));
+                }
+            }
         }
 
         @Override

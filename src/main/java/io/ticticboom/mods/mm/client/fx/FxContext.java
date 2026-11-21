@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 public final class FxContext {
     public BlockAndTintGetter level;
@@ -47,6 +48,11 @@ public final class FxContext {
         cursor.set(origin.getX() + x, origin.getY() + y, origin.getZ() + z);
         BlockState state = level.getBlockState(cursor);
         return state.isAir() || (state.getCollisionShape(level, cursor).isEmpty() && state.getFluidState().isEmpty());
+    }
+
+    public VoxelShape shape(long cell) {
+        cursor.set(origin.getX() + BlockPos.getX(cell), origin.getY() + BlockPos.getY(cell), origin.getZ() + BlockPos.getZ(cell));
+        return level.getBlockState(cursor).getShape(level, cursor);
     }
 
     public boolean solid(int x, int y, int z) {
