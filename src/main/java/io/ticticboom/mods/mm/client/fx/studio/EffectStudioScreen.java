@@ -94,6 +94,9 @@ public class EffectStudioScreen extends Screen {
     private String adding;
     private final List<String> spots = new ArrayList<>();
     private int spotsY;
+    private int spotScroll;
+    private int spotScrollMax;
+    private final List<Object[]> rowLabels = new ArrayList<>();
     @Nullable
     private String handleName;
     private int handleIndex;
@@ -136,6 +139,7 @@ public class EffectStudioScreen extends Screen {
         session.open = true;
         dots.clear();
         spots.clear();
+        rowLabels.clear();
         coords = null;
         menu = null;
         if (view == null || model != be.getStructure()) {
@@ -162,24 +166,7 @@ public class EffectStudioScreen extends Screen {
             }
             y += 14;
             spotsY = y;
-            Set<String> linked = linkedOf(base(selectedId()));
-            for (String spot : spots) {
-                if (linked.contains(spot)) {
-                    spotButton(y, 0, "+", "link", () -> startLinking(spot));
-                    spotButton(y, 1, "-", "remove", () -> removeLast(spot));
-                    y += 18;
-                    continue;
-                }
-                spotButton(y, 0, "+", "add", () -> {
-                    adding = adding != null && adding.equals(spot) ? null : spot;
-                    linkFrom = -1;
-                    handleName = null;
-                    placing = null;
-                    steps.clear();
-                });
-                spotButton(y, 1, "-", "remove", () -> removeLast(spot));
-                y += 18;
-            }
+            buildSpotRows(y);
         }
 
         int x = width - PANEL - 6;
@@ -190,6 +177,7 @@ public class EffectStudioScreen extends Screen {
                 session.selected = index;
                 adding = null;
                 handleName = null;
+                spotScroll = 0;
                 rebuildWidgets();
             }).bounds(x, y, PANEL, 18).build());
             y += 20;
@@ -294,18 +282,142 @@ public class EffectStudioScreen extends Screen {
         }
     }
 
-    private void spotButton(int y, int column, String text, String tip, Runnable action) {
-        int[] widths = {14, 14};
-        int x = 6 + PANEL;
-        for (int i = widths.length - 1; i >= column; i--) {
-            x -= widths[i] + (i == widths.length - 1 ? 0 : 2);
+    private void smallButton(int x, int y, int w, Component text, @Nullable String tip, Runnable action) {
+        Button.Builder builder = Button.builder(text, b -> {
+            action.run();
+            setFocused(null);
+        });
+        if (tip != null) {
+            builder.tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.spot." + tip)));
         }
-        addRenderableWidget(Button.builder(Component.literal(text), b -> {
-                    action.run();
-                    setFocused(null);
-                })
-                .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.spot." + tip)))
-                .bounds(x, y, widths[column], 16).build());
+        addRenderableWidget(builder.bounds(x, y, w, 14).build());
+    }
+
+    private void buildSpotRows(int top) {
+        JsonObject anchors = selectedAnchors();
+        JsonObject fx = base(selectedId());
+        Set<String> linked = linkedOf(fx);
+        var rows = new ArrayList<Runnable[]>();
+        int right = 6 + PANEL;
+        for (int i = 0; i < spots.size(); i++) {
+            String spot = spots.get(i);
+            int color = SPOT_COLORS[i % SPOT_COLORS.length];
+            boolean arcs = linked.contains(spot);
+            List<double[]> points = pointsOf(anchors.get(spot));
+            List<int[]> links = arcs ? linksOf(fx, spot) : List.of();
+            int headerIndex = rows.size();
+            int rowColor = color;
+            rows.add(new Runnable[]{() -> {
+                int ry = rowY(headerIndex, top);
+                rowLabels.add(new Object[]{6, ry + 3, font.plainSubstrByWidth(pretty(spot), PANEL - 20), rowColor});
+                if (!arcs) {
+                    smallButton(right - 14, ry, 14, Component.literal("+"), "add", () -> {
+                        adding = adding != null && adding.equals(spot) ? null : spot;
+                        linkFrom = -1;
+                        handleName = null;
+                        placing = null;
+                        steps.clear();
+                        rebuildWidgets();
+                    });
+                }
+            }});
+            for (int j = 0; j < points.size(); j++) {
+                int index = j;
+                int rowIndex = rows.size();
+                rows.add(new Runnable[]{() -> {
+                    int ry = rowY(rowIndex, top);
+                    var neighbours = new StringBuilder();
+                    for (int[] l : links) {
+                        int other = l[0] == index ? l[1] : -1;
+                        if (other >= 0) {
+                            neighbours.append(neighbours.isEmpty() ? "" : ", ").append(other + 1);
+                        }
+                    }
+                    boolean selected = spot.equals(handleName) && index == handleIndex;
+                    boolean from = spot.equals(adding) && index == linkFrom;
+                    String text = (selected ? "> " : "") + Component.translatable("gui.mm.effect_studio.point", index + 1).getString()
+                            + (arcs ? " \u2192 " + (neighbours.isEmpty() ? "-" : neighbours) : "");
+                    int width = PANEL - (arcs ? 32 : 16);
+                    smallButton(6, ry, width, Component.literal(font.plainSubstrByWidth(text, width - 6))
+                            .withStyle(from ? ChatFormatting.YELLOW : ChatFormatting.WHITE), null, () -> pickRow(spot, index));
+                    if (arcs) {
+                        smallButton(right - 30, ry, 14, Component.literal("+"), "link", () -> {
+                            handleName = spot;
+                            handleIndex = index;
+                            startLinking(spot);
+                            rebuildWidgets();
+                        });
+                    }
+                    if (points.size() > 1) {
+                        smallButton(right - 14, ry, 14, Component.literal("-"), "remove", () -> {
+                            Handle h = findHandle(spot, index);
+                            if (h != null) {
+                                deleteHandle(h);
+                            }
+                        });
+                    }
+                }});
+            }
+            if (arcs && !links.isEmpty()) {
+                int arcsHeader = rows.size();
+                rows.add(new Runnable[]{() -> rowLabels.add(new Object[]{10, rowY(arcsHeader, top) + 3,
+                        Component.translatable("gui.mm.effect_studio.arcs").getString(), 0xFFA0A0A0})});
+                for (int[] l : links) {
+                    int a = l[0];
+                    int b = l[1];
+                    int rowIndex = rows.size();
+                    rows.add(new Runnable[]{() -> {
+                        int ry = rowY(rowIndex, top);
+                        rowLabels.add(new Object[]{14, ry + 3, (a + 1) + " \u2014 " + (b + 1), rowColor});
+                        smallButton(right - 14, ry, 14, Component.literal("x"), "unlink_one", () -> removeLink(spot, a, b));
+                    }});
+                }
+            }
+        }
+        int visible = Math.max(1, (height - 8 - top) / 16);
+        spotScrollMax = Math.max(0, rows.size() - visible);
+        spotScroll = Math.max(0, Math.min(spotScroll, spotScrollMax));
+        for (int r = spotScroll; r < rows.size() && r < spotScroll + visible; r++) {
+            rows.get(r)[0].run();
+        }
+    }
+
+    private int rowY(int row, int top) {
+        return top + (row - spotScroll) * 16;
+    }
+
+    @Nullable
+    private Handle findHandle(String name, int index) {
+        for (Handle h : handles()) {
+            if (h.name().equals(name) && h.index() == index) {
+                return h;
+            }
+        }
+        return null;
+    }
+
+    private void pickRow(String name, int index) {
+        if (name.equals(adding) && linking()) {
+            Handle target = findHandle(name, index);
+            if (target != null && index != linkFrom) {
+                connect(target);
+            }
+            return;
+        }
+        adding = null;
+        linkFrom = -1;
+        placing = null;
+        held = null;
+        steps.clear();
+        handleName = name;
+        handleIndex = index;
+        rebuildWidgets();
+    }
+
+    private void removeLink(String name, int a, int b) {
+        remember();
+        editLinks(name, links -> links.removeIf(l -> l[0] == a && l[1] == b));
+        rebuildWidgets();
     }
 
     private JsonObject selectedAnchors() {
@@ -536,6 +648,7 @@ public class EffectStudioScreen extends Screen {
         } else {
             adding = null;
         }
+        rebuildWidgets();
     }
 
     private void changed(String name) {
@@ -585,22 +698,7 @@ public class EffectStudioScreen extends Screen {
         if (!hasControlDown()) {
             adding = null;
         }
-    }
-
-    private void removeLast(String name) {
-        JsonObject anchors = selectedAnchors();
-        List<double[]> points = pointsOf(anchors.get(name));
-        if (points.size() <= 1) {
-            return;
-        }
-        remember();
-        points.remove(points.size() - 1);
-        anchors.add(name, pointsJson(points));
-        dropPoint(name, points.size());
-        if (name.equals(adding) && linkFrom >= points.size()) {
-            linkFrom = points.size() - 1;
-        }
-        changed(name);
+        rebuildWidgets();
     }
 
     private EffectStudio.Snapshot snapshot() {
@@ -669,6 +767,7 @@ public class EffectStudioScreen extends Screen {
         held = null;
         steps.clear();
         handleName = null;
+        spotScroll = 0;
         rebuildWidgets();
         setFocused(null);
     }
@@ -830,6 +929,14 @@ public class EffectStudioScreen extends Screen {
         points.remove(h.index());
         anchors.add(h.name(), pointsJson(points));
         dropPoint(h.name(), h.index());
+        if (h.name().equals(adding) && linkFrom >= 0) {
+            if (linkFrom == h.index()) {
+                adding = null;
+                linkFrom = -1;
+            } else if (linkFrom > h.index()) {
+                linkFrom--;
+            }
+        }
         changed(h.name());
         handleName = null;
         rebuildWidgets();
@@ -1587,11 +1694,8 @@ public class EffectStudioScreen extends Screen {
         }
         if (!spots.isEmpty()) {
             gfx.drawString(font, Component.translatable("gui.mm.effect_studio.spots"), 6, spotsY - 11, 0xFFFFFF);
-            JsonObject anchors = selectedAnchors();
-            for (int i = 0; i < spots.size(); i++) {
-                String spot = spots.get(i);
-                String text = font.plainSubstrByWidth(spot, 30) + " " + pointsOf(anchors.get(spot)).size();
-                gfx.drawString(font, text, 6, spotsY + i * 18 + 4, SPOT_COLORS[i % SPOT_COLORS.length]);
+            for (Object[] label : rowLabels) {
+                gfx.drawString(font, (String) label[2], (int) label[0], (int) label[1], (int) label[3]);
             }
         }
         String tip = null;
@@ -1676,7 +1780,24 @@ public class EffectStudioScreen extends Screen {
                 return true;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        boolean handled = super.mouseClicked(mouseX, mouseY, button);
+        if (handled && getFocused() instanceof Button) {
+            setFocused(null);
+        }
+        return handled;
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (!spots.isEmpty() && mouseX < PANEL + 8 && mouseY >= spotsY) {
+            int next = Math.max(0, Math.min(spotScrollMax, spotScroll - (int) Math.signum(scrollY)));
+            if (next != spotScroll) {
+                spotScroll = next;
+                rebuildWidgets();
+            }
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     @Override
