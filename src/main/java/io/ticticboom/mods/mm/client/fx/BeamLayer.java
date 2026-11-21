@@ -30,6 +30,8 @@ public final class BeamLayer implements FxLayer {
     private final double pulseSpeed;
     private final double flicker;
     private final double taper;
+    @Nullable
+    private final int[] links;
 
     private BeamLayer(JsonObject json) {
         texture = FxTexture.required(json, "beam");
@@ -55,6 +57,28 @@ public final class BeamLayer implements FxLayer {
         pulseSpeed = number(json, "pulse_speed", 2.0);
         flicker = FxNoise.clamp(number(json, "flicker", 0));
         taper = FxNoise.clamp(number(json, "taper", 0));
+        if (json.has("links")) {
+            var list = json.getAsJsonArray("links");
+            boolean flat = !list.isEmpty() && list.get(0).isJsonPrimitive();
+            if (flat && list.size() % 2 != 0) {
+                throw new IllegalArgumentException("beam 'links' must be a list of [from, to] point numbers");
+            }
+            links = new int[flat ? list.size() : list.size() * 2];
+            for (int i = 0; i < list.size(); i++) {
+                if (flat) {
+                    links[i] = list.get(i).getAsInt();
+                    continue;
+                }
+                var pair = list.get(i).getAsJsonArray();
+                if (pair.size() != 2) {
+                    throw new IllegalArgumentException("beam 'links' must be a list of [from, to] point numbers");
+                }
+                links[i * 2] = pair.get(0).getAsInt();
+                links[i * 2 + 1] = pair.get(1).getAsInt();
+            }
+        } else {
+            links = null;
+        }
     }
 
     public static BeamLayer parse(JsonObject json) {
@@ -76,6 +100,26 @@ public final class BeamLayer implements FxLayer {
         }
         int n = a.length / 3;
         int m = b.length / 3;
+        if (links != null) {
+            int valid = 0;
+            for (int k = 0; k < links.length; k += 2) {
+                if (links[k] >= 0 && links[k] < n && links[k + 1] >= 0 && links[k + 1] < m) {
+                    valid++;
+                }
+            }
+            Beam[] beams = new Beam[valid];
+            int i = 0;
+            for (int k = 0; k < links.length; k += 2) {
+                if (links[k] < 0 || links[k] >= n || links[k + 1] < 0 || links[k + 1] >= m) {
+                    continue;
+                }
+                int ia = links[k] * 3;
+                int ib = links[k + 1] * 3;
+                beams[i] = new Beam(a[ia], a[ia + 1], a[ia + 2], b[ib], b[ib + 1], b[ib + 2], shared.seed() + i * 977L);
+                i++;
+            }
+            return new Beams(shared, beams);
+        }
         int count = Math.max(n, m);
         Beam[] beams = new Beam[count];
         for (int i = 0; i < count; i++) {

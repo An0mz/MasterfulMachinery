@@ -114,6 +114,9 @@ public class EffectStudioScreen extends Screen {
     @Nullable
     private Button redoButton;
     private boolean swallowRelease;
+    @Nullable
+    private Handle linkTarget;
+    private int linkFrom = -1;
 
     private record Handle(String name, int index, double x, double y, double z, boolean height) {
     }
@@ -159,9 +162,17 @@ public class EffectStudioScreen extends Screen {
             }
             y += 14;
             spotsY = y;
+            Set<String> linked = linkedOf(base(selectedId()));
             for (String spot : spots) {
+                if (linked.contains(spot)) {
+                    spotButton(y, 0, "+", "link", () -> startLinking(spot));
+                    spotButton(y, 1, "-", "remove", () -> removeLast(spot));
+                    y += 18;
+                    continue;
+                }
                 spotButton(y, 0, "+", "add", () -> {
                     adding = adding != null && adding.equals(spot) ? null : spot;
+                    linkFrom = -1;
                     handleName = null;
                     placing = null;
                     steps.clear();
@@ -395,6 +406,141 @@ public class EffectStudioScreen extends Screen {
         return result;
     }
 
+    private static Set<String> linkedOf(@Nullable JsonObject fx) {
+        var result = new HashSet<String>();
+        if (fx == null || !fx.has("layers")) {
+            return result;
+        }
+        for (JsonElement element : fx.getAsJsonArray("layers")) {
+            JsonObject layer = element.getAsJsonObject();
+            if ("beam".equals(layer.has("type") ? layer.get("type").getAsString() : "") && layer.has("links")
+                    && layer.has("from") && layer.has("to") && layer.get("from").getAsString().equals(layer.get("to").getAsString())) {
+                result.add(layer.get("from").getAsString());
+            }
+        }
+        return result;
+    }
+
+    private static List<int[]> linksOf(@Nullable JsonObject fx, String name) {
+        var result = new ArrayList<int[]>();
+        if (fx == null || !fx.has("layers")) {
+            return result;
+        }
+        for (JsonElement element : fx.getAsJsonArray("layers")) {
+            JsonObject layer = element.getAsJsonObject();
+            if (layer.has("links") && layer.has("from") && name.equals(layer.get("from").getAsString())
+                    && layer.has("to") && name.equals(layer.get("to").getAsString())) {
+                JsonArray list = layer.getAsJsonArray("links");
+                boolean flat = !list.isEmpty() && list.get(0).isJsonPrimitive();
+                for (int i = 0; i < list.size(); i++) {
+                    if (flat) {
+                        if (i + 1 < list.size()) {
+                            result.add(new int[]{list.get(i).getAsInt(), list.get(i + 1).getAsInt()});
+                        }
+                        i++;
+                        continue;
+                    }
+                    JsonArray pair = list.get(i).getAsJsonArray();
+                    if (pair.size() == 2) {
+                        result.add(new int[]{pair.get(0).getAsInt(), pair.get(1).getAsInt()});
+                    }
+                }
+                return result;
+            }
+        }
+        return result;
+    }
+
+    private static void setLinks(JsonObject fx, String name, List<int[]> links) {
+        for (JsonElement element : fx.getAsJsonArray("layers")) {
+            JsonObject layer = element.getAsJsonObject();
+            if (layer.has("links") && layer.has("from") && name.equals(layer.get("from").getAsString())
+                    && layer.has("to") && name.equals(layer.get("to").getAsString())) {
+                var list = new JsonArray();
+                for (int[] link : links) {
+                    var pair = new JsonArray();
+                    pair.add(link[0]);
+                    pair.add(link[1]);
+                    list.add(pair);
+                }
+                layer.add("links", list);
+            }
+        }
+    }
+
+    private void editLinks(String name, java.util.function.Consumer<List<int[]>> change) {
+        ResourceLocation id = selectedId();
+        JsonObject fx = id == null ? null : base(id);
+        if (fx == null || !linkedOf(fx).contains(name)) {
+            return;
+        }
+        List<int[]> links = linksOf(fx, name);
+        change.accept(links);
+        setLinks(fx, name, links);
+        rescale(id);
+    }
+
+    private void link(String name, int from, int to) {
+        editLinks(name, links -> {
+            if (from == to || from < 0 || to < 0) {
+                return;
+            }
+            for (int[] l : links) {
+                if ((l[0] == from && l[1] == to) || (l[0] == to && l[1] == from)) {
+                    return;
+                }
+            }
+            links.add(new int[]{from, to});
+        });
+    }
+
+    private void dropPoint(String name, int index) {
+        editLinks(name, links -> {
+            links.removeIf(l -> l[0] == index || l[1] == index);
+            for (int[] l : links) {
+                if (l[0] > index) {
+                    l[0]--;
+                }
+                if (l[1] > index) {
+                    l[1]--;
+                }
+            }
+        });
+    }
+
+    private void unlink(Handle h) {
+        remember();
+        editLinks(h.name(), links -> links.removeIf(l -> l[0] == h.index() || l[1] == h.index()));
+    }
+
+    private void startLinking(String name) {
+        int count = pointsOf(selectedAnchors().get(name)).size();
+        adding = name;
+        linkFrom = name.equals(handleName) && handleIndex < count ? handleIndex : count - 1;
+        handleName = null;
+        placing = null;
+        steps.clear();
+    }
+
+    private boolean linking() {
+        ResourceLocation id = selectedId();
+        return adding != null && linkFrom >= 0 && id != null && linkedOf(base(id)).contains(adding)
+                && linkFrom < pointsOf(selectedAnchors().get(adding)).size();
+    }
+
+    private void connect(Handle target) {
+        if (adding == null || target.index() == linkFrom) {
+            return;
+        }
+        remember();
+        link(adding, linkFrom, target.index());
+        if (hasControlDown()) {
+            linkFrom = target.index();
+        } else {
+            adding = null;
+        }
+    }
+
     private void changed(String name) {
         JsonObject anchors = selectedAnchors();
         if (name.equals(sourceName(anchors))) {
@@ -423,8 +569,22 @@ public class EffectStudioScreen extends Screen {
         remember();
         var origin = model.layout().getCharGrid().getControllerPos();
         Vec3 at = snap(hit);
-        appendPoint(selectedAnchors(), adding, point(at.x + origin.getX(), at.y + origin.getY(), at.z + origin.getZ()));
+        boolean linking = linking();
+        JsonArray point = point(at.x + origin.getX(), at.y + origin.getY(), at.z + origin.getZ());
+        appendPoint(selectedAnchors(), adding, point);
         changed(adding);
+        if (linking) {
+            List<double[]> points = pointsOf(selectedAnchors().get(adding));
+            int index = -1;
+            for (int i = 0; i < points.size(); i++) {
+                if (Math.abs(points.get(i)[0] - point.get(0).getAsDouble()) < 1e-3 && Math.abs(points.get(i)[1] - point.get(1).getAsDouble()) < 1e-3
+                        && Math.abs(points.get(i)[2] - point.get(2).getAsDouble()) < 1e-3) {
+                    index = i;
+                }
+            }
+            link(adding, linkFrom, index);
+            linkFrom = index;
+        }
         if (!hasControlDown()) {
             adding = null;
         }
@@ -439,6 +599,10 @@ public class EffectStudioScreen extends Screen {
         remember();
         points.remove(points.size() - 1);
         anchors.add(name, pointsJson(points));
+        dropPoint(name, points.size());
+        if (name.equals(adding) && linkFrom >= points.size()) {
+            linkFrom = points.size() - 1;
+        }
         changed(name);
     }
 
@@ -612,13 +776,24 @@ public class EffectStudioScreen extends Screen {
 
     @Nullable
     private Handle handleAt(double mouseX, double mouseY) {
-        if (placing != null || adding != null || !viewport.contains((int) mouseX, (int) mouseY)) {
+        if (placing != null || adding != null) {
+            return null;
+        }
+        return handleAt(mouseX, mouseY, null);
+    }
+
+    @Nullable
+    private Handle handleAt(double mouseX, double mouseY, @Nullable String only) {
+        if (!viewport.contains((int) mouseX, (int) mouseY)) {
             return null;
         }
         var origin = model.layout().getCharGrid().getControllerPos();
         Handle best = null;
         double bestDistance = 7 * 7;
         for (Handle h : handles()) {
+            if (only != null && !only.equals(h.name())) {
+                continue;
+            }
             double[] s = view.project(h.x() - origin.getX(), h.y() - origin.getY(), h.z() - origin.getZ());
             if (s == null) {
                 continue;
@@ -693,6 +868,7 @@ public class EffectStudioScreen extends Screen {
         List<double[]> points = pointsOf(anchors.get(h.name()));
         points.remove(h.index());
         anchors.add(h.name(), pointsJson(points));
+        dropPoint(h.name(), h.index());
         changed(h.name());
         handleName = null;
         rebuildWidgets();
@@ -745,7 +921,11 @@ public class EffectStudioScreen extends Screen {
     }
 
     private String[] menuEntries(Handle h) {
-        return h.height() ? new String[0] : new String[]{"centre", "delete"};
+        if (h.height()) {
+            return new String[0];
+        }
+        ResourceLocation id = selectedId();
+        return id != null && linkedOf(base(id)).contains(h.name()) ? new String[]{"link", "unlink", "centre", "delete"} : new String[]{"centre", "delete"};
     }
 
     @Nullable
@@ -842,7 +1022,8 @@ public class EffectStudioScreen extends Screen {
             }
             faces.put(step[0], hit.getDirection());
             appendPoint(pending, step[0], point(at.x + origin.getX(), at.y + origin.getY(), at.z + origin.getZ()));
-            held = hasControlDown() ? step[0] : null;
+            boolean needsMore = linkedOf(presets.get(placing)).contains(step[0]) && pointsOf(pending.get(step[0])).size() < 2;
+            held = hasControlDown() || needsMore ? step[0] : null;
         }
         if (currentStep() == null) {
             finish();
@@ -979,6 +1160,14 @@ public class EffectStudioScreen extends Screen {
         } while (FxManager.source(id) != null || session.edited.containsKey(id));
         JsonObject json = presets.get(placing).deepCopy();
         json.addProperty("name", placing);
+        for (String name : linkedOf(json)) {
+            var chain = new ArrayList<int[]>();
+            int count = pointsOf(pending.get(name)).size();
+            for (int i = 1; i < count; i++) {
+                chain.add(new int[]{i - 1, i});
+            }
+            setLinks(json, name, chain);
+        }
         try {
             FxManager.preview(id, json);
         } catch (Exception e) {
@@ -1305,6 +1494,29 @@ public class EffectStudioScreen extends Screen {
                         selected ? 1f : r, selected ? 1f : g, selected ? 1f : b, 1f);
             }
         }
+        ResourceLocation selectedFx = selectedId();
+        JsonObject fx = selectedFx == null ? null : base(selectedFx);
+        for (String name : linkedOf(fx)) {
+            List<double[]> points = pointsOf(anchors.get(name));
+            for (int[] l : linksOf(fx, name)) {
+                if (l[0] < points.size() && l[1] < points.size()) {
+                    double[] a = points.get(l[0]);
+                    double[] b = points.get(l[1]);
+                    line(lines, pose, a[0] - origin.getX(), a[1] - origin.getY(), a[2] - origin.getZ(),
+                            b[0] - origin.getX(), b[1] - origin.getY(), b[2] - origin.getZ(), 0xFF9FD8FF);
+                }
+            }
+            if (name.equals(adding) && linkFrom >= 0 && linkFrom < points.size()) {
+                double[] a = points.get(linkFrom);
+                Handle target = linkTarget;
+                Vec3 end = target != null ? new Vec3(target.x(), target.y(), target.z())
+                        : hover != null ? snap(hover).add(origin.getX(), origin.getY(), origin.getZ()) : null;
+                if (end != null) {
+                    line(lines, pose, a[0] - origin.getX(), a[1] - origin.getY(), a[2] - origin.getZ(),
+                            end.x - origin.getX(), end.y - origin.getY(), end.z - origin.getZ(), 0xFFFFFF55);
+                }
+            }
+        }
         for (Handle h : handles()) {
             if (!h.height()) {
                 continue;
@@ -1318,6 +1530,22 @@ public class EffectStudioScreen extends Screen {
             LevelRenderer.renderLineBox(pose, lines, new AABB(x - size, y, z - size, x + size, y + 0.005, z + size),
                     selected ? 1f : 0.8f, selected ? 1f : 0.8f, selected ? 1f : 0.8f, 1f);
         }
+    }
+
+    private static void line(VertexConsumer vc, PoseStack pose, double x1, double y1, double z1, double x2, double y2, double z2, int color) {
+        double dx = x2 - x1;
+        double dy = y2 - y1;
+        double dz = z2 - z1;
+        double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (length < 1e-6) {
+            return;
+        }
+        float nx = (float) (dx / length);
+        float ny = (float) (dy / length);
+        float nz = (float) (dz / length);
+        PoseStack.Pose last = pose.last();
+        vc.addVertex(last, (float) x1, (float) y1, (float) z1).setColor(color).setNormal(last, nx, ny, nz);
+        vc.addVertex(last, (float) x2, (float) y2, (float) z2).setColor(color).setNormal(last, nx, ny, nz);
     }
 
     private void renderEffects(PoseStack pose, MultiBufferSource buffers, Matrix4f modelView) {
@@ -1347,6 +1575,10 @@ public class EffectStudioScreen extends Screen {
         move();
         hover = (placing != null || adding != null) && viewport.contains(mouseX, mouseY) ? view.pick(mouseX, mouseY) : null;
         hovered = dragging ? handle() : menu != null ? null : handleAt(mouseX, mouseY);
+        linkTarget = linking() ? handleAt(mouseX, mouseY, adding) : null;
+        if (linkTarget != null && linkTarget.index() == linkFrom) {
+            linkTarget = null;
+        }
         gfx.fill(viewport.x(), viewport.y(), viewport.x() + viewport.w(), viewport.y() + viewport.h(), 0x66000000);
         gfx.pose().pushPose();
         gfx.pose().setIdentity();
@@ -1363,6 +1595,8 @@ public class EffectStudioScreen extends Screen {
         if (step != null) {
             String kind = step[0].equals(held) ? "held" : underside ? "underside" : step[1];
             hint = Component.translatable("gui.mm.effect_studio.click." + kind, pretty(placing), step[0]);
+        } else if (adding != null && linking()) {
+            hint = Component.translatable("gui.mm.effect_studio.click.link", linkFrom + 1);
         } else if (adding != null) {
             hint = Component.translatable(underside ? "gui.mm.effect_studio.click.add_underside" : "gui.mm.effect_studio.click.add", adding);
         } else if (selectedId() != null && !spots.isEmpty()) {
@@ -1373,6 +1607,23 @@ public class EffectStudioScreen extends Screen {
         boolean wrong = underside && hover != null && hover.getDirection() != Direction.DOWN;
         gfx.drawCenteredString(font, hint, viewport.x() + viewport.w() / 2, viewport.y() + 4,
                 wrong ? 0xFF5555 : step != null || adding != null ? 0xFFFF55 : 0xA0A0A0);
+        if (!spots.isEmpty() && view != null) {
+            var origin = model.layout().getCharGrid().getControllerPos();
+            JsonObject labelled = selectedAnchors();
+            for (int i = 0; i < spots.size(); i++) {
+                List<double[]> points = pointsOf(labelled.get(spots.get(i)));
+                if (points.size() < 2) {
+                    continue;
+                }
+                for (int j = 0; j < points.size(); j++) {
+                    double[] p = points.get(j);
+                    double[] s = view.project(p[0] - origin.getX(), p[1] - origin.getY(), p[2] - origin.getZ());
+                    if (s != null && viewport.contains((int) s[0], (int) s[1])) {
+                        gfx.drawString(font, String.valueOf(j + 1), (int) s[0] + 5, (int) s[1] - 10, SPOT_COLORS[i % SPOT_COLORS.length]);
+                    }
+                }
+            }
+        }
         if (!spots.isEmpty()) {
             gfx.drawString(font, Component.translatable("gui.mm.effect_studio.spots"), 6, spotsY - 11, 0xFFFFFF);
             JsonObject anchors = selectedAnchors();
@@ -1437,10 +1688,15 @@ public class EffectStudioScreen extends Screen {
             menu = null;
             int index = (int) ((mouseY - menuY - 1) / 14);
             if (button == 0 && mouseX >= menuX && mouseX < menuX + 90 && mouseY >= menuY && index >= 0 && index < entries.length) {
-                if (entries[index].equals("delete")) {
-                    deleteHandle(target);
-                } else {
-                    centreHandle(target);
+                switch (entries[index]) {
+                    case "delete" -> deleteHandle(target);
+                    case "unlink" -> unlink(target);
+                    case "link" -> {
+                        handleName = target.name();
+                        handleIndex = target.index();
+                        startLinking(target.name());
+                    }
+                    default -> centreHandle(target);
                 }
             }
             return true;
@@ -1512,7 +1768,10 @@ public class EffectStudioScreen extends Screen {
                     click(hit);
                 }
             } else if (adding != null) {
-                if (hit != null) {
+                Handle target = linking() ? handleAt(mouseX, mouseY, adding) : null;
+                if (target != null) {
+                    connect(target);
+                } else if (hit != null) {
                     addPoint(hit);
                 }
             } else {
@@ -1565,6 +1824,7 @@ public class EffectStudioScreen extends Screen {
         if (keyCode == 256 && (placing != null || adding != null)) {
             placing = null;
             adding = null;
+            linkFrom = -1;
             held = null;
             steps.clear();
             return true;

@@ -31,7 +31,7 @@ final class FxSchema {
                 "rate", "10", "max", "128", "life", "1, 1.5", "velocity", "0, 0, 0", "velocity_spread", "0, 0, 0",
                 "box", "0, 0, 0", "gravity", "0", "drag", "0", "size", "0.2, 0.2", "alpha", "1, 0", "spin", "0, 0",
                 "frames", "1", "collide", "false"}));
-        LAYERS.put("beam", join(new String[]{"from", "from", "to", "to", "blend", "additive",
+        LAYERS.put("beam", join(new String[]{"from", "from", "to", "to", "links", "", "blend", "additive",
                 "texture", "", "color", "#ffffff", "port_color", "false", "glow", "true"}, new String[]{
                 "width", "0.15", "alpha", "1", "segments", "16", "arc", "0", "jitter", "0", "jitter_rate", "12",
                 "scroll", "1", "texture_length", "1", "pulse", "0", "pulse_speed", "2", "flicker", "0", "taper", "0"}));
