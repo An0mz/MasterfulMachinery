@@ -178,9 +178,6 @@ public class EffectStudioScreen extends Screen {
                     steps.clear();
                 });
                 spotButton(y, 1, "-", "remove", () -> removeLast(spot));
-                spotButton(y, 2, "x4", "rotate", () -> symmetry(spot, 0));
-                spotButton(y, 3, "X", "mirror_x", () -> symmetry(spot, 1));
-                spotButton(y, 4, "Z", "mirror_z", () -> symmetry(spot, 2));
                 y += 18;
             }
         }
@@ -298,7 +295,7 @@ public class EffectStudioScreen extends Screen {
     }
 
     private void spotButton(int y, int column, String text, String tip, Runnable action) {
-        int[] widths = {14, 14, 20, 14, 14};
+        int[] widths = {14, 14};
         int x = 6 + PANEL;
         for (int i = widths.length - 1; i >= column; i--) {
             x -= widths[i] + (i == widths.length - 1 ? 0 : 2);
@@ -603,42 +600,6 @@ public class EffectStudioScreen extends Screen {
         if (name.equals(adding) && linkFrom >= points.size()) {
             linkFrom = points.size() - 1;
         }
-        changed(name);
-    }
-
-    private void symmetry(String name, int mode) {
-        JsonObject anchors = selectedAnchors();
-        List<double[]> points = pointsOf(anchors.get(name));
-        if (points.isEmpty()) {
-            return;
-        }
-        var origin = model.layout().getCharGrid().getControllerPos();
-        int minX = 0, minZ = 0, maxX = 0, maxZ = 0;
-        for (PositionedLayoutPiece piece : model.layout().getPositionedPieces()) {
-            minX = Math.min(minX, piece.pos().getX());
-            maxX = Math.max(maxX, piece.pos().getX());
-            minZ = Math.min(minZ, piece.pos().getZ());
-            maxZ = Math.max(maxZ, piece.pos().getZ());
-        }
-        double cx = (minX + maxX + 1) / 2.0 + origin.getX();
-        double cz = (minZ + maxZ + 1) / 2.0 + origin.getZ();
-        remember();
-        var result = new ArrayList<>(points);
-        for (double[] p : points) {
-            double dx = p[0] - cx;
-            double dz = p[2] - cz;
-            double[][] copies = switch (mode) {
-                case 0 -> new double[][]{{cx - dz, p[1], cz + dx}, {cx - dx, p[1], cz - dz}, {cx + dz, p[1], cz - dx}};
-                case 1 -> new double[][]{{cx - dx, p[1], p[2]}};
-                default -> new double[][]{{p[0], p[1], cz - dz}};
-            };
-            for (double[] copy : copies) {
-                if (!contains(result, copy)) {
-                    result.add(copy);
-                }
-            }
-        }
-        anchors.add(name, pointsJson(result));
         changed(name);
     }
 
