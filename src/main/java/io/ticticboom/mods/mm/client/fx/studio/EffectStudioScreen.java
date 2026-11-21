@@ -53,6 +53,8 @@ public class EffectStudioScreen extends Screen {
     private static final Set<String> AUTO = Set.of("floor", "landing", "sky", "block", "below");
     private static final Set<String> FALLING = Set.of("drip", "stream", "pool", "seep");
     private static final Set<String> NOTES = Set.of("drip_working", "hidden_now");
+    private static final Set<String> DERIVED = Set.of("floor", "landing", "sky");
+    private static final int[] SPOT_COLORS = {0xFF40E0FF, 0xFFFFD040, 0xFFFF60C0, 0xFF3AFF7A, 0xFFFF7A1A, 0xFFA040FF};
 
     private final EffectStudio.Session session;
     private final Map<String, JsonObject> presets = EffectStudio.library("mm_fx_presets");
@@ -85,6 +87,12 @@ public class EffectStudioScreen extends Screen {
     @Nullable
     private Vec3 ghostAt;
     private double ghostFloor;
+    @Nullable
+    private String held;
+    @Nullable
+    private String adding;
+    private final List<String> spots = new ArrayList<>();
+    private int spotsY;
 
     public EffectStudioScreen(EffectStudio.Session session) {
         super(Component.translatable("gui.mm.effect_studio.title"));
@@ -100,6 +108,7 @@ public class EffectStudioScreen extends Screen {
         }
         session.open = true;
         dots.clear();
+        spots.clear();
         if (view == null || model != be.getStructure()) {
             model = be.getStructure();
             view = new GuiStructureRenderer(model);
@@ -114,6 +123,26 @@ public class EffectStudioScreen extends Screen {
                     .bounds(6, y, PANEL, 18).build());
             y += 20;
         }
+        if (selectedId() != null) {
+            spots.addAll(spotNames(selectedAnchors()));
+            if (adding != null && !spots.contains(adding)) {
+                adding = null;
+            }
+            y += 14;
+            spotsY = y;
+            for (String spot : spots) {
+                spotButton(y, 0, "+", "add", () -> {
+                    adding = adding != null && adding.equals(spot) ? null : spot;
+                    placing = null;
+                    steps.clear();
+                });
+                spotButton(y, 1, "-", "remove", () -> removeLast(spot));
+                spotButton(y, 2, "x4", "rotate", () -> symmetry(spot, 0));
+                spotButton(y, 3, "X", "mirror_x", () -> symmetry(spot, 1));
+                spotButton(y, 4, "Z", "mirror_z", () -> symmetry(spot, 2));
+                y += 18;
+            }
+        }
 
         int x = width - PANEL - 6;
         y = 22;
@@ -121,6 +150,7 @@ public class EffectStudioScreen extends Screen {
             int index = i;
             addRenderableWidget(Button.builder(Component.literal((i == session.selected ? "> " : "") + label(session.effects.get(i))), b -> {
                 session.selected = index;
+                adding = null;
                 rebuildWidgets();
             }).bounds(x, y, PANEL, 18).build());
             y += 20;
@@ -207,6 +237,195 @@ public class EffectStudioScreen extends Screen {
                 .bounds(viewport.x() + 242, by, 70, 20).build());
     }
 
+    private void spotButton(int y, int column, String text, String tip, Runnable action) {
+        int[] widths = {14, 14, 20, 14, 14};
+        int x = 6 + PANEL;
+        for (int i = widths.length - 1; i >= column; i--) {
+            x -= widths[i] + (i == widths.length - 1 ? 0 : 2);
+        }
+        addRenderableWidget(Button.builder(Component.literal(text), b -> {
+                    action.run();
+                    setFocused(null);
+                })
+                .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.spot." + tip)))
+                .bounds(x, y, widths[column], 16).build());
+    }
+
+    private JsonObject selectedAnchors() {
+        JsonObject effect = session.effects.get(session.selected);
+        if (!effect.has("anchors") || !effect.get("anchors").isJsonObject()) {
+            effect.add("anchors", new JsonObject());
+        }
+        return effect.getAsJsonObject("anchors");
+    }
+
+    private static List<String> spotNames(JsonObject anchors) {
+        var names = new ArrayList<String>();
+        for (var entry : anchors.entrySet()) {
+            if (entry.getValue().isJsonArray() && !DERIVED.contains(entry.getKey())) {
+                names.add(entry.getKey());
+            }
+        }
+        return names;
+    }
+
+    private static List<double[]> pointsOf(@Nullable JsonElement element) {
+        var result = new ArrayList<double[]>();
+        if (element == null || !element.isJsonArray()) {
+            return result;
+        }
+        JsonArray list = element.getAsJsonArray();
+        if (list.size() == 3 && list.get(0).isJsonPrimitive()) {
+            result.add(new double[]{list.get(0).getAsDouble(), list.get(1).getAsDouble(), list.get(2).getAsDouble()});
+            return result;
+        }
+        for (JsonElement e : list) {
+            if (e.isJsonArray() && e.getAsJsonArray().size() == 3) {
+                JsonArray a = e.getAsJsonArray();
+                result.add(new double[]{a.get(0).getAsDouble(), a.get(1).getAsDouble(), a.get(2).getAsDouble()});
+            }
+        }
+        return result;
+    }
+
+    private static JsonElement pointsJson(List<double[]> points) {
+        if (points.size() == 1) {
+            return point(points.get(0)[0], points.get(0)[1], points.get(0)[2]);
+        }
+        var list = new JsonArray();
+        for (double[] p : points) {
+            list.add(point(p[0], p[1], p[2]));
+        }
+        return list;
+    }
+
+    private static void appendPoint(JsonObject anchors, String name, JsonArray point) {
+        List<double[]> points = pointsOf(anchors.get(name));
+        double[] next = {point.get(0).getAsDouble(), point.get(1).getAsDouble(), point.get(2).getAsDouble()};
+        if (!contains(points, next)) {
+            points.add(next);
+        }
+        anchors.add(name, pointsJson(points));
+    }
+
+    private static boolean contains(List<double[]> points, double[] p) {
+        for (double[] q : points) {
+            if (Math.abs(q[0] - p[0]) < 1e-3 && Math.abs(q[1] - p[1]) < 1e-3 && Math.abs(q[2] - p[2]) < 1e-3) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Nullable
+    private static String sourceName(JsonObject anchors) {
+        if (anchors.has("spot") && anchors.get("spot").isJsonArray()) {
+            return "spot";
+        }
+        List<String> names = spotNames(anchors);
+        return names.isEmpty() ? null : names.get(0);
+    }
+
+    private Set<String> undersidesOf(JsonObject fx) {
+        var result = new HashSet<String>();
+        if (fx == null || !fx.has("layers")) {
+            return result;
+        }
+        for (JsonElement element : fx.getAsJsonArray("layers")) {
+            JsonObject layer = element.getAsJsonObject();
+            String type = layer.has("type") ? layer.get("type").getAsString() : "";
+            if (!FALLING.contains(type) || (layer.has("off") && layer.get("off").getAsBoolean())) {
+                continue;
+            }
+            for (String key : new String[]{"at", "from"}) {
+                if (layer.has(key)) {
+                    result.add(layer.get(key).getAsString());
+                }
+            }
+        }
+        return result;
+    }
+
+    private void changed(String name) {
+        JsonObject anchors = selectedAnchors();
+        if (name.equals(sourceName(anchors))) {
+            JsonElement source = anchors.get(name);
+            for (String derived : DERIVED) {
+                if (anchors.has(derived)) {
+                    JsonElement value = autoAll(derived, source, null, null);
+                    if (value != null) {
+                        anchors.add(derived, value);
+                    }
+                }
+            }
+        }
+        session.dirty = true;
+    }
+
+    private void addPoint(BlockHitResult hit) {
+        ResourceLocation id = selectedId();
+        if (id == null || adding == null) {
+            adding = null;
+            return;
+        }
+        if (undersidesOf(base(id)).contains(adding) && hit.getDirection() != Direction.DOWN) {
+            return;
+        }
+        var origin = model.layout().getCharGrid().getControllerPos();
+        Vec3 at = snap(hit);
+        appendPoint(selectedAnchors(), adding, point(at.x + origin.getX(), at.y + origin.getY(), at.z + origin.getZ()));
+        changed(adding);
+        if (!hasControlDown()) {
+            adding = null;
+        }
+    }
+
+    private void removeLast(String name) {
+        JsonObject anchors = selectedAnchors();
+        List<double[]> points = pointsOf(anchors.get(name));
+        if (points.size() <= 1) {
+            return;
+        }
+        points.remove(points.size() - 1);
+        anchors.add(name, pointsJson(points));
+        changed(name);
+    }
+
+    private void symmetry(String name, int mode) {
+        JsonObject anchors = selectedAnchors();
+        List<double[]> points = pointsOf(anchors.get(name));
+        if (points.isEmpty()) {
+            return;
+        }
+        var origin = model.layout().getCharGrid().getControllerPos();
+        int minX = 0, minZ = 0, maxX = 0, maxZ = 0;
+        for (PositionedLayoutPiece piece : model.layout().getPositionedPieces()) {
+            minX = Math.min(minX, piece.pos().getX());
+            maxX = Math.max(maxX, piece.pos().getX());
+            minZ = Math.min(minZ, piece.pos().getZ());
+            maxZ = Math.max(maxZ, piece.pos().getZ());
+        }
+        double cx = (minX + maxX + 1) / 2.0 + origin.getX();
+        double cz = (minZ + maxZ + 1) / 2.0 + origin.getZ();
+        var result = new ArrayList<>(points);
+        for (double[] p : points) {
+            double dx = p[0] - cx;
+            double dz = p[2] - cz;
+            double[][] copies = switch (mode) {
+                case 0 -> new double[][]{{cx - dz, p[1], cz + dx}, {cx - dx, p[1], cz - dz}, {cx + dz, p[1], cz - dx}};
+                case 1 -> new double[][]{{cx - dx, p[1], p[2]}};
+                default -> new double[][]{{p[0], p[1], cz - dz}};
+            };
+            for (double[] copy : copies) {
+                if (!contains(result, copy)) {
+                    result.add(copy);
+                }
+            }
+        }
+        anchors.add(name, pointsJson(result));
+        changed(name);
+    }
+
     @Nullable
     private ResourceLocation selectedId() {
         if (session.selected < 0 || session.selected >= session.effects.size()) {
@@ -232,6 +451,8 @@ public class EffectStudioScreen extends Screen {
 
     private void startPlacing(String preset) {
         placing = preset;
+        adding = null;
+        held = null;
         firstHit = null;
         steps.clear();
         undersides.clear();
@@ -264,6 +485,11 @@ public class EffectStudioScreen extends Screen {
     @Nullable
     private String[] currentStep() {
         for (String[] step : steps) {
+            if (step[0].equals(held)) {
+                return step;
+            }
+        }
+        for (String[] step : steps) {
             if (!step[1].equals("auto") && !pending.has(step[0])) {
                 return step;
             }
@@ -292,7 +518,8 @@ public class EffectStudioScreen extends Screen {
                 firstHit = hit;
             }
             faces.put(step[0], hit.getDirection());
-            pending.add(step[0], point(at.x + origin.getX(), at.y + origin.getY(), at.z + origin.getZ()));
+            appendPoint(pending, step[0], point(at.x + origin.getX(), at.y + origin.getY(), at.z + origin.getZ()));
+            held = hasControlDown() ? step[0] : null;
         }
         if (currentStep() == null) {
             finish();
@@ -400,6 +627,7 @@ public class EffectStudioScreen extends Screen {
     }
 
     private void finish() {
+        held = null;
         JsonArray source = null;
         Direction face = Direction.DOWN;
         for (String[] step : steps) {
@@ -411,7 +639,7 @@ public class EffectStudioScreen extends Screen {
         }
         for (String[] step : steps) {
             if (step[1].equals("auto")) {
-                JsonElement value = auto(step[0], source, face, firstHit == null ? null : firstHit.getBlockPos());
+                JsonElement value = autoAll(step[0], source, face, firstHit == null ? null : firstHit.getBlockPos());
                 if (value != null) {
                     pending.add(step[0], value);
                 }
@@ -473,6 +701,66 @@ public class EffectStudioScreen extends Screen {
         return current == null ? null : session.originals.computeIfAbsent(id, k -> current.deepCopy());
     }
 
+    private Direction faceOf(double[] p) {
+        var origin = model.layout().getCharGrid().getControllerPos();
+        var world = view.previewWorld();
+        double x = p[0] - origin.getX();
+        double y = p[1] - origin.getY();
+        double z = p[2] - origin.getZ();
+        int by = (int) Math.floor(y);
+        if (x == Math.floor(x)) {
+            int bz = (int) Math.floor(z);
+            boolean west = !world.getBlockState(new BlockPos((int) x - 1, by, bz)).isAir();
+            boolean east = !world.getBlockState(new BlockPos((int) x, by, bz)).isAir();
+            if (west != east) {
+                return west ? Direction.EAST : Direction.WEST;
+            }
+        }
+        if (z == Math.floor(z)) {
+            int bx = (int) Math.floor(x);
+            boolean north = !world.getBlockState(new BlockPos(bx, by, (int) z - 1)).isAir();
+            boolean south = !world.getBlockState(new BlockPos(bx, by, (int) z)).isAir();
+            if (north != south) {
+                return north ? Direction.SOUTH : Direction.NORTH;
+            }
+        }
+        return Direction.DOWN;
+    }
+
+    @Nullable
+    private JsonElement autoAll(String name, @Nullable JsonElement source, @Nullable Direction face, @Nullable BlockPos clicked) {
+        List<double[]> points = pointsOf(source);
+        if (points.isEmpty()) {
+            return auto(name, null, face == null ? Direction.DOWN : face, clicked);
+        }
+        if (points.size() == 1 || !DERIVED.contains(name)) {
+            double[] p = points.get(0);
+            return auto(name, point(p[0], p[1], p[2]), face == null ? faceOf(p) : face, clicked);
+        }
+        var list = new JsonArray();
+        Double same = null;
+        boolean differ = false;
+        for (double[] p : points) {
+            JsonElement value = auto(name, point(p[0], p[1], p[2]), faceOf(p), null);
+            if (value == null) {
+                return null;
+            }
+            if (name.equals("floor")) {
+                double h = value.getAsDouble();
+                differ |= same != null && Math.abs(same - h) > 1e-6;
+                same = same == null ? h : same;
+                var a = new JsonArray();
+                a.add(p[0]);
+                a.add(h);
+                a.add(p[2]);
+                list.add(a);
+            } else {
+                list.add(value);
+            }
+        }
+        return name.equals("floor") && !differ ? new JsonPrimitive(same) : list;
+    }
+
     @Nullable
     private JsonElement auto(String name, @Nullable JsonArray source, Direction face, @Nullable BlockPos clicked) {
         var origin = model.layout().getCharGrid().getControllerPos();
@@ -519,28 +807,6 @@ public class EffectStudioScreen extends Screen {
         };
     }
 
-    @Nullable
-    private static JsonArray firstPoint(JsonObject anchors) {
-        JsonElement spot = anchors.get("spot");
-        if (spot == null || !spot.isJsonArray()) {
-            spot = null;
-            for (var entry : anchors.entrySet()) {
-                if (entry.getValue().isJsonArray() && !entry.getKey().equals("landing") && !entry.getKey().equals("sky")) {
-                    spot = entry.getValue();
-                    break;
-                }
-            }
-        }
-        if (spot == null) {
-            return null;
-        }
-        JsonArray list = spot.getAsJsonArray();
-        if (list.size() > 0 && list.get(0).isJsonArray()) {
-            list = list.get(0).getAsJsonArray();
-        }
-        return list.size() >= 3 ? list : null;
-    }
-
     private static void setOff(JsonObject layer, boolean off) {
         if (off) {
             layer.addProperty("off", true);
@@ -559,7 +825,8 @@ public class EffectStudioScreen extends Screen {
             effect.add("anchors", new JsonObject());
         }
         JsonObject anchors = effect.getAsJsonObject("anchors");
-        JsonArray source = firstPoint(anchors);
+        String sourceName = sourceName(anchors);
+        JsonElement source = sourceName == null ? null : anchors.get(sourceName);
         JsonArray layers = base.getAsJsonArray("layers");
         for (JsonElement element : parts.get(name).getAsJsonArray("layers")) {
             JsonObject layer = element.getAsJsonObject().deepCopy();
@@ -581,7 +848,7 @@ public class EffectStudioScreen extends Screen {
                 if (anchors.has(anchor)) {
                     continue;
                 }
-                JsonElement value = AUTO.contains(anchor) ? auto(anchor, source, Direction.DOWN, null) : source;
+                JsonElement value = AUTO.contains(anchor) ? autoAll(anchor, source, null, null) : source;
                 if (value != null) {
                     anchors.add(anchor, value.deepCopy());
                 }
@@ -654,11 +921,12 @@ public class EffectStudioScreen extends Screen {
 
     private void renderGhost(PoseStack pose, MultiBufferSource buffers) {
         String[] step = placing == null ? null : currentStep();
-        if (hover == null || step == null || step[1].equals("area")) {
+        String name = step != null ? step[0] : adding;
+        if (hover == null || name == null || (step != null && step[1].equals("area"))) {
             return;
         }
         Vec3 at = snap(hover);
-        boolean underside = undersides.contains(step[0]);
+        boolean underside = step != null ? undersides.contains(name) : selectedId() != null && undersidesOf(base(selectedId())).contains(name);
         boolean ok = !underside || hover.getDirection() == Direction.DOWN;
         VertexConsumer lines = buffers.getBuffer(RenderType.lines());
         LevelRenderer.renderLineBox(pose, lines, new AABB(at.x - 0.06, at.y - 0.06, at.z - 0.06, at.x + 0.06, at.y + 0.06, at.z + 0.06),
@@ -684,8 +952,31 @@ public class EffectStudioScreen extends Screen {
         return preview == null || session.selected < 0 ? null : preview.problem(session.selected, layer);
     }
 
+    private void renderSpots(PoseStack pose, MultiBufferSource buffers) {
+        if (spots.isEmpty() || session.selected < 0 || session.selected >= session.effects.size()) {
+            return;
+        }
+        var origin = model.layout().getCharGrid().getControllerPos();
+        JsonObject anchors = selectedAnchors();
+        VertexConsumer lines = buffers.getBuffer(RenderType.lines());
+        for (int i = 0; i < spots.size(); i++) {
+            int color = SPOT_COLORS[i % SPOT_COLORS.length];
+            float r = ((color >> 16) & 0xFF) / 255f;
+            float g = ((color >> 8) & 0xFF) / 255f;
+            float b = (color & 0xFF) / 255f;
+            double size = spots.get(i).equals(adding) ? 0.09 : 0.05;
+            for (double[] p : pointsOf(anchors.get(spots.get(i)))) {
+                double x = p[0] - origin.getX();
+                double y = p[1] - origin.getY();
+                double z = p[2] - origin.getZ();
+                LevelRenderer.renderLineBox(pose, lines, new AABB(x - size, y - size, z - size, x + size, y + size, z + size), r, g, b, 1f);
+            }
+        }
+    }
+
     private void renderEffects(PoseStack pose, MultiBufferSource buffers, Matrix4f modelView) {
         renderGhost(pose, buffers);
+        renderSpots(pose, buffers);
         var be = EffectStudio.machine(session);
         var visuals = be == null ? null : EffectStudio.effects(be);
         if (visuals == null || model == null) {
@@ -708,7 +999,7 @@ public class EffectStudioScreen extends Screen {
         }
         this.partialTick = partialTick;
         move();
-        hover = placing != null && viewport.contains(mouseX, mouseY) ? view.pick(mouseX, mouseY) : null;
+        hover = (placing != null || adding != null) && viewport.contains(mouseX, mouseY) ? view.pick(mouseX, mouseY) : null;
         gfx.fill(viewport.x(), viewport.y(), viewport.x() + viewport.w(), viewport.y() + viewport.h(), 0x66000000);
         gfx.pose().pushPose();
         gfx.pose().setIdentity();
@@ -719,12 +1010,29 @@ public class EffectStudioScreen extends Screen {
         gfx.drawString(font, Component.translatable("gui.mm.effect_studio.add_effect"), 6, 8, 0xFFFFFF);
         gfx.drawString(font, Component.translatable("gui.mm.effect_studio.placed"), width - PANEL - 6, 8, 0xFFFFFF);
         String[] step = placing == null ? null : currentStep();
-        boolean underside = step != null && undersides.contains(step[0]);
-        Component hint = step != null
-                ? Component.translatable("gui.mm.effect_studio.click." + (underside ? "underside" : step[1]), pretty(placing), step[0])
-                : Component.translatable("gui.mm.effect_studio.controls");
+        boolean underside = step != null ? undersides.contains(step[0])
+                : adding != null && selectedId() != null && undersidesOf(base(selectedId())).contains(adding);
+        Component hint;
+        if (step != null) {
+            String kind = step[0].equals(held) ? "held" : underside ? "underside" : step[1];
+            hint = Component.translatable("gui.mm.effect_studio.click." + kind, pretty(placing), step[0]);
+        } else if (adding != null) {
+            hint = Component.translatable(underside ? "gui.mm.effect_studio.click.add_underside" : "gui.mm.effect_studio.click.add", adding);
+        } else {
+            hint = Component.translatable("gui.mm.effect_studio.controls");
+        }
         boolean wrong = underside && hover != null && hover.getDirection() != Direction.DOWN;
-        gfx.drawCenteredString(font, hint, viewport.x() + viewport.w() / 2, viewport.y() + 4, wrong ? 0xFF5555 : step != null ? 0xFFFF55 : 0xA0A0A0);
+        gfx.drawCenteredString(font, hint, viewport.x() + viewport.w() / 2, viewport.y() + 4,
+                wrong ? 0xFF5555 : step != null || adding != null ? 0xFFFF55 : 0xA0A0A0);
+        if (!spots.isEmpty()) {
+            gfx.drawString(font, Component.translatable("gui.mm.effect_studio.spots"), 6, spotsY - 11, 0xFFFFFF);
+            JsonObject anchors = selectedAnchors();
+            for (int i = 0; i < spots.size(); i++) {
+                String spot = spots.get(i);
+                String text = font.plainSubstrByWidth(spot, 30) + " " + pointsOf(anchors.get(spot)).size();
+                gfx.drawString(font, text, 6, spotsY + i * 18 + 4, SPOT_COLORS[i % SPOT_COLORS.length]);
+            }
+        }
         String tip = null;
         for (int[] dot : dots) {
             String problem = problem(dot[2]);
@@ -764,6 +1072,10 @@ public class EffectStudioScreen extends Screen {
                 if (hit != null) {
                     click(hit);
                 }
+            } else if (adding != null) {
+                if (hit != null) {
+                    addPoint(hit);
+                }
             } else {
                 selectAt(mouseX, mouseY, hit);
             }
@@ -779,9 +1091,21 @@ public class EffectStudioScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == 256 && placing != null) {
+        if (keyCode == 256 && (placing != null || adding != null)) {
             placing = null;
+            adding = null;
+            held = null;
             steps.clear();
+            return true;
+        }
+        if ((keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) && (held != null || adding != null)) {
+            adding = null;
+            if (held != null) {
+                held = null;
+                if (placing != null && currentStep() == null) {
+                    finish();
+                }
+            }
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_W || keyCode == GLFW.GLFW_KEY_A || keyCode == GLFW.GLFW_KEY_S

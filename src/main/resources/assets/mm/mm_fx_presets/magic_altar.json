@@ -1,6 +1,29 @@
 {
   "layers": [
     {
+      "type": "beam",
+      "from": "spot",
+      "to": "pillars",
+      "texture": "kubejs:textures/fx/beam.png",
+      "blend": "additive",
+      "color": "#c060ff",
+      "width": {
+        "idle": 0.03,
+        "working": 0.12
+      },
+      "alpha": {
+        "idle": 0.3,
+        "working": 1
+      },
+      "segments": 12,
+      "arc": 0.6,
+      "scroll": -3,
+      "texture_length": 1.5,
+      "pulse": 0.3,
+      "pulse_speed": 0.9,
+      "name": "Arcs"
+    },
+    {
       "type": "glow",
       "at": "block",
       "texture": "kubejs:textures/fx/glow_face.png",
