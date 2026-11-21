@@ -51,7 +51,7 @@ public class EffectStudioScreen extends Screen {
     private static final Set<String> SIZE = Set.of("size", "radius", "width", "drop_size");
     private static final Set<String> SPEED = Set.of("velocity", "scroll", "speed", "start_speed", "pulse_speed", "jitter_rate", "frame_rate");
     private static final int PANEL = 130;
-    private static final Set<String> AUTO = Set.of("floor", "landing", "sky", "block", "below");
+    private static final Set<String> AUTO = Set.of("floor", "landing", "sky", "block", "below", "seep_top");
     private static final Set<String> FALLING = Set.of("drip", "stream", "pool", "seep");
     private static final Set<String> NOTES = Set.of("drip_working", "hidden_now");
     private static final Set<String> DERIVED = Set.of("floor", "landing", "sky");
@@ -1305,7 +1305,7 @@ public class EffectStudioScreen extends Screen {
                     undersides.add(layer.get(key).getAsString());
                 }
             }
-            for (String key : new String[]{"at", "from", "to"}) {
+            for (String key : new String[]{"at", "from", "to", "top"}) {
                 if (layer.has(key)) {
                     String name = layer.get(key).getAsString();
                     seen.putIfAbsent(name, AUTO.contains(name) ? "auto" : area ? "area" : "point");
@@ -1666,6 +1666,14 @@ public class EffectStudioScreen extends Screen {
         };
         return switch (name) {
             case "floor" -> new JsonPrimitive(floor);
+            case "seep_top" -> {
+                int top = (int) Math.floor(rel + 0.001);
+                int limit = top + 16;
+                while (top < limit && !world.getBlockState(new BlockPos(cx, top, cz)).isAir()) {
+                    top++;
+                }
+                yield new JsonPrimitive(top + origin.getY());
+            }
             case "landing" -> point(sx, floor, sz);
             case "sky" -> point(sx, sy + 12, sz);
             case "block", "below" -> key == null ? null : new JsonPrimitive(key);
@@ -1707,7 +1715,7 @@ public class EffectStudioScreen extends Screen {
                     continue;
                 }
             }
-            for (String key : new String[]{"at", "from", "to"}) {
+            for (String key : new String[]{"at", "from", "to", "top"}) {
                 if (!layer.has(key)) {
                     continue;
                 }
