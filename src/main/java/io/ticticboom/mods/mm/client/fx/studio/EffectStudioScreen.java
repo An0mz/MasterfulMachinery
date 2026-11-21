@@ -18,6 +18,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -93,6 +94,29 @@ public class EffectStudioScreen extends Screen {
     private String adding;
     private final List<String> spots = new ArrayList<>();
     private int spotsY;
+    @Nullable
+    private String handleName;
+    private int handleIndex;
+    @Nullable
+    private Handle hovered;
+    private boolean dragging;
+    private boolean dragMoved;
+    private double dragY;
+    private double lastMouseY;
+    @Nullable
+    private Handle menu;
+    private int menuX;
+    private int menuY;
+    @Nullable
+    private EditBox coords;
+    @Nullable
+    private Button undoButton;
+    @Nullable
+    private Button redoButton;
+    private boolean swallowRelease;
+
+    private record Handle(String name, int index, double x, double y, double z, boolean height) {
+    }
 
     public EffectStudioScreen(EffectStudio.Session session) {
         super(Component.translatable("gui.mm.effect_studio.title"));
@@ -109,6 +133,8 @@ public class EffectStudioScreen extends Screen {
         session.open = true;
         dots.clear();
         spots.clear();
+        coords = null;
+        menu = null;
         if (view == null || model != be.getStructure()) {
             model = be.getStructure();
             view = new GuiStructureRenderer(model);
@@ -128,11 +154,15 @@ public class EffectStudioScreen extends Screen {
             if (adding != null && !spots.contains(adding)) {
                 adding = null;
             }
+            if (handle() == null) {
+                handleName = null;
+            }
             y += 14;
             spotsY = y;
             for (String spot : spots) {
                 spotButton(y, 0, "+", "add", () -> {
                     adding = adding != null && adding.equals(spot) ? null : spot;
+                    handleName = null;
                     placing = null;
                     steps.clear();
                 });
@@ -151,6 +181,7 @@ public class EffectStudioScreen extends Screen {
             addRenderableWidget(Button.builder(Component.literal((i == session.selected ? "> " : "") + label(session.effects.get(i))), b -> {
                 session.selected = index;
                 adding = null;
+                handleName = null;
                 rebuildWidgets();
             }).bounds(x, y, PANEL, 18).build());
             y += 20;
@@ -158,12 +189,14 @@ public class EffectStudioScreen extends Screen {
         ResourceLocation id = selectedId();
         if (id != null) {
             addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.advanced"), b -> {
+                remember();
                 session.originals.remove(id);
                 session.sliders.remove(id);
                 session.colors.remove(id);
                 minecraft.setScreen(new EffectLayersScreen(session, this, id));
             }).bounds(x, y, 64, 18).build());
             addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.remove"), b -> {
+                remember();
                 session.edited.remove(id);
                 session.effects.remove(session.selected);
                 session.selected = -1;
@@ -181,6 +214,7 @@ public class EffectStudioScreen extends Screen {
             for (int i = 0; i < COLORS.length; i++) {
                 String color = COLORS[i];
                 addRenderableWidget(Button.builder(Component.empty(), b -> {
+                    remember();
                     session.colors.put(id, color);
                     rescale(id);
                 }).bounds(x + (i % 5) * 26, y + (i / 5) * 18, 24, 16).build());
@@ -198,6 +232,7 @@ public class EffectStudioScreen extends Screen {
                     }
                     String name = layer.has("name") ? layer.get("name").getAsString() : pretty(layer.has("type") ? layer.get("type").getAsString() : "?");
                     addRenderableWidget(Button.builder(Component.literal(name).withStyle(off ? ChatFormatting.DARK_GRAY : ChatFormatting.GREEN), b -> {
+                        remember();
                         setOff(layer, !off);
                         if (!rescale(id)) {
                             setOff(layer, off);
@@ -232,9 +267,23 @@ public class EffectStudioScreen extends Screen {
         addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.save"), b -> {
             boolean ok = EffectStudio.save(session);
             minecraft.player.displayClientMessage(Component.translatable(ok ? "gui.mm.effect_studio.saved" : "gui.mm.effect_studio.save_failed"), true);
-        }).bounds(viewport.x() + 168, by, 70, 20).build());
+        }).bounds(viewport.x() + 168, by, 60, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.close"), b -> onClose())
-                .bounds(viewport.x() + 242, by, 70, 20).build());
+                .bounds(viewport.x() + 232, by, 60, 20).build());
+        undoButton = addRenderableWidget(Button.builder(Component.literal("\u21B6"), b -> undo())
+                .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.undo")))
+                .bounds(viewport.x() + 296, by, 20, 20).build());
+        redoButton = addRenderableWidget(Button.builder(Component.literal("\u21B7"), b -> redo())
+                .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.redo")))
+                .bounds(viewport.x() + 318, by, 20, 20).build());
+        updateHistoryButtons();
+        Handle selectedHandle = handle();
+        if (selectedHandle != null) {
+            coords = new EditBox(font, viewport.x() + 4, viewport.y() + viewport.h() - 20, 150, 16, Component.empty());
+            coords.setMaxLength(64);
+            coords.setValue(selectedHandle.height() ? format(selectedHandle.y()) : format(selectedHandle.x()) + ", " + format(selectedHandle.y()) + ", " + format(selectedHandle.z()));
+            addWidget(coords);
+        }
     }
 
     private void spotButton(int y, int column, String text, String tip, Runnable action) {
@@ -371,6 +420,7 @@ public class EffectStudioScreen extends Screen {
         if (undersidesOf(base(id)).contains(adding) && hit.getDirection() != Direction.DOWN) {
             return;
         }
+        remember();
         var origin = model.layout().getCharGrid().getControllerPos();
         Vec3 at = snap(hit);
         appendPoint(selectedAnchors(), adding, point(at.x + origin.getX(), at.y + origin.getY(), at.z + origin.getZ()));
@@ -386,6 +436,7 @@ public class EffectStudioScreen extends Screen {
         if (points.size() <= 1) {
             return;
         }
+        remember();
         points.remove(points.size() - 1);
         anchors.add(name, pointsJson(points));
         changed(name);
@@ -407,6 +458,7 @@ public class EffectStudioScreen extends Screen {
         }
         double cx = (minX + maxX + 1) / 2.0 + origin.getX();
         double cz = (minZ + maxZ + 1) / 2.0 + origin.getZ();
+        remember();
         var result = new ArrayList<>(points);
         for (double[] p : points) {
             double dx = p[0] - cx;
@@ -424,6 +476,276 @@ public class EffectStudioScreen extends Screen {
         }
         anchors.add(name, pointsJson(result));
         changed(name);
+    }
+
+    private EffectStudio.Snapshot snapshot() {
+        var effects = new ArrayList<JsonObject>();
+        session.effects.forEach(e -> effects.add(e.deepCopy()));
+        var edited = new LinkedHashMap<ResourceLocation, JsonObject>();
+        session.edited.forEach((k, v) -> edited.put(k, v.deepCopy()));
+        var originals = new HashMap<ResourceLocation, JsonObject>();
+        session.originals.forEach((k, v) -> originals.put(k, v.deepCopy()));
+        var sliders = new HashMap<ResourceLocation, double[]>();
+        session.sliders.forEach((k, v) -> sliders.put(k, v.clone()));
+        return new EffectStudio.Snapshot(effects, edited, originals, sliders, new HashMap<>(session.colors), session.selected);
+    }
+
+    private void remember() {
+        session.undo.add(snapshot());
+        if (session.undo.size() > 100) {
+            session.undo.remove(0);
+        }
+        session.redo.clear();
+        updateHistoryButtons();
+    }
+
+    private void updateHistoryButtons() {
+        if (undoButton != null) {
+            undoButton.active = !session.undo.isEmpty();
+        }
+        if (redoButton != null) {
+            redoButton.active = !session.redo.isEmpty();
+        }
+    }
+
+    private void restore(EffectStudio.Snapshot snapshot) {
+        for (var entry : session.edited.entrySet()) {
+            if (snapshot.edited().containsKey(entry.getKey())) {
+                continue;
+            }
+            JsonObject original = snapshot.originals().getOrDefault(entry.getKey(), session.originals.get(entry.getKey()));
+            if (original != null) {
+                try {
+                    FxManager.preview(entry.getKey(), original.deepCopy());
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        session.effects.clear();
+        session.effects.addAll(snapshot.effects());
+        session.edited.clear();
+        session.edited.putAll(snapshot.edited());
+        session.originals.clear();
+        session.originals.putAll(snapshot.originals());
+        session.sliders.clear();
+        session.sliders.putAll(snapshot.sliders());
+        session.colors.clear();
+        session.colors.putAll(snapshot.colors());
+        session.selected = snapshot.selected();
+        for (var entry : session.edited.entrySet()) {
+            try {
+                FxManager.preview(entry.getKey(), entry.getValue());
+            } catch (Exception ignored) {
+            }
+        }
+        session.dirty = true;
+        placing = null;
+        adding = null;
+        held = null;
+        steps.clear();
+        handleName = null;
+        rebuildWidgets();
+        setFocused(null);
+    }
+
+    private void undo() {
+        if (!session.undo.isEmpty()) {
+            session.redo.add(snapshot());
+            restore(session.undo.remove(session.undo.size() - 1));
+        }
+    }
+
+    private void redo() {
+        if (!session.redo.isEmpty()) {
+            session.undo.add(snapshot());
+            restore(session.redo.remove(session.redo.size() - 1));
+        }
+    }
+
+    private static String format(double value) {
+        String text = String.valueOf(Math.round(value * 10000) / 10000.0);
+        return text.endsWith(".0") ? text.substring(0, text.length() - 2) : text;
+    }
+
+    private List<Handle> handles() {
+        var result = new ArrayList<Handle>();
+        if (selectedId() == null) {
+            return result;
+        }
+        JsonObject anchors = selectedAnchors();
+        var origin = model.layout().getCharGrid().getControllerPos();
+        String source = sourceName(anchors);
+        List<double[]> sourcePoints = source == null ? List.of() : pointsOf(anchors.get(source));
+        double hx = sourcePoints.isEmpty() ? origin.getX() + 0.5 : sourcePoints.get(0)[0];
+        double hz = sourcePoints.isEmpty() ? origin.getZ() + 0.5 : sourcePoints.get(0)[2];
+        for (var entry : anchors.entrySet()) {
+            String name = entry.getKey();
+            JsonElement value = entry.getValue();
+            if (DERIVED.contains(name)) {
+                continue;
+            }
+            if (value.isJsonArray()) {
+                List<double[]> points = pointsOf(value);
+                for (int i = 0; i < points.size(); i++) {
+                    double[] p = points.get(i);
+                    result.add(new Handle(name, i, p[0], p[1], p[2], false));
+                }
+            } else if (value.isJsonPrimitive() && value.getAsJsonPrimitive().isNumber()) {
+                result.add(new Handle(name, -1, hx, value.getAsDouble(), hz, true));
+            }
+        }
+        return result;
+    }
+
+    @Nullable
+    private Handle handle() {
+        if (handleName == null) {
+            return null;
+        }
+        for (Handle h : handles()) {
+            if (h.name().equals(handleName) && h.index() == handleIndex) {
+                return h;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private Handle handleAt(double mouseX, double mouseY) {
+        if (placing != null || adding != null || !viewport.contains((int) mouseX, (int) mouseY)) {
+            return null;
+        }
+        var origin = model.layout().getCharGrid().getControllerPos();
+        Handle best = null;
+        double bestDistance = 7 * 7;
+        for (Handle h : handles()) {
+            double[] s = view.project(h.x() - origin.getX(), h.y() - origin.getY(), h.z() - origin.getZ());
+            if (s == null) {
+                continue;
+            }
+            double d = (s[0] - mouseX) * (s[0] - mouseX) + (s[1] - mouseY) * (s[1] - mouseY);
+            if (d < bestDistance) {
+                bestDistance = d;
+                best = h;
+            }
+        }
+        return best;
+    }
+
+    private void setHandle(Handle h, double x, double y, double z) {
+        JsonObject anchors = selectedAnchors();
+        if (h.height()) {
+            anchors.addProperty(h.name(), Math.round(y * 16) / 16.0);
+        } else {
+            List<double[]> points = pointsOf(anchors.get(h.name()));
+            if (h.index() < 0 || h.index() >= points.size()) {
+                return;
+            }
+            points.set(h.index(), new double[]{x, y, z});
+            anchors.add(h.name(), pointsJson(points));
+        }
+        changed(h.name());
+    }
+
+    private void drag(double mouseX, double mouseY) {
+        Handle h = handle();
+        if (h == null) {
+            dragging = false;
+            return;
+        }
+        if (!dragMoved) {
+            if (Math.abs(mouseX - pressX) + Math.abs(mouseY - pressY) < 3) {
+                return;
+            }
+            remember();
+            dragMoved = true;
+            dragY = h.y();
+            lastMouseY = mouseY;
+        }
+        var origin = model.layout().getCharGrid().getControllerPos();
+        if (h.height() || hasAltDown()) {
+            double[] s0 = view.project(h.x() - origin.getX(), dragY - origin.getY(), h.z() - origin.getZ());
+            double[] s1 = view.project(h.x() - origin.getX(), dragY + 1 - origin.getY(), h.z() - origin.getZ());
+            if (s0 == null || s1 == null || Math.abs(s1[1] - s0[1]) < 1e-3) {
+                return;
+            }
+            dragY += (mouseY - lastMouseY) / (s1[1] - s0[1]);
+            lastMouseY = mouseY;
+            setHandle(h, h.x(), Math.round(dragY * 16) / 16.0, h.z());
+            return;
+        }
+        lastMouseY = mouseY;
+        BlockHitResult hit = view.pick(mouseX, mouseY);
+        if (hit == null || (undersidesOf(base(selectedId())).contains(h.name()) && hit.getDirection() != Direction.DOWN)) {
+            return;
+        }
+        Vec3 at = snap(hit);
+        dragY = at.y + origin.getY();
+        setHandle(h, at.x + origin.getX(), at.y + origin.getY(), at.z + origin.getZ());
+    }
+
+    private void deleteHandle(Handle h) {
+        JsonObject anchors = selectedAnchors();
+        if (h.height() || pointsOf(anchors.get(h.name())).size() <= 1) {
+            return;
+        }
+        remember();
+        List<double[]> points = pointsOf(anchors.get(h.name()));
+        points.remove(h.index());
+        anchors.add(h.name(), pointsJson(points));
+        changed(h.name());
+        handleName = null;
+        rebuildWidgets();
+        setFocused(null);
+    }
+
+    private void centreHandle(Handle h) {
+        if (h.height()) {
+            return;
+        }
+        remember();
+        double[] p = {h.x(), h.y(), h.z()};
+        Direction face = faceOf(p);
+        double x = face.getAxis() == Direction.Axis.X ? h.x() : Math.floor(h.x()) + 0.5;
+        double y = face.getAxis() == Direction.Axis.Y ? h.y() : Math.floor(h.y()) + 0.5;
+        double z = face.getAxis() == Direction.Axis.Z ? h.z() : Math.floor(h.z()) + 0.5;
+        setHandle(h, x, y, z);
+        rebuildWidgets();
+        setFocused(null);
+    }
+
+    private void applyCoords() {
+        Handle h = handle();
+        if (h == null || coords == null) {
+            return;
+        }
+        String[] parts = coords.getValue().trim().split("[,\\s]+");
+        if (parts.length != (h.height() ? 1 : 3)) {
+            return;
+        }
+        double[] values = new double[parts.length];
+        try {
+            for (int i = 0; i < parts.length; i++) {
+                values[i] = Double.parseDouble(parts[i]);
+                if (!Double.isFinite(values[i])) {
+                    return;
+                }
+            }
+        } catch (NumberFormatException e) {
+            return;
+        }
+        remember();
+        if (h.height()) {
+            setHandle(h, h.x(), values[0], h.z());
+        } else {
+            setHandle(h, values[0], values[1], values[2]);
+        }
+        rebuildWidgets();
+        setFocused(null);
+    }
+
+    private String[] menuEntries(Handle h) {
+        return h.height() ? new String[0] : new String[]{"centre", "delete"};
     }
 
     @Nullable
@@ -453,6 +775,7 @@ public class EffectStudioScreen extends Screen {
         placing = preset;
         adding = null;
         held = null;
+        handleName = null;
         firstHit = null;
         steps.clear();
         undersides.clear();
@@ -602,6 +925,9 @@ public class EffectStudioScreen extends Screen {
         long now = System.nanoTime();
         float dt = lastFrame == 0 ? 0 : Math.min(0.1f, (now - lastFrame) / 1e9f);
         lastFrame = now;
+        if (coords != null && coords.isFocused()) {
+            return;
+        }
         long window = minecraft.getWindow().getWindow();
         float speed = 8 * dt;
         float forward = (key(window, GLFW.GLFW_KEY_W) ? speed : 0) - (key(window, GLFW.GLFW_KEY_S) ? speed : 0);
@@ -627,6 +953,7 @@ public class EffectStudioScreen extends Screen {
     }
 
     private void finish() {
+        remember();
         held = null;
         JsonArray source = null;
         Direction face = Direction.DOWN;
@@ -821,6 +1148,7 @@ public class EffectStudioScreen extends Screen {
         if (base == null || !base.has("layers")) {
             return;
         }
+        remember();
         if (!effect.has("anchors") || !effect.get("anchors").isJsonObject()) {
             effect.add("anchors", new JsonObject());
         }
@@ -964,13 +1292,31 @@ public class EffectStudioScreen extends Screen {
             float r = ((color >> 16) & 0xFF) / 255f;
             float g = ((color >> 8) & 0xFF) / 255f;
             float b = (color & 0xFF) / 255f;
-            double size = spots.get(i).equals(adding) ? 0.09 : 0.05;
-            for (double[] p : pointsOf(anchors.get(spots.get(i)))) {
+            List<double[]> points = pointsOf(anchors.get(spots.get(i)));
+            for (int j = 0; j < points.size(); j++) {
+                double[] p = points.get(j);
                 double x = p[0] - origin.getX();
                 double y = p[1] - origin.getY();
                 double z = p[2] - origin.getZ();
-                LevelRenderer.renderLineBox(pose, lines, new AABB(x - size, y - size, z - size, x + size, y + size, z + size), r, g, b, 1f);
+                boolean selected = spots.get(i).equals(handleName) && j == handleIndex;
+                boolean hot = hovered != null && hovered.name().equals(spots.get(i)) && hovered.index() == j;
+                double size = selected || hot ? 0.09 : spots.get(i).equals(adding) ? 0.07 : 0.05;
+                LevelRenderer.renderLineBox(pose, lines, new AABB(x - size, y - size, z - size, x + size, y + size, z + size),
+                        selected ? 1f : r, selected ? 1f : g, selected ? 1f : b, 1f);
             }
+        }
+        for (Handle h : handles()) {
+            if (!h.height()) {
+                continue;
+            }
+            boolean selected = h.name().equals(handleName);
+            boolean hot = hovered != null && hovered.name().equals(h.name()) && hovered.height();
+            double x = h.x() - origin.getX();
+            double y = h.y() - origin.getY();
+            double z = h.z() - origin.getZ();
+            double size = selected || hot ? 0.3 : 0.2;
+            LevelRenderer.renderLineBox(pose, lines, new AABB(x - size, y, z - size, x + size, y + 0.005, z + size),
+                    selected ? 1f : 0.8f, selected ? 1f : 0.8f, selected ? 1f : 0.8f, 1f);
         }
     }
 
@@ -1000,6 +1346,7 @@ public class EffectStudioScreen extends Screen {
         this.partialTick = partialTick;
         move();
         hover = (placing != null || adding != null) && viewport.contains(mouseX, mouseY) ? view.pick(mouseX, mouseY) : null;
+        hovered = dragging ? handle() : menu != null ? null : handleAt(mouseX, mouseY);
         gfx.fill(viewport.x(), viewport.y(), viewport.x() + viewport.w(), viewport.y() + viewport.h(), 0x66000000);
         gfx.pose().pushPose();
         gfx.pose().setIdentity();
@@ -1018,6 +1365,8 @@ public class EffectStudioScreen extends Screen {
             hint = Component.translatable("gui.mm.effect_studio.click." + kind, pretty(placing), step[0]);
         } else if (adding != null) {
             hint = Component.translatable(underside ? "gui.mm.effect_studio.click.add_underside" : "gui.mm.effect_studio.click.add", adding);
+        } else if (selectedId() != null && !spots.isEmpty()) {
+            hint = Component.translatable("gui.mm.effect_studio.drag_hint");
         } else {
             hint = Component.translatable("gui.mm.effect_studio.controls");
         }
@@ -1054,17 +1403,107 @@ public class EffectStudioScreen extends Screen {
                 gfx.fill(cx, cy, cx + 18, cy + 10, 0xFF000000 | Integer.parseInt(COLORS[i].substring(1), 16));
             }
         }
+        Handle selectedHandle = handle();
+        if (coords != null && selectedHandle != null) {
+            String label = selectedHandle.height() ? selectedHandle.name() : selectedHandle.name() + " #" + (selectedHandle.index() + 1);
+            gfx.drawString(font, label, coords.getX(), coords.getY() - 10, 0xFFFFFF);
+            coords.render(gfx, mouseX, mouseY, partialTick);
+        }
+        if (menu != null) {
+            String[] entries = menuEntries(menu);
+            gfx.fill(menuX, menuY, menuX + 90, menuY + entries.length * 14 + 2, 0xEE101010);
+            for (int i = 0; i < entries.length; i++) {
+                int ey = menuY + 1 + i * 14;
+                boolean over = mouseX >= menuX && mouseX < menuX + 90 && mouseY >= ey && mouseY < ey + 14;
+                if (over) {
+                    gfx.fill(menuX + 1, ey, menuX + 89, ey + 14, 0xFF3A3A3A);
+                }
+                gfx.drawString(font, Component.translatable("gui.mm.effect_studio.menu." + entries[i]), menuX + 4, ey + 3, 0xFFFFFF);
+            }
+        }
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         pressX = mouseX;
         pressY = mouseY;
+        if (coords != null && coords.isMouseOver(mouseX, mouseY)) {
+            return super.mouseClicked(mouseX, mouseY, button);
+        }
+        if (menu != null) {
+            swallowRelease = true;
+            Handle target = menu;
+            String[] entries = menuEntries(target);
+            menu = null;
+            int index = (int) ((mouseY - menuY - 1) / 14);
+            if (button == 0 && mouseX >= menuX && mouseX < menuX + 90 && mouseY >= menuY && index >= 0 && index < entries.length) {
+                if (entries[index].equals("delete")) {
+                    deleteHandle(target);
+                } else {
+                    centreHandle(target);
+                }
+            }
+            return true;
+        }
+        if (button == 0 && view != null) {
+            Handle h = handleAt(mouseX, mouseY);
+            if (h != null) {
+                setFocused(null);
+                if (!(h.name().equals(handleName) && h.index() == handleIndex)) {
+                    handleName = h.name();
+                    handleIndex = h.index();
+                    rebuildWidgets();
+                }
+                dragging = true;
+                dragMoved = false;
+                return true;
+            }
+        }
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (dragging && button == 0) {
+            drag(mouseX, mouseY);
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (swallowRelease) {
+            swallowRelease = false;
+            return true;
+        }
+        if (coords != null && coords.isMouseOver(mouseX, mouseY)) {
+            return super.mouseReleased(mouseX, mouseY, button);
+        }
+        if (dragging && button == 0) {
+            dragging = false;
+            if (dragMoved) {
+                rebuildWidgets();
+            }
+            return true;
+        }
+        if (button == 1 && view != null && Math.abs(mouseX - pressX) + Math.abs(mouseY - pressY) < 4) {
+            Handle h = handleAt(mouseX, mouseY);
+            if (h != null && menuEntries(h).length > 0) {
+                handleName = h.name();
+                handleIndex = h.index();
+                rebuildWidgets();
+                menu = h;
+                menuX = (int) mouseX;
+                menuY = (int) mouseY;
+                return true;
+            }
+        }
+        if (button == 0 && view != null && placing == null && adding == null && viewport.contains((int) mouseX, (int) mouseY)
+                && Math.abs(mouseX - pressX) + Math.abs(mouseY - pressY) < 4 && handleName != null) {
+            handleName = null;
+            rebuildWidgets();
+        }
         if (button == 0 && view != null && viewport.contains((int) mouseX, (int) mouseY)
                 && Math.abs(mouseX - pressX) + Math.abs(mouseY - pressY) < 4) {
             BlockHitResult hit = view.pick(mouseX, mouseY);
@@ -1091,6 +1530,38 @@ public class EffectStudioScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        boolean typing = coords != null && coords.isFocused();
+        if (typing && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
+            applyCoords();
+            return true;
+        }
+        if (typing && keyCode == 256) {
+            setFocused(null);
+            return true;
+        }
+        if (menu != null && keyCode == 256) {
+            menu = null;
+            return true;
+        }
+        if (!typing && hasControlDown() && keyCode == GLFW.GLFW_KEY_Z) {
+            if (hasShiftDown()) {
+                redo();
+            } else {
+                undo();
+            }
+            return true;
+        }
+        if (!typing && hasControlDown() && keyCode == GLFW.GLFW_KEY_Y) {
+            redo();
+            return true;
+        }
+        if (!typing && (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE) && handle() != null) {
+            deleteHandle(handle());
+            return true;
+        }
+        if (typing) {
+            return super.keyPressed(keyCode, scanCode, modifiers);
+        }
         if (keyCode == 256 && (placing != null || adding != null)) {
             placing = null;
             adding = null;
@@ -1138,6 +1609,12 @@ public class EffectStudioScreen extends Screen {
         @Override
         protected void updateMessage() {
             setMessage(Component.translatable("gui.mm.effect_studio." + name, String.format("%.2fx", factor(value))));
+        }
+
+        @Override
+        public void onClick(double mouseX, double mouseY) {
+            remember();
+            super.onClick(mouseX, mouseY);
         }
 
         @Override

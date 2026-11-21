@@ -43,6 +43,10 @@ public final class EffectStudio {
     private EffectStudio() {
     }
 
+    record Snapshot(List<JsonObject> effects, Map<ResourceLocation, JsonObject> edited, Map<ResourceLocation, JsonObject> originals,
+                    Map<ResourceLocation, double[]> sliders, Map<ResourceLocation, String> colors, int selected) {
+    }
+
     static final class Session {
         final BlockPos controller;
         final ResourceLocation structure;
@@ -60,6 +64,8 @@ public final class EffectStudio {
         final Map<ResourceLocation, JsonObject> originals = new HashMap<>();
         final Map<ResourceLocation, double[]> sliders = new HashMap<>();
         final Map<ResourceLocation, String> colors = new HashMap<>();
+        final List<Snapshot> undo = new ArrayList<>();
+        final List<Snapshot> redo = new ArrayList<>();
 
         Session(BlockPos controller, ResourceLocation structure, List<JsonObject> effects) {
             this.controller = controller;
