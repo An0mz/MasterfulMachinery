@@ -79,6 +79,15 @@ public final class SeepLayer implements FxLayer {
         }
     }
 
+    private static Direction direction(int index) {
+        return switch (index) {
+            case 0 -> Direction.WEST;
+            case 1 -> Direction.EAST;
+            case 2 -> Direction.NORTH;
+            default -> Direction.SOUTH;
+        };
+    }
+
     private static int index(int dx, int dz) {
         for (int d = 0; d < 4; d++) {
             if (DIRECTIONS[d][0] == dx && DIRECTIONS[d][1] == dz) {
@@ -148,7 +157,25 @@ public final class SeepLayer implements FxLayer {
                 }
             }
         }
-        return new Seeps(columns, faces, rotatedMask(shared.rotation));
+        int[] toWorld = new int[4];
+        for (int d = 0; d < 4; d++) {
+            Direction layoutDir = direction(d);
+            Direction worldDir = shared.rotation.rotate(layoutDir);
+            toWorld[d] = index(worldDir.getStepX(), worldDir.getStepZ());
+        }
+        for (int i = 0; i < columns.length; i++) {
+            if (faces[i] == null) {
+                continue;
+            }
+            RandomSource rolls = RandomSource.create(shared.seed() ^ 0x51EE7L ^ (columns[i].index * 0x2545F4914F6CDD1DL));
+            for (int d = 0; d < 4; d++) {
+                double roll = rolls.nextDouble();
+                for (int s = toWorld[d]; s < faces[i].length; s += 4) {
+                    faces[i][s].pickRoll = roll;
+                }
+            }
+        }
+        return new Seeps(columns, faces, rotatedMask(shared.rotation), toWorld);
     }
 
     private int color(int tint, int index, double a) {
@@ -174,7 +201,7 @@ public final class SeepLayer implements FxLayer {
         final int rows;
         final int[] path;
         final long seed;
-        final double pickRoll;
+        double pickRoll;
         final double stainY;
         final double stainU;
         final double stainLen;
@@ -236,13 +263,15 @@ public final class SeepLayer implements FxLayer {
         private final Face[][] faces;
         private final int[] lastMask;
         private final int chosen;
+        private final int[] toWorld;
         private int tint = -1;
         private RenderType renderType;
 
-        Seeps(FxColumn[] columns, Face[][] faces, int chosen) {
+        Seeps(FxColumn[] columns, Face[][] faces, int chosen, int[] toWorld) {
             this.columns = columns;
             this.faces = faces;
             this.chosen = chosen;
+            this.toWorld = toWorld;
             this.lastMask = new int[columns.length];
             Arrays.fill(lastMask, -1);
         }
@@ -301,7 +330,7 @@ public final class SeepLayer implements FxLayer {
                 if (!any && mask != 0) {
                     int first = (int) (FxNoise.hash(11, list[0].column.seed) * 4);
                     for (int n = 0; n < 4; n++) {
-                        int d = (first + n) % 4;
+                        int d = toWorld[(first + n) % 4];
                         if (list[d].exposed) {
                             for (int s = d; s < list.length; s += 4) {
                                 list[s].rivulet = true;

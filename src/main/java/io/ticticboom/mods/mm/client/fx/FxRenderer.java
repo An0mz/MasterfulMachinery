@@ -40,11 +40,11 @@ public final class FxRenderer {
         return created;
     }
 
-    public static FxInstance preview(@Nullable FxInstance current, StructureModel structure, List<EffectVisual> visuals) {
+    public static FxInstance preview(@Nullable FxInstance current, StructureModel structure, BlockPos seed, List<EffectVisual> visuals) {
         if (current != null && current.matches(structure, Rotation.NONE, visuals)) {
             return current;
         }
-        FxInstance created = FxInstance.create(structure, Rotation.NONE, BlockPos.ZERO, visuals);
+        FxInstance created = FxInstance.create(structure, Rotation.NONE, seed, visuals);
         created.colors(List.of());
         return created;
     }

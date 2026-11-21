@@ -607,7 +607,7 @@
   "gui.mm.effect_studio.preset_failed": "Could not save that preset name, see the log or pick another name.",
   "gui.mm.effect_studio.dropdown.pick": "Pick an effect (%s)",
   "gui.mm.effect_studio.dropdown.none": "No effects yet",
-  "gui.mm.effect_studio.drag_hint": "Drag a point to move it, Alt-drag for height, right-click it for more, Ctrl+Z to undo",
+  "gui.mm.effect_studio.drag_hint": "Drag points to move them (Alt: height), right-click for more, click N/E/S/W to pick bleeding sides",
   "gui.mm.effect_studio.undo": "Undo (Ctrl+Z)",
   "gui.mm.effect_studio.redo": "Redo (Ctrl+Y)",
   "gui.mm.effect_studio.menu.centre": "Centre on face",

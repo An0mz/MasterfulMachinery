@@ -119,6 +119,7 @@ public class EffectStudioScreen extends Screen {
     private boolean dropdown;
     private int dropScroll;
     private int savingFor = -1;
+    private final List<Object[]> sideHits = new ArrayList<>();
     private String renameText = "";
     @Nullable
     private String deleteArmed;
@@ -2023,7 +2024,7 @@ public class EffectStudioScreen extends Screen {
         if (visuals == null || model == null) {
             return;
         }
-        preview = FxRenderer.preview(preview, model, visuals);
+        preview = FxRenderer.preview(preview, model, be.getBlockPos(), visuals);
         var inverse = new Matrix4f(modelView).invert();
         Vector3f camera = inverse.transformPosition(new Vector3f());
         Vector3f look = inverse.transformDirection(new Vector3f(0, 0, -1)).normalize();
@@ -2163,8 +2164,9 @@ public class EffectStudioScreen extends Screen {
     }
 
     private void drawSeepSides(GuiGraphics gfx) {
+        sideHits.clear();
         ResourceLocation id = selectedId();
-        JsonObject seep = id == null || view == null || session.collapsed || session.tab != 2 ? null : firstSeep(base(id));
+        JsonObject seep = id == null || view == null || placing != null || adding != null ? null : firstSeep(base(id));
         if (seep == null) {
             return;
         }
@@ -2187,8 +2189,12 @@ public class EffectStudioScreen extends Screen {
                 continue;
             }
             boolean on = chosen != null && chosen.contains(sides[i]);
-            gfx.drawCenteredString(font, sides[i].substring(0, 1).toUpperCase(java.util.Locale.ROOT), (int) s[0], (int) s[1] - 4,
-                    chosen == null ? 0xFFC0C0C0 : on ? 0xFF55FF55 : 0xFF707070);
+            int x = (int) s[0];
+            int y = (int) s[1];
+            gfx.fill(x - 6, y - 6, x + 6, y + 6, on ? 0xC0105010 : 0xC0101010);
+            gfx.drawCenteredString(font, sides[i].substring(0, 1).toUpperCase(java.util.Locale.ROOT), x, y - 4,
+                    chosen == null ? 0xFFC0C0C0 : on ? 0xFF55FF55 : 0xFF808080);
+            sideHits.add(new Object[]{x, y, sides[i]});
         }
     }
 
@@ -2223,6 +2229,15 @@ public class EffectStudioScreen extends Screen {
         }
         if (coords != null && coords.isMouseOver(mouseX, mouseY)) {
             return super.mouseClicked(mouseX, mouseY, button);
+        }
+        if (button == 0 && menu == null && selectedId() != null && handleAt(mouseX, mouseY) == null) {
+            for (Object[] hit : sideHits) {
+                if (Math.abs(mouseX - (int) hit[0]) <= 6 && Math.abs(mouseY - (int) hit[1]) <= 6) {
+                    toggleSeepFace(selectedId(), (String) hit[2]);
+                    swallowRelease = true;
+                    return true;
+                }
+            }
         }
         if (menu != null) {
             swallowRelease = true;
