@@ -61,7 +61,6 @@ public class EffectStudioScreen extends Screen {
     private final Map<String, JsonObject> presets = EffectStudio.library("mm_fx_presets");
     private final Map<String, JsonObject> parts = EffectStudio.library("mm_fx_parts");
     private final List<String> partNames = new ArrayList<>(parts.keySet());
-    private int part;
     @Nullable
     private BlockHitResult firstHit;
     private final Map<String, Direction> faces = new HashMap<>();
@@ -97,6 +96,9 @@ public class EffectStudioScreen extends Screen {
     private int spotScroll;
     private int spotScrollMax;
     private static final String MINE = "my/";
+    private static final String PART = "part/";
+    private boolean dragFromLibrary;
+    private int placingStarts;
     private Map<String, JsonObject> mine = EffectStudio.userPresets();
     private String search = "";
     private int libScroll;
@@ -173,9 +175,11 @@ public class EffectStudioScreen extends Screen {
             view.setOverlay(this::renderEffects);
             view.setStudio(true);
         }
-        viewport = GuiPos.of(PANEL + 12, 20, width - PANEL * 2 - 24, height - 52);
+        viewport = session.collapsed ? GuiPos.of(6, 20, width - 12, height - 52) : GuiPos.of(PANEL + 12, 20, width - PANEL * 2 - 24, height - 52);
 
-        buildLibrary();
+        if (!session.collapsed) {
+            buildLibrary();
+        }
         if (selectedId() != null) {
             spots.addAll(spotNames(selectedAnchors()));
             if (adding != null && !spots.contains(adding)) {
@@ -185,7 +189,9 @@ public class EffectStudioScreen extends Screen {
                 handleName = null;
             }
         }
-        buildInspector();
+        if (!session.collapsed) {
+            buildInspector();
+        }
 
         int by = height - 26;
         addRenderableWidget(Button.builder(Component.translatable(session.idle ? "gui.mm.effect_studio.idle" : "gui.mm.effect_studio.working"), b -> {
@@ -209,6 +215,9 @@ public class EffectStudioScreen extends Screen {
                 .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.redo")))
                 .bounds(viewport.x() + 318, by, 20, 20).build());
         updateHistoryButtons();
+        addRenderableWidget(Button.builder(Component.literal(session.collapsed ? "\u21D4" : "\u21D5"), b -> togglePanels())
+                .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.hide_panels")))
+                .bounds(viewport.x() + 342, by, 20, 20).build());
         Handle selectedHandle = handle();
         if (selectedHandle != null) {
             coords = new EditBox(font, viewport.x() + 4, viewport.y() + viewport.h() - 20, 150, 16, Component.empty());
@@ -220,11 +229,38 @@ public class EffectStudioScreen extends Screen {
 
     @Nullable
     private JsonObject preset(String key) {
+        if (key.startsWith(PART)) {
+            return parts.get(key.substring(PART.length()));
+        }
         return key.startsWith(MINE) ? mine.get(key.substring(MINE.length())) : presets.get(key);
     }
 
+    private static String presetName(String key) {
+        return key.startsWith(PART) ? key.substring(PART.length()) : key.startsWith(MINE) ? key.substring(MINE.length()) : key;
+    }
+
     private static String presetLabel(String key) {
-        return pretty(key.startsWith(MINE) ? key.substring(MINE.length()) : key);
+        return pretty(presetName(key));
+    }
+
+    private static boolean anchored(@Nullable JsonObject fx) {
+        if (fx == null || !fx.has("layers")) {
+            return false;
+        }
+        for (JsonElement element : fx.getAsJsonArray("layers")) {
+            JsonObject layer = element.getAsJsonObject();
+            if (layer.has("at") || layer.has("from") || layer.has("to")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void togglePanels() {
+        session.collapsed = !session.collapsed;
+        dropdown = false;
+        rebuildWidgets();
+        setFocused(null);
     }
 
     private boolean matches(String name) {
@@ -293,6 +329,33 @@ public class EffectStudioScreen extends Screen {
         }
         if (rows.size() == before) {
             rows.add(ry -> rowLabels.add(new Object[]{px + 4, ry + 3, Component.translatable("gui.mm.effect_studio.library.none").getString(), 0xFF707070}));
+        }
+        rows.add(ry -> rowLabels.add(new Object[]{px, ry + 3, Component.translatable("gui.mm.effect_studio.library.parts").getString(), 0xFFA0A0A0}));
+        for (String name : partNames) {
+            if (!matches(name)) {
+                continue;
+            }
+            boolean standalone = anchored(parts.get(name));
+            rows.add(ry -> {
+                boolean canAdd = selectedId() != null;
+                if (!standalone) {
+                    Button only = addRenderableWidget(Button.builder(Component.literal(font.plainSubstrByWidth(pretty(name), PANEL - 8)), b -> {
+                                if (selectedId() != null) {
+                                    addPart(selectedId(), name);
+                                }
+                                setFocused(null);
+                            })
+                            .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.library.add_only")))
+                            .bounds(px, ry, PANEL, 14).build());
+                    only.active = canAdd;
+                    return;
+                }
+                smallButton(px, ry, canAdd ? PANEL - 16 : PANEL, Component.literal(font.plainSubstrByWidth(pretty(name), PANEL - 24)), null,
+                        () -> startPlacing(PART + name));
+                if (canAdd) {
+                    smallButtonTip(px + PANEL - 14, ry, 14, Component.literal("+"), "library.add_part", () -> addPart(selectedId(), name));
+                }
+            });
         }
         int visible = Math.max(1, (height - 8 - top) / 16);
         libScrollMax = Math.max(0, rows.size() - visible);
@@ -442,16 +505,6 @@ public class EffectStudioScreen extends Screen {
                     }).bounds(px + (i % 2) * 66, y + (i / 2) * 18, 64, 16).build());
                 }
                 y += (layers.size() + 1) / 2 * 18 + 6;
-            }
-            if (!partNames.isEmpty()) {
-                part = Math.min(part, partNames.size() - 1);
-                addRenderableWidget(Button.builder(Component.literal(pretty(partNames.get(part))), b -> {
-                    part = (part + 1) % partNames.size();
-                    b.setMessage(Component.literal(pretty(partNames.get(part))));
-                }).bounds(px, y, 64, 18).build());
-                addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.add_part"), b -> addPart(id, partNames.get(part)))
-                        .bounds(px + 66, y, 64, 18).build());
-                y += 22;
             }
             addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.advanced"), b -> {
                 remember();
@@ -1232,6 +1285,7 @@ public class EffectStudioScreen extends Screen {
 
     private void startPlacing(String preset) {
         placing = preset;
+        placingStarts++;
         adding = null;
         held = null;
         handleName = null;
@@ -1444,7 +1498,7 @@ public class EffectStudioScreen extends Screen {
             return;
         }
         JsonObject json = chosen.deepCopy();
-        json.addProperty("name", placing.startsWith(MINE) ? placing.substring(MINE.length()) : placing);
+        json.addProperty("name", presetName(placing));
         for (String name : linkedOf(json)) {
             var chain = new ArrayList<int[]>();
             int count = pointsOf(pending.get(name)).size();
@@ -1882,8 +1936,10 @@ public class EffectStudioScreen extends Screen {
         view.init();
         view.render(gfx, mouseX, mouseY, viewport.contains(mouseX, mouseY));
         gfx.pose().popPose();
-        gfx.drawString(font, Component.translatable("gui.mm.effect_studio.add_effect"), 6, 8, 0xFFFFFF);
-        gfx.drawString(font, Component.translatable("gui.mm.effect_studio.placed"), width - PANEL - 6, 8, 0xFFFFFF);
+        if (!session.collapsed) {
+            gfx.drawString(font, Component.translatable("gui.mm.effect_studio.add_effect"), 6, 8, 0xFFFFFF);
+            gfx.drawString(font, Component.translatable("gui.mm.effect_studio.placed"), width - PANEL - 6, 8, 0xFFFFFF);
+        }
         String[] step = placing == null ? null : currentStep();
         boolean underside = step != null ? undersides.contains(step[0])
                 : adding != null && selectedId() != null && undersidesOf(base(selectedId())).contains(adding);
@@ -1923,6 +1979,12 @@ public class EffectStudioScreen extends Screen {
         for (Object[] label : rowLabels) {
             gfx.drawString(font, (String) label[2], (int) label[0], (int) label[1], (int) label[3]);
         }
+        if (dragFromLibrary && placing != null && Math.abs(mouseX - pressX) + Math.abs(mouseY - pressY) >= 4) {
+            String text = presetLabel(placing);
+            int tw = font.width(text);
+            gfx.fill(mouseX + 8, mouseY + 6, mouseX + 14 + tw, mouseY + 19, 0xE0101010);
+            gfx.drawString(font, text, mouseX + 11, mouseY + 9, 0xFFFF55);
+        }
         String tip = null;
         for (int[] dot : dots) {
             String problem = problem(dot[2]);
@@ -1936,7 +1998,7 @@ public class EffectStudioScreen extends Screen {
         if (tip != null) {
             gfx.renderTooltip(font, font.split(Component.translatable("gui.mm.effect_studio.health." + tip), 180), mouseX, mouseY);
         }
-        if (selectedId() != null && session.tab == 2) {
+        if (selectedId() != null && session.tab == 2 && !session.collapsed) {
             int x = width - PANEL - 6;
             for (int i = 0; i < COLORS.length; i++) {
                 int cx = x + (i % 5) * 26 + 3;
@@ -2048,7 +2110,9 @@ public class EffectStudioScreen extends Screen {
                 return true;
             }
         }
+        int startsBefore = placingStarts;
         boolean handled = super.mouseClicked(mouseX, mouseY, button);
+        dragFromLibrary = button == 0 && !session.collapsed && mouseX < PANEL + 8 && placing != null && placingStarts != startsBefore;
         deleteArmed = null;
         if (focusLater != null) {
             setFocused(focusLater);
@@ -2072,7 +2136,7 @@ public class EffectStudioScreen extends Screen {
             dropScroll = Math.max(0, dropScroll - step);
             return true;
         }
-        if (mouseX < PANEL + 8 && mouseY >= 42) {
+        if (!session.collapsed && mouseX < PANEL + 8 && mouseY >= 42) {
             int next = Math.max(0, Math.min(libScrollMax, libScroll - step));
             if (next != libScroll) {
                 libScroll = next;
@@ -2080,7 +2144,7 @@ public class EffectStudioScreen extends Screen {
             }
             return true;
         }
-        if (session.tab == 0 && !spots.isEmpty() && mouseX >= width - PANEL - 8 && mouseY >= spotsY) {
+        if (!session.collapsed && session.tab == 0 && !spots.isEmpty() && mouseX >= width - PANEL - 8 && mouseY >= spotsY) {
             int next = Math.max(0, Math.min(spotScrollMax, spotScroll - (int) Math.signum(scrollY)));
             if (next != spotScroll) {
                 spotScroll = next;
@@ -2105,6 +2169,28 @@ public class EffectStudioScreen extends Screen {
         if (swallowRelease) {
             swallowRelease = false;
             return true;
+        }
+        if (dragFromLibrary && button == 0) {
+            dragFromLibrary = false;
+            boolean moved = Math.abs(mouseX - pressX) + Math.abs(mouseY - pressY) >= 4;
+            if (moved && placing != null && view != null) {
+                ResourceLocation id = selectedId();
+                if (placing.startsWith(PART) && id != null && !session.collapsed && mouseX >= width - PANEL - 6) {
+                    String name = placing.substring(PART.length());
+                    placing = null;
+                    held = null;
+                    steps.clear();
+                    addPart(id, name);
+                    return true;
+                }
+                if (viewport.contains((int) mouseX, (int) mouseY)) {
+                    BlockHitResult hit = view.pick(mouseX, mouseY);
+                    if (hit != null) {
+                        click(hit);
+                    }
+                    return true;
+                }
+            }
         }
         if (coords != null && coords.isMouseOver(mouseX, mouseY)) {
             return super.mouseReleased(mouseX, mouseY, button);
@@ -2211,6 +2297,10 @@ public class EffectStudioScreen extends Screen {
         }
         if (typing) {
             return super.keyPressed(keyCode, scanCode, modifiers);
+        }
+        if (keyCode == GLFW.GLFW_KEY_TAB) {
+            togglePanels();
+            return true;
         }
         if (keyCode == 256 && (placing != null || adding != null)) {
             placing = null;

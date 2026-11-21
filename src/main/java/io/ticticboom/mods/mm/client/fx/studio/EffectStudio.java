@@ -55,6 +55,7 @@ public final class EffectStudio {
         boolean idle;
         boolean fast;
         int tab;
+        boolean collapsed;
         boolean open;
         boolean dirty = true;
         @Nullable
