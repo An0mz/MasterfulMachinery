@@ -54,6 +54,7 @@ public final class EffectStudio {
         int selected = -1;
         boolean idle;
         boolean fast;
+        int tab;
         boolean open;
         boolean dirty = true;
         @Nullable
@@ -174,6 +175,78 @@ public final class EffectStudio {
             }
         }
         return result;
+    }
+
+    static Path presetDir() {
+        return FMLPaths.CONFIGDIR.get().resolve("mm").resolve("effect_presets");
+    }
+
+    static Map<String, JsonObject> userPresets() {
+        var result = new TreeMap<String, JsonObject>();
+        Path dir = presetDir();
+        if (!Files.isDirectory(dir)) {
+            return result;
+        }
+        try (var files = Files.list(dir)) {
+            for (Path file : files.toList()) {
+                String fileName = file.getFileName().toString();
+                if (!fileName.endsWith(".json")) {
+                    continue;
+                }
+                String name = fileName.substring(0, fileName.length() - 5);
+                try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+                    JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
+                    FxDefinition.parse(ResourceLocation.fromNamespaceAndPath(Ref.ID, "preset"), json);
+                    json.getAsJsonArray("layers").forEach(JsonElement::getAsJsonObject);
+                    result.put(name, json);
+                } catch (Exception e) {
+                    Ref.LOG.warn("Ignoring effect preset {}: {}", file, e.toString());
+                }
+            }
+        } catch (Exception e) {
+            Ref.LOG.warn("Could not list effect presets in {}: {}", dir, e.toString());
+        }
+        return result;
+    }
+
+    static boolean saveUserPreset(String name, JsonObject json) {
+        try {
+            Files.createDirectories(presetDir());
+            Files.writeString(presetDir().resolve(name + ".json"), new GsonBuilder().setPrettyPrinting().create().toJson(json), StandardCharsets.UTF_8);
+            return true;
+        } catch (Exception e) {
+            Ref.LOG.error("Effect Studio: could not save preset {}", name, e);
+            return false;
+        }
+    }
+
+    static boolean deleteUserPreset(String name) {
+        try {
+            return Files.deleteIfExists(presetDir().resolve(name + ".json"));
+        } catch (Exception e) {
+            Ref.LOG.error("Effect Studio: could not delete preset {}", name, e);
+            return false;
+        }
+    }
+
+    static boolean renameUserPreset(String from, String to) {
+        try {
+            Path target = presetDir().resolve(to + ".json");
+            if (Files.exists(target)) {
+                return false;
+            }
+            Files.move(presetDir().resolve(from + ".json"), target);
+            return true;
+        } catch (Exception e) {
+            Ref.LOG.error("Effect Studio: could not rename preset {} to {}", from, to, e);
+            return false;
+        }
+    }
+
+    static String presetName(String text) {
+        String name = text.trim().toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9_\\-]+", "_").replaceAll("^_+|_+$", "");
+        name = name.length() > 48 ? name.substring(0, 48) : name;
+        return name.matches("con|prn|aux|nul|com[0-9]|lpt[0-9]") ? name + "_" : name;
     }
 
     static boolean save(Session s) {

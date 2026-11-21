@@ -96,6 +96,30 @@ public class EffectStudioScreen extends Screen {
     private int spotsY;
     private int spotScroll;
     private int spotScrollMax;
+    private static final String MINE = "my/";
+    private Map<String, JsonObject> mine = EffectStudio.userPresets();
+    private String search = "";
+    private int libScroll;
+    private int libScrollMax;
+    @Nullable
+    private String renaming;
+    @Nullable
+    private String confirmDelete;
+    private boolean saving;
+    @Nullable
+    private EditBox searchBox;
+    @Nullable
+    private EditBox renameBox;
+    @Nullable
+    private EditBox presetNameBox;
+    @Nullable
+    private EditBox focusLater;
+    private boolean dropdown;
+    private int dropScroll;
+    private int savingFor = -1;
+    private String renameText = "";
+    @Nullable
+    private String deleteArmed;
     private final List<Object[]> rowLabels = new ArrayList<>();
     @Nullable
     private String handleName;
@@ -140,6 +164,7 @@ public class EffectStudioScreen extends Screen {
         dots.clear();
         spots.clear();
         rowLabels.clear();
+        focusLater = null;
         coords = null;
         menu = null;
         if (view == null || model != be.getStructure()) {
@@ -150,12 +175,7 @@ public class EffectStudioScreen extends Screen {
         }
         viewport = GuiPos.of(PANEL + 12, 20, width - PANEL * 2 - 24, height - 52);
 
-        int y = 22;
-        for (String name : presets.keySet()) {
-            addRenderableWidget(Button.builder(Component.literal(pretty(name)), b -> startPlacing(name))
-                    .bounds(6, y, PANEL, 18).build());
-            y += 20;
-        }
+        buildLibrary();
         if (selectedId() != null) {
             spots.addAll(spotNames(selectedAnchors()));
             if (adding != null && !spots.contains(adding)) {
@@ -164,92 +184,8 @@ public class EffectStudioScreen extends Screen {
             if (handle() == null) {
                 handleName = null;
             }
-            y += 14;
-            spotsY = y;
-            buildSpotRows(y);
         }
-
-        int x = width - PANEL - 6;
-        y = 22;
-        for (int i = 0; i < session.effects.size(); i++) {
-            int index = i;
-            addRenderableWidget(Button.builder(Component.literal((i == session.selected ? "> " : "") + label(session.effects.get(i))), b -> {
-                session.selected = index;
-                adding = null;
-                handleName = null;
-                spotScroll = 0;
-                rebuildWidgets();
-            }).bounds(x, y, PANEL, 18).build());
-            y += 20;
-        }
-        ResourceLocation id = selectedId();
-        if (id != null) {
-            addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.advanced"), b -> {
-                remember();
-                session.originals.remove(id);
-                session.sliders.remove(id);
-                session.colors.remove(id);
-                minecraft.setScreen(new EffectLayersScreen(session, this, id));
-            }).bounds(x, y, 64, 18).build());
-            addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.remove"), b -> {
-                remember();
-                session.edited.remove(id);
-                session.effects.remove(session.selected);
-                session.selected = -1;
-                session.dirty = true;
-                rebuildWidgets();
-            }).bounds(x + 66, y, 64, 18).build());
-            y += 24;
-            double[] values = session.sliders.computeIfAbsent(id, k -> new double[]{0.5, 0.5, 0.5});
-            String[] names = {"amount", "size", "speed"};
-            for (int i = 0; i < 3; i++) {
-                addRenderableWidget(new Slider(x, y, names[i], id, values, i));
-                y += 22;
-            }
-            colorsY = y;
-            for (int i = 0; i < COLORS.length; i++) {
-                String color = COLORS[i];
-                addRenderableWidget(Button.builder(Component.empty(), b -> {
-                    remember();
-                    session.colors.put(id, color);
-                    rescale(id);
-                }).bounds(x + (i % 5) * 26, y + (i / 5) * 18, 24, 16).build());
-            }
-            y += 40;
-            JsonObject base = base(id);
-            if (base != null && base.has("layers")) {
-                JsonArray layers = base.getAsJsonArray("layers");
-                int live = 0;
-                for (int i = 0; i < layers.size(); i++) {
-                    JsonObject layer = layers.get(i).getAsJsonObject();
-                    boolean off = layer.has("off") && layer.get("off").getAsBoolean();
-                    if (!off) {
-                        dots.add(new int[]{x + (i % 2) * 66, y + (i / 2) * 18, live++});
-                    }
-                    String name = layer.has("name") ? layer.get("name").getAsString() : pretty(layer.has("type") ? layer.get("type").getAsString() : "?");
-                    addRenderableWidget(Button.builder(Component.literal(name).withStyle(off ? ChatFormatting.DARK_GRAY : ChatFormatting.GREEN), b -> {
-                        remember();
-                        setOff(layer, !off);
-                        if (!rescale(id)) {
-                            setOff(layer, off);
-                            rescale(id);
-                        }
-                        rebuildWidgets();
-                    }).bounds(x + (i % 2) * 66, y + (i / 2) * 18, 64, 16).build());
-                }
-                y += (layers.size() + 1) / 2 * 18 + 4;
-            }
-            if (!partNames.isEmpty()) {
-                part = Math.min(part, partNames.size() - 1);
-                addRenderableWidget(Button.builder(Component.literal(pretty(partNames.get(part))), b -> {
-                    part = (part + 1) % partNames.size();
-                    b.setMessage(Component.literal(pretty(partNames.get(part))));
-                }).bounds(x, y, 64, 18).build());
-                addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.add_part"), b -> addPart(id, partNames.get(part)))
-                        .bounds(x + 66, y, 64, 18).build());
-                y += 22;
-            }
-        }
+        buildInspector();
 
         int by = height - 26;
         addRenderableWidget(Button.builder(Component.translatable(session.idle ? "gui.mm.effect_studio.idle" : "gui.mm.effect_studio.working"), b -> {
@@ -282,6 +218,273 @@ public class EffectStudioScreen extends Screen {
         }
     }
 
+    @Nullable
+    private JsonObject preset(String key) {
+        return key.startsWith(MINE) ? mine.get(key.substring(MINE.length())) : presets.get(key);
+    }
+
+    private static String presetLabel(String key) {
+        return pretty(key.startsWith(MINE) ? key.substring(MINE.length()) : key);
+    }
+
+    private boolean matches(String name) {
+        String needle = search.trim().toLowerCase(java.util.Locale.ROOT);
+        return needle.isEmpty() || name.replace('_', ' ').toLowerCase(java.util.Locale.ROOT).contains(needle);
+    }
+
+    private void buildLibrary() {
+        int px = 6;
+        searchBox = new EditBox(font, px, 20, PANEL, 16, Component.empty());
+        searchBox.setMaxLength(40);
+        searchBox.setValue(search);
+        searchBox.setHint(Component.translatable("gui.mm.effect_studio.library.search").withStyle(ChatFormatting.DARK_GRAY));
+        searchBox.setResponder(value -> {
+            search = value;
+            libScroll = 0;
+            rebuildWidgets();
+            setFocused(searchBox);
+        });
+        addRenderableWidget(searchBox);
+        int top = 42;
+        var rows = new ArrayList<java.util.function.IntConsumer>();
+        rows.add(ry -> rowLabels.add(new Object[]{px, ry + 3, Component.translatable("gui.mm.effect_studio.library.builtin").getString(), 0xFFA0A0A0}));
+        for (String name : presets.keySet()) {
+            if (matches(name)) {
+                rows.add(ry -> smallButton(px, ry, PANEL, Component.literal(font.plainSubstrByWidth(pretty(name), PANEL - 8)), null, () -> startPlacing(name)));
+            }
+        }
+        rows.add(ry -> rowLabels.add(new Object[]{px, ry + 3, Component.translatable("gui.mm.effect_studio.library.mine").getString(), 0xFFA0A0A0}));
+        int before = rows.size();
+        for (String name : mine.keySet()) {
+            if (!matches(name)) {
+                continue;
+            }
+            rows.add(ry -> {
+                if (name.equals(renaming)) {
+                    renameBox = new EditBox(font, px, ry, PANEL - 16, 14, Component.empty());
+                    renameBox.setMaxLength(48);
+                    renameBox.setValue(renameText);
+                    renameBox.setResponder(value -> renameText = value);
+                    addRenderableWidget(renameBox);
+                    smallButton(px + PANEL - 14, ry, 14, Component.literal("\u2713"), null, this::applyRename);
+                    focusLater = renameBox;
+                    return;
+                }
+                smallButton(px, ry, PANEL - 32, Component.literal(font.plainSubstrByWidth(pretty(name), PANEL - 40)), null, () -> startPlacing(MINE + name));
+                smallButtonTip(px + PANEL - 30, ry, 14, Component.literal("\u270E"), "library.rename", () -> {
+                    renaming = name;
+                    renameText = pretty(name);
+                    rebuildWidgets();
+                });
+                boolean confirm = name.equals(confirmDelete);
+                smallButtonTip(px + PANEL - 14, ry, 14, Component.literal(confirm ? "?" : "x").withStyle(confirm ? ChatFormatting.RED : ChatFormatting.WHITE),
+                        confirm ? "library.confirm" : "library.delete", () -> {
+                            if (name.equals(deleteArmed)) {
+                                EffectStudio.deleteUserPreset(name);
+                                mine = EffectStudio.userPresets();
+                                cancelPlacing(MINE + name);
+                                confirmDelete = null;
+                            } else {
+                                confirmDelete = name;
+                            }
+                            rebuildWidgets();
+                        });
+            });
+        }
+        if (rows.size() == before) {
+            rows.add(ry -> rowLabels.add(new Object[]{px + 4, ry + 3, Component.translatable("gui.mm.effect_studio.library.none").getString(), 0xFF707070}));
+        }
+        int visible = Math.max(1, (height - 8 - top) / 16);
+        libScrollMax = Math.max(0, rows.size() - visible);
+        libScroll = Math.max(0, Math.min(libScroll, libScrollMax));
+        for (int r = libScroll; r < rows.size() && r < libScroll + visible; r++) {
+            rows.get(r).accept(top + (r - libScroll) * 16);
+        }
+    }
+
+    private void cancelPlacing(String key) {
+        if (key.equals(placing)) {
+            placing = null;
+            held = null;
+            steps.clear();
+        }
+    }
+
+    @Override
+    protected void setInitialFocus() {
+    }
+
+    private void applyRename() {
+        if (renaming == null || renameBox == null) {
+            return;
+        }
+        String name = EffectStudio.presetName(renameBox.getValue());
+        if (!name.isEmpty() && !name.equals(renaming)) {
+            if (!mine.containsKey(name) && EffectStudio.renameUserPreset(renaming, name)) {
+                cancelPlacing(MINE + renaming);
+                mine = EffectStudio.userPresets();
+            } else {
+                minecraft.player.displayClientMessage(Component.translatable("gui.mm.effect_studio.preset_failed"), true);
+            }
+        }
+        renaming = null;
+        rebuildWidgets();
+        setFocused(null);
+    }
+
+    private void savePreset() {
+        ResourceLocation id = selectedId();
+        if (id == null || presetNameBox == null) {
+            return;
+        }
+        String name = EffectStudio.presetName(presetNameBox.getValue());
+        JsonObject current = session.edited.getOrDefault(id, FxManager.source(id));
+        if (name.isEmpty() || current == null) {
+            return;
+        }
+        JsonObject json = current.deepCopy();
+        json.addProperty("name", name);
+        if (EffectStudio.saveUserPreset(name, json)) {
+            cancelPlacing(MINE + name);
+            mine = EffectStudio.userPresets();
+            minecraft.player.displayClientMessage(Component.translatable("gui.mm.effect_studio.preset_saved", pretty(name)), true);
+        } else {
+            minecraft.player.displayClientMessage(Component.translatable("gui.mm.effect_studio.preset_failed"), true);
+        }
+        saving = false;
+        rebuildWidgets();
+        setFocused(null);
+    }
+
+    private void buildInspector() {
+        int px = width - PANEL - 6;
+        ResourceLocation id = selectedId();
+        String current = id != null ? label(session.effects.get(session.selected))
+                : Component.translatable(session.effects.isEmpty() ? "gui.mm.effect_studio.dropdown.none" : "gui.mm.effect_studio.dropdown.pick",
+                session.effects.size()).getString();
+        addRenderableWidget(Button.builder(Component.literal(font.plainSubstrByWidth(current, PANEL - 20) + " \u25BC"), b -> {
+            dropdown = !session.effects.isEmpty() && !dropdown;
+            dropScroll = Math.max(0, session.selected - 3);
+        }).bounds(px, 20, PANEL, 18).build());
+        if (saving && savingFor != session.selected) {
+            saving = false;
+            presetNameBox = null;
+        }
+        if (id == null) {
+            presetNameBox = null;
+            return;
+        }
+        if (saving) {
+            String suggested = presetNameBox != null ? presetNameBox.getValue() : EffectStudio.presetName(label(session.effects.get(session.selected)));
+            presetNameBox = new EditBox(font, px, 41, PANEL - 46, 16, Component.empty());
+            presetNameBox.setMaxLength(48);
+            presetNameBox.setValue(suggested);
+            presetNameBox.setHint(Component.translatable("gui.mm.effect_studio.preset_name").withStyle(ChatFormatting.DARK_GRAY));
+            addRenderableWidget(presetNameBox);
+            Button saveButton = addRenderableWidget(Button.builder(Component.empty(), b -> savePreset()).bounds(px + PANEL - 44, 40, 44, 18).build());
+            java.util.function.Consumer<String> label = value -> saveButton.setMessage(Component.translatable(
+                    mine.containsKey(EffectStudio.presetName(value)) ? "gui.mm.effect_studio.preset_replace" : "gui.mm.effect_studio.preset_save"));
+            label.accept(suggested);
+            presetNameBox.setResponder(label);
+            if (focusLater == null) {
+                focusLater = presetNameBox;
+            }
+        } else {
+            presetNameBox = null;
+            addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.save_preset"), b -> {
+                saving = true;
+                savingFor = session.selected;
+                rebuildWidgets();
+            }).bounds(px, 40, PANEL - 52, 18).build());
+            addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.remove"), b -> {
+                remember();
+                session.edited.remove(id);
+                session.effects.remove(session.selected);
+                session.selected = -1;
+                session.dirty = true;
+                rebuildWidgets();
+            }).bounds(px + PANEL - 50, 40, 50, 18).build());
+        }
+        String[] tabs = {"spots", "layers", "look"};
+        int tabWidth = (PANEL - 4) / 3;
+        for (int t = 0; t < tabs.length; t++) {
+            int index = t;
+            Button tab = addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.tab." + tabs[t]), b -> {
+                session.tab = index;
+                rebuildWidgets();
+            }).bounds(px + t * (tabWidth + 2), 62, tabWidth, 16).build());
+            tab.active = session.tab != t;
+        }
+        int y = 84;
+        if (session.tab == 0) {
+            spotsY = y;
+            buildSpotRows(px, y);
+        } else if (session.tab == 1) {
+            JsonObject base = base(id);
+            if (base != null && base.has("layers")) {
+                JsonArray layers = base.getAsJsonArray("layers");
+                int live = 0;
+                for (int i = 0; i < layers.size(); i++) {
+                    JsonObject layer = layers.get(i).getAsJsonObject();
+                    boolean off = layer.has("off") && layer.get("off").getAsBoolean();
+                    if (!off) {
+                        dots.add(new int[]{px + (i % 2) * 66, y + (i / 2) * 18, live++});
+                    }
+                    String name = layer.has("name") ? layer.get("name").getAsString() : pretty(layer.has("type") ? layer.get("type").getAsString() : "?");
+                    addRenderableWidget(Button.builder(Component.literal(name).withStyle(off ? ChatFormatting.DARK_GRAY : ChatFormatting.GREEN), b -> {
+                        remember();
+                        setOff(layer, !off);
+                        if (!rescale(id)) {
+                            setOff(layer, off);
+                            rescale(id);
+                        }
+                        rebuildWidgets();
+                    }).bounds(px + (i % 2) * 66, y + (i / 2) * 18, 64, 16).build());
+                }
+                y += (layers.size() + 1) / 2 * 18 + 6;
+            }
+            if (!partNames.isEmpty()) {
+                part = Math.min(part, partNames.size() - 1);
+                addRenderableWidget(Button.builder(Component.literal(pretty(partNames.get(part))), b -> {
+                    part = (part + 1) % partNames.size();
+                    b.setMessage(Component.literal(pretty(partNames.get(part))));
+                }).bounds(px, y, 64, 18).build());
+                addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.add_part"), b -> addPart(id, partNames.get(part)))
+                        .bounds(px + 66, y, 64, 18).build());
+                y += 22;
+            }
+            addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.advanced"), b -> {
+                remember();
+                session.originals.remove(id);
+                session.sliders.remove(id);
+                session.colors.remove(id);
+                minecraft.setScreen(new EffectLayersScreen(session, this, id));
+            }).bounds(px, y, PANEL, 18).build());
+        } else {
+            double[] values = session.sliders.computeIfAbsent(id, k -> new double[]{0.5, 0.5, 0.5});
+            String[] names = {"amount", "size", "speed"};
+            for (int i = 0; i < 3; i++) {
+                addRenderableWidget(new Slider(px, y, names[i], id, values, i));
+                y += 22;
+            }
+            colorsY = y;
+            for (int i = 0; i < COLORS.length; i++) {
+                String color = COLORS[i];
+                addRenderableWidget(Button.builder(Component.empty(), b -> {
+                    remember();
+                    session.colors.put(id, color);
+                    rescale(id);
+                }).bounds(px + (i % 5) * 26, y + (i / 5) * 18, 24, 16).build());
+            }
+        }
+    }
+
+    private void smallButtonTip(int x, int y, int w, Component text, String tipKey, Runnable action) {
+        addRenderableWidget(Button.builder(text, b -> action.run())
+                .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio." + tipKey)))
+                .bounds(x, y, w, 14).build());
+    }
+
     private void smallButton(int x, int y, int w, Component text, @Nullable String tip, Runnable action) {
         Button.Builder builder = Button.builder(text, b -> {
             action.run();
@@ -293,12 +496,12 @@ public class EffectStudioScreen extends Screen {
         addRenderableWidget(builder.bounds(x, y, w, 14).build());
     }
 
-    private void buildSpotRows(int top) {
+    private void buildSpotRows(int px, int top) {
         JsonObject anchors = selectedAnchors();
         JsonObject fx = base(selectedId());
         Set<String> linked = linkedOf(fx);
         var rows = new ArrayList<Runnable[]>();
-        int right = 6 + PANEL;
+        int right = px + PANEL;
         for (int i = 0; i < spots.size(); i++) {
             String spot = spots.get(i);
             int color = SPOT_COLORS[i % SPOT_COLORS.length];
@@ -309,7 +512,7 @@ public class EffectStudioScreen extends Screen {
             int rowColor = color;
             rows.add(new Runnable[]{() -> {
                 int ry = rowY(headerIndex, top);
-                rowLabels.add(new Object[]{6, ry + 3, font.plainSubstrByWidth(pretty(spot), PANEL - 20), rowColor});
+                rowLabels.add(new Object[]{px, ry + 3, font.plainSubstrByWidth(pretty(spot), PANEL - 20), rowColor});
                 if (!arcs) {
                     smallButton(right - 14, ry, 14, Component.literal("+"), "add", () -> {
                         adding = adding != null && adding.equals(spot) ? null : spot;
@@ -338,7 +541,7 @@ public class EffectStudioScreen extends Screen {
                     String text = (selected ? "> " : "") + Component.translatable("gui.mm.effect_studio.point", index + 1).getString()
                             + (arcs ? " \u2192 " + (neighbours.isEmpty() ? "-" : neighbours) : "");
                     int width = PANEL - (arcs ? 32 : 16);
-                    smallButton(6, ry, width, Component.literal(font.plainSubstrByWidth(text, width - 6))
+                    smallButton(px, ry, width, Component.literal(font.plainSubstrByWidth(text, width - 6))
                             .withStyle(from ? ChatFormatting.YELLOW : ChatFormatting.WHITE), null, () -> pickRow(spot, index));
                     if (arcs) {
                         smallButton(right - 30, ry, 14, Component.literal("+"), "link", () -> {
@@ -360,7 +563,7 @@ public class EffectStudioScreen extends Screen {
             }
             if (arcs && !links.isEmpty()) {
                 int arcsHeader = rows.size();
-                rows.add(new Runnable[]{() -> rowLabels.add(new Object[]{10, rowY(arcsHeader, top) + 3,
+                rows.add(new Runnable[]{() -> rowLabels.add(new Object[]{px + 4, rowY(arcsHeader, top) + 3,
                         Component.translatable("gui.mm.effect_studio.arcs").getString(), 0xFFA0A0A0})});
                 for (int[] l : links) {
                     int a = l[0];
@@ -368,7 +571,7 @@ public class EffectStudioScreen extends Screen {
                     int rowIndex = rows.size();
                     rows.add(new Runnable[]{() -> {
                         int ry = rowY(rowIndex, top);
-                        rowLabels.add(new Object[]{14, ry + 3, (a + 1) + " \u2014 " + (b + 1), rowColor});
+                        rowLabels.add(new Object[]{px + 8, ry + 3, (a + 1) + " \u2014 " + (b + 1), rowColor});
                         smallButton(right - 14, ry, 14, Component.literal("x"), "unlink_one", () -> removeLink(spot, a, b));
                     }});
                 }
@@ -1039,7 +1242,7 @@ public class EffectStudioScreen extends Screen {
             pending.remove(key);
         }
         var seen = new LinkedHashMap<String, String>();
-        for (JsonElement element : presets.get(preset).getAsJsonArray("layers")) {
+        for (JsonElement element : preset(preset).getAsJsonArray("layers")) {
             JsonObject layer = element.getAsJsonObject();
             String type = layer.has("type") ? layer.get("type").getAsString() : "";
             boolean area = "glow".equals(type) && !(layer.has("mode") && layer.get("mode").getAsString().equals("halo"));
@@ -1098,7 +1301,7 @@ public class EffectStudioScreen extends Screen {
             }
             faces.put(step[0], hit.getDirection());
             appendPoint(pending, step[0], point(at.x + origin.getX(), at.y + origin.getY(), at.z + origin.getZ()));
-            boolean needsMore = linkedOf(presets.get(placing)).contains(step[0]) && pointsOf(pending.get(step[0])).size() < 2;
+            boolean needsMore = linkedOf(preset(placing)).contains(step[0]) && pointsOf(pending.get(step[0])).size() < 2;
             held = hasControlDown() || needsMore ? step[0] : null;
         }
         if (currentStep() == null) {
@@ -1182,7 +1385,7 @@ public class EffectStudioScreen extends Screen {
         long now = System.nanoTime();
         float dt = lastFrame == 0 ? 0 : Math.min(0.1f, (now - lastFrame) / 1e9f);
         lastFrame = now;
-        if (coords != null && coords.isFocused()) {
+        if (getFocused() instanceof EditBox) {
             return;
         }
         long window = minecraft.getWindow().getWindow();
@@ -1210,7 +1413,6 @@ public class EffectStudioScreen extends Screen {
     }
 
     private void finish() {
-        remember();
         held = null;
         JsonArray source = null;
         Direction face = Direction.DOWN;
@@ -1234,8 +1436,15 @@ public class EffectStudioScreen extends Screen {
         do {
             id = session.structure.withSuffix("_fx" + n++);
         } while (FxManager.source(id) != null || session.edited.containsKey(id));
-        JsonObject json = presets.get(placing).deepCopy();
-        json.addProperty("name", placing);
+        JsonObject chosen = preset(placing);
+        if (chosen == null) {
+            placing = null;
+            held = null;
+            steps.clear();
+            return;
+        }
+        JsonObject json = chosen.deepCopy();
+        json.addProperty("name", placing.startsWith(MINE) ? placing.substring(MINE.length()) : placing);
         for (String name : linkedOf(json)) {
             var chain = new ArrayList<int[]>();
             int count = pointsOf(pending.get(name)).size();
@@ -1251,6 +1460,7 @@ public class EffectStudioScreen extends Screen {
             steps.clear();
             return;
         }
+        remember();
         session.edited.put(id, json);
         var effect = new JsonObject();
         effect.addProperty("fx", id.toString());
@@ -1670,7 +1880,7 @@ public class EffectStudioScreen extends Screen {
         Component hint;
         if (step != null) {
             String kind = step[0].equals(held) ? "held" : underside ? "underside" : step[1];
-            hint = Component.translatable("gui.mm.effect_studio.click." + kind, pretty(placing), step[0]);
+            hint = Component.translatable("gui.mm.effect_studio.click." + kind, presetLabel(placing), step[0]);
         } else if (adding != null && linking()) {
             hint = Component.translatable("gui.mm.effect_studio.click.link", linkFrom + 1);
         } else if (adding != null) {
@@ -1700,11 +1910,8 @@ public class EffectStudioScreen extends Screen {
                 }
             }
         }
-        if (!spots.isEmpty()) {
-            gfx.drawString(font, Component.translatable("gui.mm.effect_studio.spots"), 6, spotsY - 11, 0xFFFFFF);
-            for (Object[] label : rowLabels) {
-                gfx.drawString(font, (String) label[2], (int) label[0], (int) label[1], (int) label[3]);
-            }
+        for (Object[] label : rowLabels) {
+            gfx.drawString(font, (String) label[2], (int) label[0], (int) label[1], (int) label[3]);
         }
         String tip = null;
         for (int[] dot : dots) {
@@ -1719,7 +1926,7 @@ public class EffectStudioScreen extends Screen {
         if (tip != null) {
             gfx.renderTooltip(font, font.split(Component.translatable("gui.mm.effect_studio.health." + tip), 180), mouseX, mouseY);
         }
-        if (selectedId() != null) {
+        if (selectedId() != null && session.tab == 2) {
             int x = width - PANEL - 6;
             for (int i = 0; i < COLORS.length; i++) {
                 int cx = x + (i % 5) * 26 + 3;
@@ -1732,6 +1939,23 @@ public class EffectStudioScreen extends Screen {
             String label = selectedHandle.height() ? selectedHandle.name() : selectedHandle.name() + " #" + (selectedHandle.index() + 1);
             gfx.drawString(font, label, coords.getX(), coords.getY() - 10, 0xFFFFFF);
             coords.render(gfx, mouseX, mouseY, partialTick);
+        }
+        if (dropdown) {
+            int px = width - PANEL - 6;
+            int rows = dropRows();
+            gfx.fill(px, 40, px + PANEL, 40 + rows * 16 + 2, 0xF0101010);
+            for (int r = 0; r < rows; r++) {
+                int i = dropScroll + r;
+                int ry = 41 + r * 16;
+                boolean over = mouseX >= px && mouseX < px + PANEL && mouseY >= ry && mouseY < ry + 16;
+                if (over || i == session.selected) {
+                    gfx.fill(px + 1, ry, px + PANEL - 1, ry + 16, over ? 0xFF3A3A3A : 0xFF263040);
+                }
+                gfx.drawString(font, font.plainSubstrByWidth((i + 1) + ". " + label(session.effects.get(i)), PANEL - 8), px + 4, ry + 4, 0xFFFFFF);
+            }
+            if (dropScroll + rows < session.effects.size()) {
+                gfx.drawCenteredString(font, "\u25BC", px + PANEL / 2, 40 + rows * 16 - 6, 0xFF808080);
+            }
         }
         if (menu != null) {
             String[] entries = menuEntries(menu);
@@ -1752,6 +1976,31 @@ public class EffectStudioScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         pressX = mouseX;
         pressY = mouseY;
+        deleteArmed = confirmDelete;
+        if (confirmDelete != null) {
+            confirmDelete = null;
+            rebuildWidgets();
+        }
+        focusLater = null;
+        if (getFocused() instanceof EditBox box && !box.isMouseOver(mouseX, mouseY)) {
+            setFocused(null);
+        }
+        if (dropdown) {
+            dropdown = false;
+            swallowRelease = true;
+            int px = width - PANEL - 6;
+            int r = (int) ((mouseY - 41) / 16);
+            if (button == 0 && mouseX >= px && mouseX < px + PANEL && mouseY >= 41 && r >= 0 && r < dropRows()) {
+                session.selected = dropScroll + r;
+                adding = null;
+                linkFrom = -1;
+                handleName = null;
+                saving = false;
+                spotScroll = 0;
+                rebuildWidgets();
+            }
+            return true;
+        }
         if (coords != null && coords.isMouseOver(mouseX, mouseY)) {
             return super.mouseClicked(mouseX, mouseY, button);
         }
@@ -1790,15 +2039,38 @@ public class EffectStudioScreen extends Screen {
             }
         }
         boolean handled = super.mouseClicked(mouseX, mouseY, button);
-        if (handled && getFocused() instanceof Button) {
+        deleteArmed = null;
+        if (focusLater != null) {
+            setFocused(focusLater);
+            focusLater = null;
+        } else if (handled && getFocused() instanceof Button) {
             setFocused(null);
         }
         return handled;
     }
 
+    private int dropRows() {
+        int fit = Math.max(1, (height - 48) / 16);
+        dropScroll = Math.max(0, Math.min(dropScroll, session.effects.size() - fit));
+        return Math.min(fit, session.effects.size() - dropScroll);
+    }
+
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        if (!spots.isEmpty() && mouseX < PANEL + 8 && mouseY >= spotsY) {
+        int step = (int) Math.signum(scrollY);
+        if (dropdown && mouseX >= width - PANEL - 6) {
+            dropScroll = Math.max(0, dropScroll - step);
+            return true;
+        }
+        if (mouseX < PANEL + 8 && mouseY >= 42) {
+            int next = Math.max(0, Math.min(libScrollMax, libScroll - step));
+            if (next != libScroll) {
+                libScroll = next;
+                rebuildWidgets();
+            }
+            return true;
+        }
+        if (session.tab == 0 && !spots.isEmpty() && mouseX >= width - PANEL - 8 && mouseY >= spotsY) {
             int next = Math.max(0, Math.min(spotScrollMax, spotScroll - (int) Math.signum(scrollY)));
             if (next != spotScroll) {
                 spotScroll = next;
@@ -1880,13 +2152,31 @@ public class EffectStudioScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        boolean typing = coords != null && coords.isFocused();
+        boolean typing = getFocused() instanceof EditBox;
         if (typing && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
-            applyCoords();
+            if (getFocused() == coords) {
+                applyCoords();
+            } else if (getFocused() == presetNameBox) {
+                savePreset();
+            } else if (getFocused() == renameBox) {
+                applyRename();
+            } else {
+                setFocused(null);
+            }
             return true;
         }
         if (typing && keyCode == 256) {
             setFocused(null);
+            if (saving || renaming != null) {
+                saving = false;
+                renaming = null;
+                rebuildWidgets();
+                setFocused(null);
+            }
+            return true;
+        }
+        if (dropdown && keyCode == 256) {
+            dropdown = false;
             return true;
         }
         if (menu != null && keyCode == 256) {

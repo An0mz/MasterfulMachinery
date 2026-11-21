@@ -60,7 +60,7 @@ public final class FxContext {
         if (!state.getFluidState().isEmpty()) {
             return false;
         }
-        VoxelShape shape = state.getShape(level, cursor);
+        VoxelShape shape = state.getCollisionShape(level, cursor);
         return shape.isEmpty() || shape.max(Direction.Axis.Y, localZ, localX) == Double.NEGATIVE_INFINITY;
     }
 
