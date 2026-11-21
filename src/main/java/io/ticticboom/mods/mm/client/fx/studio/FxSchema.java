@@ -26,7 +26,7 @@ final class FxSchema {
         LAYERS.put("ripple", join(COLOR, new String[]{
                 "alpha", "1", "life", "0.55", "width", "0.014", "speed", "0.42", "max", "32"}));
         LAYERS.put("seep", new String[]{"at", "drips", "top", "seep_top", "texture", "", "palette", "", "port_color", "false",
-                "glow", "false", "alpha", "1", "chance", "0.6", "speed", "1", "stains", "true", "drip_patch", "true"});
+                "glow", "false", "alpha", "1", "chance", "0.6", "speed", "1", "stains", "true", "drip_patch", "true", "faces", "north, east", "streams", "1"});
         LAYERS.put("emitter", join(new String[]{"at", "emit", "blend", "translucent"}, COLOR, new String[]{
                 "rate", "10", "max", "128", "life", "1, 1.5", "velocity", "0, 0, 0", "velocity_spread", "0, 0, 0",
                 "box", "0, 0, 0", "gravity", "0", "drag", "0", "size", "0.2, 0.2", "alpha", "1, 0", "spin", "0, 0",

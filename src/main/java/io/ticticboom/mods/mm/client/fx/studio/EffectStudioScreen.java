@@ -529,7 +529,110 @@ public class EffectStudioScreen extends Screen {
                     rescale(id);
                 }).bounds(px + (i % 5) * 26, y + (i / 5) * 18, 24, 16).build());
             }
+            JsonObject seep = firstSeep(base(id));
+            if (seep != null) {
+                int sy = y + 42;
+                rowLabels.add(new Object[]{px, sy, Component.translatable("gui.mm.effect_studio.seep.sides").getString(), 0xFFFFFFFF});
+                sy += 11;
+                Set<String> chosen = seepFaces(seep);
+                String[] sides = {"north", "east", "south", "west"};
+                for (int i = 0; i < sides.length; i++) {
+                    String side = sides[i];
+                    boolean on = chosen != null && chosen.contains(side);
+                    smallButtonTip(px + i * 22, sy, 20, Component.literal(side.substring(0, 1).toUpperCase(java.util.Locale.ROOT))
+                            .withStyle(on ? ChatFormatting.GREEN : ChatFormatting.GRAY), "seep." + side, () -> toggleSeepFace(id, side));
+                }
+                Button any = addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.seep.any"), b -> setSeep(id, "faces", null))
+                        .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.seep.any_tip")))
+                        .bounds(px + 90, sy, PANEL - 90, 14).build());
+                any.active = chosen != null;
+                sy += 18;
+                JsonElement rawStreams = seep.get("streams");
+                int streams = rawStreams != null && rawStreams.isJsonPrimitive() && rawStreams.getAsJsonPrimitive().isNumber()
+                        ? Math.max(1, Math.min(4, rawStreams.getAsInt())) : 1;
+                rowLabels.add(new Object[]{px, sy + 3, Component.translatable("gui.mm.effect_studio.seep.streams", streams).getString(), 0xFFFFFFFF});
+                if (streams > 1) {
+                    smallButton(px + PANEL - 30, sy, 14, Component.literal("-"), null,
+                            () -> setSeep(id, "streams", streams > 2 ? new JsonPrimitive(streams - 1) : null));
+                }
+                if (streams < 4) {
+                    smallButton(px + PANEL - 14, sy, 14, Component.literal("+"), null,
+                            () -> setSeep(id, "streams", new JsonPrimitive(streams + 1)));
+                }
+            }
         }
+    }
+
+    @Nullable
+    private static JsonObject firstSeep(@Nullable JsonObject fx) {
+        if (fx == null || !fx.has("layers")) {
+            return null;
+        }
+        for (JsonElement element : fx.getAsJsonArray("layers")) {
+            JsonObject layer = element.getAsJsonObject();
+            if ("seep".equals(layer.has("type") ? layer.get("type").getAsString() : "") && !(layer.has("off") && layer.get("off").getAsBoolean())) {
+                return layer;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private static Set<String> seepFaces(JsonObject seep) {
+        if (!seep.has("faces")) {
+            return null;
+        }
+        var result = new HashSet<String>();
+        JsonElement faces = seep.get("faces");
+        for (JsonElement element : faces.isJsonArray() ? faces.getAsJsonArray().asList() : List.of(faces)) {
+            if (element.isJsonPrimitive()) {
+                result.add(element.getAsString().toLowerCase(java.util.Locale.ROOT));
+            }
+        }
+        return result;
+    }
+
+    private void setSeep(ResourceLocation id, String key, @Nullable JsonElement value) {
+        JsonObject fx = base(id);
+        if (fx == null) {
+            return;
+        }
+        remember();
+        for (JsonElement element : fx.getAsJsonArray("layers")) {
+            JsonObject layer = element.getAsJsonObject();
+            if (!"seep".equals(layer.has("type") ? layer.get("type").getAsString() : "")) {
+                continue;
+            }
+            if (value == null) {
+                layer.remove(key);
+            } else {
+                layer.add(key, value.deepCopy());
+            }
+        }
+        rescale(id);
+        rebuildWidgets();
+    }
+
+    private void toggleSeepFace(ResourceLocation id, String side) {
+        JsonObject seep = firstSeep(base(id));
+        if (seep == null) {
+            return;
+        }
+        Set<String> chosen = seepFaces(seep);
+        var next = new java.util.LinkedHashSet<String>();
+        for (String s : new String[]{"north", "east", "south", "west"}) {
+            boolean on = chosen != null && chosen.contains(s);
+            if (s.equals(side) ? !on : on) {
+                next.add(s);
+            }
+        }
+        if (next.isEmpty()) {
+            setSeep(id, "faces", null);
+            return;
+        }
+        var list = new JsonArray();
+        next.forEach(list::add);
+        setSeep(id, "faces", list);
     }
 
     private void smallButtonTip(int x, int y, int w, Component text, String tipKey, Runnable action) {
@@ -917,6 +1020,12 @@ public class EffectStudioScreen extends Screen {
                     if (value != null) {
                         anchors.add(derived, value);
                     }
+                }
+            }
+            if (anchors.has("seep_top")) {
+                JsonElement value = autoAll("seep_top", source, null, null);
+                if (value != null) {
+                    anchors.add("seep_top", value);
                 }
             }
         }
@@ -1987,6 +2096,7 @@ public class EffectStudioScreen extends Screen {
         for (Object[] label : rowLabels) {
             gfx.drawString(font, (String) label[2], (int) label[0], (int) label[1], (int) label[3]);
         }
+        drawSeepSides(gfx);
         if (dragFromLibrary && placing != null && Math.abs(mouseX - pressX) + Math.abs(mouseY - pressY) >= 4) {
             String text = presetLabel(placing);
             int tw = font.width(text);
@@ -2049,6 +2159,36 @@ public class EffectStudioScreen extends Screen {
                 }
                 gfx.drawString(font, Component.translatable("gui.mm.effect_studio.menu." + entries[i]), menuX + 4, ey + 3, 0xFFFFFF);
             }
+        }
+    }
+
+    private void drawSeepSides(GuiGraphics gfx) {
+        ResourceLocation id = selectedId();
+        JsonObject seep = id == null || view == null || session.collapsed || session.tab != 2 ? null : firstSeep(base(id));
+        if (seep == null) {
+            return;
+        }
+        String at = seep.has("at") && seep.get("at").isJsonPrimitive() ? seep.get("at").getAsString() : "drips";
+        List<double[]> points = pointsOf(selectedAnchors().get(at));
+        if (points.isEmpty()) {
+            return;
+        }
+        var origin = model.layout().getCharGrid().getControllerPos();
+        double[] p = points.get(0);
+        double cx = Math.floor(p[0] - origin.getX()) + 0.5;
+        double cy = Math.floor(p[1] - origin.getY() + 0.001) + 0.5;
+        double cz = Math.floor(p[2] - origin.getZ()) + 0.5;
+        Set<String> chosen = seepFaces(seep);
+        String[] sides = {"north", "east", "south", "west"};
+        double[][] offsets = {{0, -0.62}, {0.62, 0}, {0, 0.62}, {-0.62, 0}};
+        for (int i = 0; i < 4; i++) {
+            double[] s = view.project(cx + offsets[i][0], cy, cz + offsets[i][1]);
+            if (s == null || !viewport.contains((int) s[0], (int) s[1])) {
+                continue;
+            }
+            boolean on = chosen != null && chosen.contains(sides[i]);
+            gfx.drawCenteredString(font, sides[i].substring(0, 1).toUpperCase(java.util.Locale.ROOT), (int) s[0], (int) s[1] - 4,
+                    chosen == null ? 0xFFC0C0C0 : on ? 0xFF55FF55 : 0xFF707070);
         }
     }
 

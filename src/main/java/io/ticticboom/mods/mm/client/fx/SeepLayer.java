@@ -4,6 +4,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
@@ -30,6 +32,8 @@ public final class SeepLayer implements FxLayer {
     private final double speed;
     private final boolean stains;
     private final boolean dripPatch;
+    private final int faceMask;
+    private final int streams;
 
     private SeepLayer(JsonObject json) {
         at = json.has("at") ? json.get("at").getAsString() : "drips";
@@ -50,6 +54,52 @@ public final class SeepLayer implements FxLayer {
         speed = json.has("speed") ? json.get("speed").getAsDouble() : 1.0;
         stains = !json.has("stains") || json.get("stains").getAsBoolean();
         dripPatch = !json.has("drip_patch") || json.get("drip_patch").getAsBoolean();
+        if (json.has("streams") && !(json.get("streams").isJsonPrimitive() && json.get("streams").getAsJsonPrimitive().isNumber())) {
+            throw new IllegalArgumentException("seep 'streams' must be a number from 1 to 4");
+        }
+        streams = Math.max(1, Math.min(4, json.has("streams") ? json.get("streams").getAsInt() : 1));
+        if (json.has("faces")) {
+            var listed = new JsonArray();
+            if (json.get("faces").isJsonArray()) {
+                listed = json.getAsJsonArray("faces");
+            } else {
+                listed.add(json.get("faces"));
+            }
+            int mask = 0;
+            for (var element : listed) {
+                Direction dir = element.isJsonPrimitive() ? Direction.byName(element.getAsString().toLowerCase(java.util.Locale.ROOT)) : null;
+                if (dir == null || dir.getAxis() == Direction.Axis.Y) {
+                    throw new IllegalArgumentException("seep 'faces' must list north, east, south or west");
+                }
+                mask |= 1 << dir.get2DDataValue();
+            }
+            faceMask = mask;
+        } else {
+            faceMask = -1;
+        }
+    }
+
+    private static int index(int dx, int dz) {
+        for (int d = 0; d < 4; d++) {
+            if (DIRECTIONS[d][0] == dx && DIRECTIONS[d][1] == dz) {
+                return d;
+            }
+        }
+        return 0;
+    }
+
+    private int rotatedMask(Rotation rotation) {
+        if (faceMask < 0) {
+            return -1;
+        }
+        int mask = 0;
+        for (Direction dir : Direction.Plane.HORIZONTAL) {
+            if ((faceMask & (1 << dir.get2DDataValue())) != 0) {
+                Direction turned = rotation.rotate(dir);
+                mask |= 1 << index(turned.getStepX(), turned.getStepZ());
+            }
+        }
+        return mask;
     }
 
     private static int[] parsePalette(JsonArray array) {
@@ -90,12 +140,15 @@ public final class SeepLayer implements FxLayer {
             }
             rows = Math.min(rows, MAX_BLOCKS * 16);
             RandomSource random = RandomSource.create(shared.seed() ^ 0x5DEECE66DL ^ (c.index * 0x9E3779B97F4A7C15L));
-            faces[i] = new Face[4];
-            for (int d = 0; d < 4; d++) {
-                faces[i][d] = new Face(c, DIRECTIONS[d][0], DIRECTIONS[d][1], seepTop, rows, random);
+            faces[i] = new Face[4 * streams];
+            for (int s = 0; s < streams; s++) {
+                int slot = streams == 1 ? -1 : 3 + (int) Math.round(s * 9.0 / (streams - 1));
+                for (int d = 0; d < 4; d++) {
+                    faces[i][s * 4 + d] = new Face(c, DIRECTIONS[d][0], DIRECTIONS[d][1], seepTop, rows, random, slot);
+                }
             }
         }
-        return new Seeps(columns, faces);
+        return new Seeps(columns, faces, rotatedMask(shared.rotation));
     }
 
     private int color(int tint, int index, double a) {
@@ -136,7 +189,7 @@ public final class SeepLayer implements FxLayer {
         boolean rivulet;
         boolean stain;
 
-        Face(FxColumn column, int dx, int dz, double seepTop, int rows, RandomSource random) {
+        Face(FxColumn column, int dx, int dz, double seepTop, int rows, RandomSource random, int slot) {
             this.column = column;
             this.xFace = dx != 0;
             this.sign = xFace ? dx : dz;
@@ -162,7 +215,8 @@ public final class SeepLayer implements FxLayer {
             this.path = new int[rows];
             this.cellMin = (xFace ? cellZ : cellX) * 16;
             int target = (int) Math.floor(uCenter * 16);
-            int start = Math.max(cellMin + 3, Math.min(cellMin + 12, target + (u0 < uCenter ? -1 : 1) * (FxNoise.hash(7, seed) < 0.5 ? 1 : 0)));
+            int start = slot >= 0 ? cellMin + slot
+                    : Math.max(cellMin + 3, Math.min(cellMin + 12, target + (u0 < uCenter ? -1 : 1) * (FxNoise.hash(7, seed) < 0.5 ? 1 : 0)));
             int cur = start;
             for (int row = 0; row < rows; row++) {
                 boolean seamRow = row > 0 && row % 16 == 0;
@@ -181,12 +235,14 @@ public final class SeepLayer implements FxLayer {
         private final FxColumn[] columns;
         private final Face[][] faces;
         private final int[] lastMask;
+        private final int chosen;
         private int tint = -1;
         private RenderType renderType;
 
-        Seeps(FxColumn[] columns, Face[][] faces) {
+        Seeps(FxColumn[] columns, Face[][] faces, int chosen) {
             this.columns = columns;
             this.faces = faces;
+            this.chosen = chosen;
             this.lastMask = new int[columns.length];
             Arrays.fill(lastMask, -1);
         }
@@ -199,7 +255,7 @@ public final class SeepLayer implements FxLayer {
                     continue;
                 }
                 int mask = 0;
-                for (int d = 0; d < 4; d++) {
+                for (int d = 0; d < list.length; d++) {
                     Face f = list[d];
                     int topBlock = (int) Math.round(f.seepTop);
                     boolean ok = f.column.blockAbove;
@@ -212,7 +268,7 @@ public final class SeepLayer implements FxLayer {
                     f.stainExposed = ctx.solid(f.cellX, by, f.cellZ) && ctx.passable(f.cellX + f.nx, by, f.cellZ + f.nz);
                     f.stainLight = ctx.light(f.cellX + f.nx + 0.5, by + 0.5, f.cellZ + f.nz + 0.5);
                     if (ok) {
-                        mask |= 1 << d;
+                        mask |= 1 << (d % 4);
                     }
                     int blocks = Math.min(MAX_BLOCKS, (f.rows + 15) / 16);
                     for (int k = 0; k < blocks; k++) {
@@ -227,24 +283,36 @@ public final class SeepLayer implements FxLayer {
         }
 
         private void pick(Face[] list, int mask) {
-            boolean any = false;
-            for (int d = 0; d < 4; d++) {
-                Face f = list[d];
-                f.rivulet = f.exposed && f.pickRoll < chance;
-                any |= f.rivulet;
-            }
-            if (!any && mask != 0) {
-                int first = (int) (FxNoise.hash(11, list[0].column.seed) * 4);
-                for (int n = 0; n < 4; n++) {
-                    Face f = list[(first + n) % 4];
-                    if (f.exposed) {
-                        f.rivulet = true;
-                        break;
+            if (chosen >= 0) {
+                for (int d = 0; d < list.length; d++) {
+                    list[d].rivulet = list[d].exposed && (chosen & (1 << (d % 4))) != 0;
+                }
+            } else {
+                for (int d = 0; d < 4; d++) {
+                    boolean on = list[d].exposed && list[d].pickRoll < chance;
+                    for (int s = d; s < list.length; s += 4) {
+                        list[s].rivulet = on;
+                    }
+                }
+                boolean any = false;
+                for (Face f : list) {
+                    any |= f.rivulet;
+                }
+                if (!any && mask != 0) {
+                    int first = (int) (FxNoise.hash(11, list[0].column.seed) * 4);
+                    for (int n = 0; n < 4; n++) {
+                        int d = (first + n) % 4;
+                        if (list[d].exposed) {
+                            for (int s = d; s < list.length; s += 4) {
+                                list[s].rivulet = true;
+                            }
+                            break;
+                        }
                     }
                 }
             }
-            for (int d = 0; d < 4; d++) {
-                list[d].stain = stains && !list[d].rivulet;
+            for (int d = 0; d < list.length; d++) {
+                list[d].stain = stains && d < 4 && !list[d].rivulet;
             }
         }
 
