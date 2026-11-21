@@ -2,6 +2,7 @@
   "layers": [
     {
       "type": "emitter",
+      "at": "landing",
       "texture": "kubejs:textures/fx/soft.png",
       "rate": {
         "idle": 0.3,
@@ -43,7 +44,8 @@
         -25,
         25
       ],
-      "max": 24
+      "max": 24,
+      "name": "Smoke"
     }
   ]
 }

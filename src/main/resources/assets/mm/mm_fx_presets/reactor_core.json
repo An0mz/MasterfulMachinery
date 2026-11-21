@@ -1,0 +1,99 @@
+{
+  "layers": [
+    {
+      "type": "glow",
+      "at": "block",
+      "texture": "kubejs:textures/fx/glow_face.png",
+      "color": "#28ff6a",
+      "alpha": {
+        "idle": 0.08,
+        "working": 0.45
+      },
+      "flicker": 0.0,
+      "pulse": 0.2,
+      "pulse_speed": 0.5,
+      "name": "Glowing core"
+    },
+    {
+      "type": "beam",
+      "from": "spot",
+      "to": "sky",
+      "texture": "kubejs:textures/fx/beam.png",
+      "blend": "additive",
+      "color": "#3aff7a",
+      "width": {
+        "idle": 0,
+        "working": 0.5
+      },
+      "taper": 0.7,
+      "scroll": 4,
+      "texture_length": 3,
+      "pulse": 0.2,
+      "pulse_speed": 0.8,
+      "name": "Beam"
+    },
+    {
+      "type": "glow",
+      "mode": "halo",
+      "at": "spot",
+      "texture": "kubejs:textures/fx/spark.png",
+      "color": "#3aff7a",
+      "size": {
+        "idle": 0.6,
+        "working": 2.2
+      },
+      "alpha": {
+        "idle": 0.3,
+        "working": 0.9
+      },
+      "pulse": 0.2,
+      "pulse_speed": 0.9,
+      "name": "Glow"
+    },
+    {
+      "type": "emitter",
+      "at": "spot",
+      "texture": "kubejs:textures/fx/spark.png",
+      "blend": "additive",
+      "rate": {
+        "idle": 1,
+        "working": 6
+      },
+      "life": [
+        4,
+        7
+      ],
+      "box": [
+        2.2,
+        1.2,
+        2.2
+      ],
+      "velocity": [
+        0,
+        0.15,
+        0
+      ],
+      "velocity_spread": [
+        0.25,
+        0.15,
+        0.25
+      ],
+      "gravity": -0.05,
+      "drag": 0.3,
+      "size": [
+        0.08,
+        0.05
+      ],
+      "color": [
+        "#c0ffd0",
+        "#20c050"
+      ],
+      "alpha": [
+        0.9,
+        0
+      ],
+      "max": 48,
+      "name": "Fireflies"
+    }
+  ]
+}

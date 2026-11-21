@@ -570,5 +570,6 @@
   "gui.mm.effect_studio.speed": "Speed: %s",
   "gui.mm.effect_studio.advanced": "Advanced",
   "gui.mm.effect_studio.working": "Showing: Working",
-  "gui.mm.effect_studio.idle": "Showing: Idle"
+  "gui.mm.effect_studio.idle": "Showing: Idle",
+  "gui.mm.effect_studio.add_part": "+ Part"
 }

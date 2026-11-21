@@ -2,6 +2,7 @@
   "layers": [
     {
       "type": "emitter",
+      "at": "spot",
       "texture": "kubejs:textures/fx/spark.png",
       "blend": "additive",
       "rate": {
@@ -45,7 +46,8 @@
         -180,
         180
       ],
-      "max": 64
+      "max": 64,
+      "name": "Motes"
     }
   ]
 }

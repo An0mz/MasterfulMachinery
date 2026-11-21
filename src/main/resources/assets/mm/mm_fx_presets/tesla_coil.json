@@ -1,0 +1,166 @@
+{
+  "layers": [
+    {
+      "type": "beam",
+      "from": "spot",
+      "to": "spot2",
+      "texture": "kubejs:textures/fx/beam.png",
+      "blend": "additive",
+      "color": "#9fd8ff",
+      "width": {
+        "idle": 0,
+        "working": 0.14
+      },
+      "segments": 18,
+      "jitter": 0.6,
+      "jitter_rate": 18,
+      "arc": 0.8,
+      "flicker": 0.8,
+      "scroll": 0,
+      "name": "Arc"
+    },
+    {
+      "type": "beam",
+      "from": "spot",
+      "to": "landing",
+      "texture": "kubejs:textures/fx/beam.png",
+      "blend": "additive",
+      "color": "#9fd8ff",
+      "width": {
+        "idle": 0,
+        "working": 0.08
+      },
+      "segments": 18,
+      "jitter": 0.6,
+      "jitter_rate": 18,
+      "arc": 0.8,
+      "flicker": 0.95,
+      "scroll": 0,
+      "name": "Ground strike"
+    },
+    {
+      "type": "glow",
+      "mode": "halo",
+      "at": "spot",
+      "texture": "kubejs:textures/fx/spark.png",
+      "color": "#5ab0ff",
+      "size": {
+        "idle": 0.5,
+        "working": 1.4
+      },
+      "alpha": {
+        "idle": 0.3,
+        "working": 0.9
+      },
+      "flicker": 0.5,
+      "name": "Glow"
+    },
+    {
+      "type": "glow",
+      "mode": "halo",
+      "at": "spot2",
+      "texture": "kubejs:textures/fx/spark.png",
+      "color": "#5ab0ff",
+      "size": {
+        "idle": 0.5,
+        "working": 1.4
+      },
+      "alpha": {
+        "idle": 0.3,
+        "working": 0.9
+      },
+      "flicker": 0.5,
+      "name": "Glow 2"
+    },
+    {
+      "type": "emitter",
+      "at": "spot",
+      "texture": "kubejs:textures/fx/spark.png",
+      "blend": "additive",
+      "rate": {
+        "idle": 0.5,
+        "working": 16
+      },
+      "life": [
+        0.3,
+        0.8
+      ],
+      "box": [
+        0.25,
+        0.1,
+        0.25
+      ],
+      "velocity": [
+        0,
+        0.5,
+        0
+      ],
+      "velocity_spread": [
+        2.5,
+        1.5,
+        2.5
+      ],
+      "gravity": 6,
+      "drag": 0.8,
+      "size": [
+        0.06,
+        0.01
+      ],
+      "color": [
+        "#ffffff",
+        "#3a7aff"
+      ],
+      "alpha": [
+        1,
+        0
+      ],
+      "max": 64,
+      "name": "Sparks"
+    },
+    {
+      "type": "emitter",
+      "at": "spot2",
+      "texture": "kubejs:textures/fx/spark.png",
+      "blend": "additive",
+      "rate": {
+        "idle": 0.5,
+        "working": 16
+      },
+      "life": [
+        0.3,
+        0.8
+      ],
+      "box": [
+        0.25,
+        0.1,
+        0.25
+      ],
+      "velocity": [
+        0,
+        0.5,
+        0
+      ],
+      "velocity_spread": [
+        2.5,
+        1.5,
+        2.5
+      ],
+      "gravity": 6,
+      "drag": 0.8,
+      "size": [
+        0.06,
+        0.01
+      ],
+      "color": [
+        "#ffffff",
+        "#3a7aff"
+      ],
+      "alpha": [
+        1,
+        0
+      ],
+      "max": 64,
+      "name": "Sparks 2"
+    }
+  ]
+}

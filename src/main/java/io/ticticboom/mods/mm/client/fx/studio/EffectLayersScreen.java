@@ -30,7 +30,7 @@ public class EffectLayersScreen extends Screen {
     private final ResourceLocation id;
     private final JsonObject json;
     private final List<ResourceLocation> textures;
-    private final Map<String, JsonObject> presets = EffectStudio.presets();
+    private final Map<String, JsonObject> presets = EffectStudio.library("mm_fx_parts");
     private final List<String> presetNames = new ArrayList<>(presets.keySet());
     private final Map<ResourceLocation, Integer> textureKinds = new HashMap<>();
     private int selected = -1;

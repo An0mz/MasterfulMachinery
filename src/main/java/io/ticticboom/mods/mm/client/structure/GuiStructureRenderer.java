@@ -6,7 +6,7 @@ import org.joml.Matrix4f;
 import org.jetbrains.annotations.Nullable;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.client.renderer.MultiBufferSource;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -289,14 +289,14 @@ public class GuiStructureRenderer {
         var far = inverse.transform(new Vector4f(nx, ny, 0.99f, 1));
         var from = new Vec3(near.x / near.w, near.y / near.w, near.z / near.w);
         var to = from.add(new Vec3(far.x / far.w, far.y / far.w, far.z / far.w).subtract(from).normalize().scale(100000));
-        var unit = List.of(new AABB(0, 0, 0, 1, 1, 1));
         BlockHitResult best = null;
         double bestDistance = Double.MAX_VALUE;
         for (PositionedCyclingBlockRenderer part : parts) {
             if (!ySliceProcessor.canProcess(part)) {
                 continue;
             }
-            BlockHitResult hit = AABB.clip(unit, from, to, part.pos);
+            var shape = previewWorld.getBlockState(part.pos).getShape(previewWorld, part.pos);
+            BlockHitResult hit = (shape.isEmpty() ? Shapes.block() : shape).clip(from, to, part.pos);
             if (hit != null && hit.getLocation().distanceToSqr(from) < bestDistance) {
                 bestDistance = hit.getLocation().distanceToSqr(from);
                 best = hit;

@@ -41,6 +41,10 @@ final class FxSchema {
                 "frames", "1", "frame_rate", "10"}));
     }
 
+    static {
+        LAYERS.replaceAll((type, keys) -> join(new String[]{"name", "", "off", "false"}, keys));
+    }
+
     private FxSchema() {
     }
 

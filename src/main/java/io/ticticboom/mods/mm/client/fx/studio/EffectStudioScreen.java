@@ -12,6 +12,7 @@ import io.ticticboom.mods.mm.client.gui.util.GuiPos;
 import io.ticticboom.mods.mm.client.structure.GuiStructureRenderer;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import io.ticticboom.mods.mm.structure.layout.PositionedLayoutPiece;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
@@ -24,6 +25,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.Shapes;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -42,9 +44,15 @@ public class EffectStudioScreen extends Screen {
     private static final Set<String> SIZE = Set.of("size", "radius", "width", "drop_size");
     private static final Set<String> SPEED = Set.of("velocity", "scroll", "speed", "start_speed", "pulse_speed", "jitter_rate", "frame_rate");
     private static final int PANEL = 130;
+    private static final Set<String> AUTO = Set.of("floor", "landing", "sky", "block", "below");
 
     private final EffectStudio.Session session;
-    private final Map<String, JsonObject> presets = EffectStudio.presets();
+    private final Map<String, JsonObject> presets = EffectStudio.library("mm_fx_presets");
+    private final Map<String, JsonObject> parts = EffectStudio.library("mm_fx_parts");
+    private final List<String> partNames = new ArrayList<>(parts.keySet());
+    private int part;
+    @Nullable
+    private BlockHitResult firstHit;
     private final Map<String, Direction> faces = new HashMap<>();
     private final List<String[]> steps = new ArrayList<>();
     private final JsonObject pending = new JsonObject();
@@ -103,7 +111,20 @@ public class EffectStudioScreen extends Screen {
         }
         ResourceLocation id = selectedId();
         if (id != null) {
-            y += 6;
+            addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.advanced"), b -> {
+                session.originals.remove(id);
+                session.sliders.remove(id);
+                session.colors.remove(id);
+                minecraft.setScreen(new EffectLayersScreen(session, this, id));
+            }).bounds(x, y, 64, 18).build());
+            addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.remove"), b -> {
+                session.edited.remove(id);
+                session.effects.remove(session.selected);
+                session.selected = -1;
+                session.dirty = true;
+                rebuildWidgets();
+            }).bounds(x + 66, y, 64, 18).build());
+            y += 24;
             double[] values = session.sliders.computeIfAbsent(id, k -> new double[]{0.5, 0.5, 0.5});
             String[] names = {"amount", "size", "speed"};
             for (int i = 0; i < 3; i++) {
@@ -119,19 +140,34 @@ public class EffectStudioScreen extends Screen {
                 }).bounds(x + (i % 5) * 26, y + (i / 5) * 18, 24, 16).build());
             }
             y += 40;
-            addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.advanced"), b -> {
-                session.originals.remove(id);
-                session.sliders.remove(id);
-                session.colors.remove(id);
-                minecraft.setScreen(new EffectLayersScreen(session, this, id));
-            }).bounds(x, y, 64, 18).build());
-            addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.remove"), b -> {
-                session.edited.remove(id);
-                session.effects.remove(session.selected);
-                session.selected = -1;
-                session.dirty = true;
-                rebuildWidgets();
-            }).bounds(x + 66, y, 64, 18).build());
+            JsonObject base = base(id);
+            if (base != null && base.has("layers")) {
+                JsonArray layers = base.getAsJsonArray("layers");
+                for (int i = 0; i < layers.size(); i++) {
+                    JsonObject layer = layers.get(i).getAsJsonObject();
+                    boolean off = layer.has("off") && layer.get("off").getAsBoolean();
+                    String name = layer.has("name") ? layer.get("name").getAsString() : pretty(layer.has("type") ? layer.get("type").getAsString() : "?");
+                    addRenderableWidget(Button.builder(Component.literal(name).withStyle(off ? ChatFormatting.DARK_GRAY : ChatFormatting.GREEN), b -> {
+                        setOff(layer, !off);
+                        if (!rescale(id)) {
+                            setOff(layer, off);
+                            rescale(id);
+                        }
+                        rebuildWidgets();
+                    }).bounds(x + (i % 2) * 66, y + (i / 2) * 18, 64, 16).build());
+                }
+                y += (layers.size() + 1) / 2 * 18 + 4;
+            }
+            if (!partNames.isEmpty()) {
+                part = Math.min(part, partNames.size() - 1);
+                addRenderableWidget(Button.builder(Component.literal(pretty(partNames.get(part))), b -> {
+                    part = (part + 1) % partNames.size();
+                    b.setMessage(Component.literal(pretty(partNames.get(part))));
+                }).bounds(x, y, 64, 18).build());
+                addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.add_part"), b -> addPart(id, partNames.get(part)))
+                        .bounds(x + 66, y, 64, 18).build());
+                y += 22;
+            }
         }
 
         int by = height - 26;
@@ -172,6 +208,7 @@ public class EffectStudioScreen extends Screen {
 
     private void startPlacing(String preset) {
         placing = preset;
+        firstHit = null;
         steps.clear();
         for (String key : pending.keySet().toArray(new String[0])) {
             pending.remove(key);
@@ -179,41 +216,25 @@ public class EffectStudioScreen extends Screen {
         var seen = new LinkedHashMap<String, String>();
         for (JsonElement element : presets.get(preset).getAsJsonArray("layers")) {
             JsonObject layer = element.getAsJsonObject();
-            String type = layer.has("type") ? layer.get("type").getAsString() : "";
-            switch (type) {
-                case "stream" -> {
-                    seen.putIfAbsent(name(layer, "from", "drips"), "point");
-                    seen.putIfAbsent(name(layer, "to", "floor"), "floor");
-                }
-                case "drip", "pool" -> {
-                    seen.putIfAbsent(name(layer, "at", "drips"), "point");
-                    seen.putIfAbsent(name(layer, "to", "floor"), "floor");
-                }
-                case "emitter" -> seen.putIfAbsent(name(layer, "at", "emit"), "point");
-                case "beam" -> {
-                    seen.putIfAbsent(name(layer, "from", "from"), "point");
-                    seen.putIfAbsent(name(layer, "to", "to"), "point");
-                }
-                case "glow" -> seen.putIfAbsent(name(layer, "at", "glow"),
-                        layer.has("mode") && layer.get("mode").getAsString().equals("halo") ? "point" : "area");
-                default -> {
+            boolean area = "glow".equals(layer.has("type") ? layer.get("type").getAsString() : "")
+                    && !(layer.has("mode") && layer.get("mode").getAsString().equals("halo"));
+            for (String key : new String[]{"at", "from", "to"}) {
+                if (layer.has(key)) {
+                    String name = layer.get(key).getAsString();
+                    seen.putIfAbsent(name, AUTO.contains(name) ? "auto" : area ? "area" : "point");
                 }
             }
         }
         seen.forEach((name, kind) -> steps.add(new String[]{name, kind}));
         if (currentStep() == null) {
-            finish();
+            steps.add(0, new String[]{"spot", "point"});
         }
-    }
-
-    private static String name(JsonObject layer, String key, String fallback) {
-        return layer.has(key) ? layer.get(key).getAsString() : fallback;
     }
 
     @Nullable
     private String[] currentStep() {
         for (String[] step : steps) {
-            if (!step[1].equals("floor") && !pending.has(step[0])) {
+            if (!step[1].equals("auto") && !pending.has(step[0])) {
                 return step;
             }
         }
@@ -227,16 +248,16 @@ public class EffectStudioScreen extends Screen {
         }
         var origin = model.layout().getCharGrid().getControllerPos();
         if (step[1].equals("area")) {
-            for (PositionedLayoutPiece piece : model.layout().getPositionedPieces()) {
-                if (piece.pos().equals(hit.getBlockPos())) {
-                    pending.addProperty(step[0], piece.piece().valueId());
-                }
-            }
-            if (!pending.has(step[0])) {
+            String key = keyAt(hit.getBlockPos());
+            if (key == null) {
                 return;
             }
+            pending.addProperty(step[0], key);
         } else {
             Vec3 at = hit.getLocation();
+            if (firstHit == null) {
+                firstHit = hit;
+            }
             faces.put(step[0], hit.getDirection());
             pending.add(step[0], point(at.x + origin.getX(), at.y + origin.getY(), at.z + origin.getZ()));
         }
@@ -247,14 +268,7 @@ public class EffectStudioScreen extends Screen {
 
     private void selectAt(double mouseX, double mouseY, @Nullable BlockHitResult hit) {
         var origin = model.layout().getCharGrid().getControllerPos();
-        String key = null;
-        if (hit != null) {
-            for (PositionedLayoutPiece piece : model.layout().getPositionedPieces()) {
-                if (piece.pos().equals(hit.getBlockPos())) {
-                    key = piece.piece().valueId();
-                }
-            }
-        }
+        String key = hit == null ? null : keyAt(hit.getBlockPos());
         int best = -1;
         double bestDistance = 12 * 12;
         int keyed = -1;
@@ -342,35 +356,33 @@ public class EffectStudioScreen extends Screen {
         return GLFW.glfwGetKey(window, key) == GLFW.GLFW_PRESS;
     }
 
+    @Nullable
+    private String keyAt(BlockPos pos) {
+        for (PositionedLayoutPiece piece : model.layout().getPositionedPieces()) {
+            if (piece.pos().equals(pos)) {
+                return piece.piece().valueId();
+            }
+        }
+        return null;
+    }
+
     private void finish() {
-        var origin = model.layout().getCharGrid().getControllerPos();
         JsonArray source = null;
         Direction face = Direction.DOWN;
-        for (String key : pending.keySet()) {
-            if (pending.get(key).isJsonArray()) {
-                source = pending.getAsJsonArray(key);
-                face = faces.getOrDefault(key, Direction.DOWN);
+        for (String[] step : steps) {
+            if (step[1].equals("point") && pending.has(step[0])) {
+                source = pending.getAsJsonArray(step[0]);
+                face = faces.getOrDefault(step[0], Direction.DOWN);
                 break;
             }
         }
         for (String[] step : steps) {
-            if (!step[1].equals("floor")) {
-                continue;
-            }
-            double floor = origin.getY();
-            if (source != null) {
-                double sy = source.get(1).getAsDouble() - origin.getY();
-                int x = (int) Math.floor(source.get(0).getAsDouble() - origin.getX() + face.getStepX() * 0.01);
-                int z = (int) Math.floor(source.get(2).getAsDouble() - origin.getZ() + face.getStepZ() * 0.01);
-                floor = sy - 4 + origin.getY();
-                for (int y = (int) Math.floor(sy - 0.001); y >= (int) sy - 64; y--) {
-                    if (!view.previewWorld().getBlockState(new BlockPos(x, y, z)).isAir()) {
-                        floor = y + 1 + origin.getY();
-                        break;
-                    }
+            if (step[1].equals("auto")) {
+                JsonElement value = auto(step[0], source, face, firstHit == null ? null : firstHit.getBlockPos());
+                if (value != null) {
+                    pending.add(step[0], value);
                 }
             }
-            pending.addProperty(step[0], floor);
         }
         int n = 1;
         ResourceLocation id;
@@ -406,12 +418,137 @@ public class EffectStudioScreen extends Screen {
         return a;
     }
 
-    private void rescale(ResourceLocation id) {
+    @Nullable
+    private JsonObject base(ResourceLocation id) {
         JsonObject current = session.edited.getOrDefault(id, FxManager.source(id));
-        if (current == null) {
+        return current == null ? null : session.originals.computeIfAbsent(id, k -> current.deepCopy());
+    }
+
+    @Nullable
+    private JsonElement auto(String name, @Nullable JsonArray source, Direction face, @Nullable BlockPos clicked) {
+        var origin = model.layout().getCharGrid().getControllerPos();
+        double sx = source == null ? origin.getX() + 0.5 : source.get(0).getAsDouble();
+        double sy = source == null ? origin.getY() : source.get(1).getAsDouble();
+        double sz = source == null ? origin.getZ() + 0.5 : source.get(2).getAsDouble();
+        int cx = (int) Math.floor(sx - origin.getX() + face.getStepX() * 0.01);
+        int cz = (int) Math.floor(sz - origin.getZ() + face.getStepZ() * 0.01);
+        double rel = sy - origin.getY();
+        var world = view.previewWorld();
+        double fx = sx - origin.getX() + face.getStepX() * 0.01;
+        double fz = sz - origin.getZ() + face.getStepZ() * 0.01;
+        double floor = sy - 4;
+        int base = (int) Math.floor(floor - origin.getY()) - 1;
+        for (int y = (int) Math.floor(rel - 0.001); y >= (int) rel - 64; y--) {
+            var pos = new BlockPos(cx, y, cz);
+            var state = world.getBlockState(pos);
+            if (state.isAir()) {
+                continue;
+            }
+            var shape = state.getShape(world, pos);
+            var hit = (shape.isEmpty() ? Shapes.block() : shape).clip(new Vec3(fx, Math.min(rel - 0.001, y + 1), fz), new Vec3(fx, y, fz), pos);
+            if (hit != null) {
+                floor = hit.getLocation().y + origin.getY();
+                base = y;
+                break;
+            }
+        }
+        if (clicked == null) {
+            clicked = new BlockPos((int) Math.floor(sx - origin.getX() - face.getStepX() * 0.01),
+                    (int) Math.floor(sy - origin.getY() - face.getStepY() * 0.01), (int) Math.floor(sz - origin.getZ() - face.getStepZ() * 0.01));
+        }
+        String key = switch (name) {
+            case "block" -> keyAt(clicked);
+            case "below" -> keyAt(new BlockPos(cx, base, cz));
+            default -> null;
+        };
+        return switch (name) {
+            case "floor" -> new JsonPrimitive(floor);
+            case "landing" -> point(sx, floor, sz);
+            case "sky" -> point(sx, sy + 12, sz);
+            case "block", "below" -> key == null ? null : new JsonPrimitive(key);
+            default -> null;
+        };
+    }
+
+    @Nullable
+    private static JsonArray firstPoint(JsonObject anchors) {
+        JsonElement spot = anchors.get("spot");
+        if (spot == null || !spot.isJsonArray()) {
+            spot = null;
+            for (var entry : anchors.entrySet()) {
+                if (entry.getValue().isJsonArray() && !entry.getKey().equals("landing") && !entry.getKey().equals("sky")) {
+                    spot = entry.getValue();
+                    break;
+                }
+            }
+        }
+        if (spot == null) {
+            return null;
+        }
+        JsonArray list = spot.getAsJsonArray();
+        if (list.size() > 0 && list.get(0).isJsonArray()) {
+            list = list.get(0).getAsJsonArray();
+        }
+        return list.size() >= 3 ? list : null;
+    }
+
+    private static void setOff(JsonObject layer, boolean off) {
+        if (off) {
+            layer.addProperty("off", true);
+        } else {
+            layer.remove("off");
+        }
+    }
+
+    private void addPart(ResourceLocation id, String name) {
+        JsonObject base = base(id);
+        JsonObject effect = session.effects.get(session.selected);
+        if (base == null || !base.has("layers")) {
             return;
         }
-        JsonObject base = session.originals.computeIfAbsent(id, k -> current.deepCopy());
+        if (!effect.has("anchors") || !effect.get("anchors").isJsonObject()) {
+            effect.add("anchors", new JsonObject());
+        }
+        JsonObject anchors = effect.getAsJsonObject("anchors");
+        JsonArray source = firstPoint(anchors);
+        JsonArray layers = base.getAsJsonArray("layers");
+        for (JsonElement element : parts.get(name).getAsJsonArray("layers")) {
+            JsonObject layer = element.getAsJsonObject().deepCopy();
+            String type = layer.has("type") ? layer.get("type").getAsString() : "";
+            if (type.equals("drops") || type.equals("ripple")) {
+                boolean exists = false;
+                for (JsonElement other : layers) {
+                    exists |= other.isJsonObject() && other.getAsJsonObject().has("type") && other.getAsJsonObject().get("type").getAsString().equals(type);
+                }
+                if (exists) {
+                    continue;
+                }
+            }
+            for (String key : new String[]{"at", "from", "to"}) {
+                if (!layer.has(key)) {
+                    continue;
+                }
+                String anchor = layer.get(key).getAsString();
+                if (anchors.has(anchor)) {
+                    continue;
+                }
+                JsonElement value = AUTO.contains(anchor) ? auto(anchor, source, Direction.DOWN, null) : source;
+                if (value != null) {
+                    anchors.add(anchor, value.deepCopy());
+                }
+            }
+            layers.add(layer);
+        }
+        session.dirty = true;
+        rescale(id);
+        rebuildWidgets();
+    }
+
+    private boolean rescale(ResourceLocation id) {
+        JsonObject base = base(id);
+        if (base == null) {
+            return false;
+        }
         double[] values = session.sliders.computeIfAbsent(id, k -> new double[]{0.5, 0.5, 0.5});
         JsonObject json = base.deepCopy();
         String color = session.colors.get(id);
@@ -439,7 +576,9 @@ public class EffectStudioScreen extends Screen {
         try {
             FxManager.preview(id, json);
             session.edited.put(id, json);
-        } catch (Exception ignored) {
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 

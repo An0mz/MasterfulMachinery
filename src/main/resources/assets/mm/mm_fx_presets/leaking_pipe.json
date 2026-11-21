@@ -1,0 +1,85 @@
+{
+  "layers": [
+    {
+      "type": "drip",
+      "at": "spot",
+      "to": "floor",
+      "texture": "kubejs:textures/fx/liquid_flow.png",
+      "color": "#4a8ae8",
+      "rate": {
+        "idle": 0.4,
+        "working": 2.5
+      },
+      "name": "Drips"
+    },
+    {
+      "type": "drops",
+      "texture": "kubejs:textures/fx/liquid_flow.png",
+      "color": "#4a8ae8",
+      "name": "Drops"
+    },
+    {
+      "type": "pool",
+      "at": "spot",
+      "to": "floor",
+      "texture": "kubejs:textures/fx/liquid_pool.png",
+      "color": "#4a8ae8",
+      "size": 0.35,
+      "name": "Pool"
+    },
+    {
+      "type": "ripple",
+      "texture": "kubejs:textures/fx/liquid_pool.png",
+      "color": "#9cc4ff",
+      "name": "Ripples"
+    },
+    {
+      "type": "emitter",
+      "at": "landing",
+      "texture": "kubejs:textures/fx/soft.png",
+      "rate": {
+        "idle": 0,
+        "working": 2
+      },
+      "life": [
+        2.5,
+        4
+      ],
+      "box": [
+        0.3,
+        0,
+        0.3
+      ],
+      "velocity": [
+        0,
+        1.6,
+        0
+      ],
+      "velocity_spread": [
+        0.3,
+        0.3,
+        0.3
+      ],
+      "drag": 0.6,
+      "size": [
+        0.3,
+        2.0
+      ],
+      "color": [
+        "#ffffff",
+        "#c8d0d8"
+      ],
+      "alpha": [
+        0.6,
+        0
+      ],
+      "spin": [
+        -40,
+        40
+      ],
+      "max": 12,
+      "name": "Steam",
+      "off": true
+    }
+  ]
+}

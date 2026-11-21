@@ -2,46 +2,49 @@
   "layers": [
     {
       "type": "emitter",
+      "at": "landing",
       "texture": "kubejs:textures/fx/spark.png",
       "blend": "additive",
       "rate": {
-        "idle": 1,
-        "working": 6
+        "idle": 0,
+        "working": 18
       },
       "life": [
-        4,
-        7
+        0.4,
+        1.0
       ],
       "box": [
-        2.2,
-        1.2,
-        2.2
+        0.2,
+        0,
+        0.2
       ],
       "velocity": [
         0,
-        0.15,
+        2.2,
         0
       ],
       "velocity_spread": [
-        0.25,
-        0.15,
-        0.25
+        1.4,
+        0.8,
+        1.4
       ],
-      "gravity": -0.05,
-      "drag": 0.3,
+      "gravity": 9.8,
+      "drag": 0.4,
       "size": [
-        0.08,
-        0.05
+        0.07,
+        0.02
       ],
       "color": [
-        "#c0ffd0",
-        "#20c050"
+        "#fff0a0",
+        "#ff3000"
       ],
       "alpha": [
-        0.9,
+        1,
         0
       ],
-      "max": 48
+      "collide": true,
+      "max": 64,
+      "name": "Sparks"
     }
   ]
 }

@@ -139,12 +139,12 @@ public final class EffectStudio {
         return level != null && level.getBlockEntity(s.controller) instanceof MachineControllerBlockEntity be && active(be) ? be : null;
     }
 
-    static Map<String, JsonObject> presets() {
+    static Map<String, JsonObject> library(String folder) {
         var result = new TreeMap<String, JsonObject>();
         var resources = Minecraft.getInstance().getResourceManager();
-        for (var entry : resources.listResources("mm_fx_presets", path -> path.getPath().endsWith(".json")).entrySet()) {
+        for (var entry : resources.listResources(folder, path -> path.getPath().endsWith(".json")).entrySet()) {
             String path = entry.getKey().getPath();
-            String name = path.substring("mm_fx_presets/".length(), path.length() - 5);
+            String name = path.substring(folder.length() + 1, path.length() - 5);
             try (Reader reader = entry.getValue().openAsReader()) {
                 JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
                 FxDefinition.parse(ResourceLocation.fromNamespaceAndPath(entry.getKey().getNamespace(), name), json);

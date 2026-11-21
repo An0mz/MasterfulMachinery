@@ -17,6 +17,9 @@ public record FxDefinition(ResourceLocation id, double rise, double fall, double
         if (json.has("layers")) {
             for (var element : json.getAsJsonArray("layers")) {
                 JsonObject layer = element.getAsJsonObject();
+                if (layer.has("off") && layer.get("off").getAsBoolean()) {
+                    continue;
+                }
                 String type = layer.has("type") ? layer.get("type").getAsString() : "";
                 switch (type) {
                     case "stream" -> layers.add(StreamLayer.parse(layer));

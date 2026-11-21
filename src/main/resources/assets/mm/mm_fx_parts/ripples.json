@@ -1,0 +1,10 @@
+{
+  "layers": [
+    {
+      "type": "ripple",
+      "texture": "kubejs:textures/fx/liquid_pool.png",
+      "color": "#9cc4ff",
+      "name": "Ripples"
+    }
+  ]
+}

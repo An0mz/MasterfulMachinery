@@ -147,13 +147,13 @@ public final class FxShared {
                 int bx = (int) Math.floor(c.x);
                 int bz = (int) Math.floor(c.z);
                 int topBlock = (int) Math.ceil(c.top - 1e-6);
-                c.blockAbove = ctx.solid(bx, topBlock, bz);
+                c.blockAbove = ctx.solid(bx, topBlock, bz) || ctx.solid(bx, (int) Math.floor(c.top + 1e-6), bz);
                 if (!c.hasLanding()) {
                     continue;
                 }
                 int landingBlock = (int) Math.floor(c.landing() + 1e-6);
                 boolean clear = true;
-                for (int y = topBlock - 1; y >= landingBlock && clear; y--) {
+                for (int y = (int) Math.floor(c.top + 1e-6) - 1; y >= landingBlock && clear; y--) {
                     clear = ctx.passable(bx, y, bz);
                 }
                 c.pathClear = clear;

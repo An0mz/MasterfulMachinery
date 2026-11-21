@@ -2,14 +2,15 @@
   "layers": [
     {
       "type": "glow",
+      "at": "block",
       "texture": "kubejs:textures/fx/glow_face.png",
-      "color": "#28ff6a",
+      "color": "#ffffff",
       "alpha": {
-        "idle": 0.1,
+        "idle": 0.08,
         "working": 0.45
       },
-      "pulse": 0.2,
-      "pulse_speed": 0.4
+      "flicker": 0.3,
+      "name": "Glowing block"
     }
   ]
 }

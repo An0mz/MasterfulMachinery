@@ -2,6 +2,7 @@
   "layers": [
     {
       "type": "emitter",
+      "at": "spot",
       "texture": "kubejs:textures/fx/soft.png",
       "rate": {
         "idle": 0.6,
@@ -43,7 +44,8 @@
         -40,
         40
       ],
-      "max": 40
+      "max": 40,
+      "name": "Steam"
     }
   ]
 }

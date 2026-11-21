@@ -1,0 +1,12 @@
+{
+  "layers": [
+    {
+      "type": "pool",
+      "at": "spot",
+      "to": "floor",
+      "texture": "kubejs:textures/fx/liquid_pool.png",
+      "color": "#4a8ae8",
+      "name": "Pool"
+    }
+  ]
+}
