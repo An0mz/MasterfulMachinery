@@ -4,7 +4,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import io.ticticboom.mods.mm.Ref;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
@@ -138,7 +137,7 @@ public final class EmitterLayer implements FxLayer {
         double[] points = shared.points(at);
         long[] cells = points == null ? shared.area(at) : null;
         if ((points == null || points.length < 3) && (cells == null || cells.length == 0)) {
-            Ref.LOG.warn("Emitter layer: no point or area anchor named '{}', or it is empty", at);
+            FxLog.warnOnce("Emitter layer: no point or area anchor named '{}', or it is empty", at);
             return null;
         }
         return new Particles(shared, points, cells);

@@ -63,6 +63,7 @@ public final class FxManager {
         definitions = Map.copyOf(loaded);
         sources = Map.copyOf(loadedSources);
         FxPortColor.clear();
+        FxLog.reset();
         generation++;
         Ref.LOG.info("Loaded {} machine effects", loaded.size());
     }

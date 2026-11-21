@@ -1596,7 +1596,17 @@ public class EffectStudioScreen extends Screen {
                     (int) Math.floor(sy - origin.getY() - face.getStepY() * 0.01), (int) Math.floor(sz - origin.getZ() - face.getStepZ() * 0.01));
         }
         String key = switch (name) {
-            case "block" -> keyAt(clicked);
+            case "block" -> {
+                String found = keyAt(clicked);
+                for (Direction side : Direction.values()) {
+                    if (found != null) {
+                        break;
+                    }
+                    found = keyAt(new BlockPos((int) Math.floor(sx - origin.getX() - side.getStepX() * 0.01),
+                            (int) Math.floor(sy - origin.getY() - side.getStepY() * 0.01), (int) Math.floor(sz - origin.getZ() - side.getStepZ() * 0.01)));
+                }
+                yield found;
+            }
             case "below" -> keyAt(new BlockPos(cx, base, cz));
             default -> null;
         };

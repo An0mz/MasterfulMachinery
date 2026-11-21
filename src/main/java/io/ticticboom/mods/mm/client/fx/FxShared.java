@@ -1,6 +1,5 @@
 package io.ticticboom.mods.mm.client.fx;
 
-import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.structure.attachment.visuals.EffectVisual;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Rotation;
@@ -74,7 +73,7 @@ public final class FxShared {
         if (result == null) {
             double[] points = anchors.points(at);
             if (points == null) {
-                Ref.LOG.warn("Effect: no point anchor named '{}'", at);
+                FxLog.warnOnce("Effect: no point anchor named '{}'", at);
                 return null;
             }
             result = new FxColumn[points.length / 3];
@@ -87,7 +86,7 @@ public final class FxShared {
             double[] ends = anchors.points(to);
             boolean height = anchors.hasHeight(to);
             if (!height && ends == null) {
-                Ref.LOG.warn("Effect: no height or point anchor named '{}'", to);
+                FxLog.warnOnce("Effect: no height or point anchor named '{}'", to);
             }
             for (FxColumn column : result) {
                 if (column.hasLanding()) {

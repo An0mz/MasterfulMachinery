@@ -2,7 +2,6 @@ package io.ticticboom.mods.mm.client.fx;
 
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import io.ticticboom.mods.mm.Ref;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
@@ -95,7 +94,7 @@ public final class BeamLayer implements FxLayer {
         double[] a = shared.points(from);
         double[] b = shared.points(to);
         if (a == null || b == null || a.length < 3 || b.length < 3) {
-            Ref.LOG.warn("Beam layer: needs non-empty point anchors '{}' and '{}'", from, to);
+            FxLog.warnOnce("Beam layer: needs non-empty point anchors '{}' and '{}'", from, to);
             return null;
         }
         int n = a.length / 3;

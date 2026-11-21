@@ -3,7 +3,6 @@ package io.ticticboom.mods.mm.client.fx;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import io.ticticboom.mods.mm.Ref;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
@@ -93,14 +92,14 @@ public final class GlowLayer implements FxLayer {
         if (halo) {
             double[] points = shared.points(at);
             if (points == null || points.length < 3) {
-                Ref.LOG.warn("Glow layer: halo mode needs a non-empty point anchor named '{}'", at);
+                FxLog.warnOnce("Glow layer: halo mode needs a non-empty point anchor named '{}'", at);
                 return null;
             }
             return new Halos(points, shared.seed());
         }
         long[] cells = shared.area(at);
         if (cells == null || cells.length == 0) {
-            Ref.LOG.warn("Glow layer: faces mode needs a non-empty area anchor named '{}'", at);
+            FxLog.warnOnce("Glow layer: faces mode needs a non-empty area anchor named '{}'", at);
             return null;
         }
         var set = new LongOpenHashSet(cells);
@@ -121,7 +120,7 @@ public final class GlowLayer implements FxLayer {
             }
         }
         if (list.isEmpty()) {
-            Ref.LOG.warn("Glow layer: no faces to draw for '{}'", at);
+            FxLog.warnOnce("Glow layer: no faces to draw for '{}'", at);
             return null;
         }
         long[] cellOf = new long[owners.size()];

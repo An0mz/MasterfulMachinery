@@ -2,7 +2,6 @@ package io.ticticboom.mods.mm.client.fx;
 
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import io.ticticboom.mods.mm.Ref;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
@@ -44,7 +43,7 @@ public final class RippleLayer implements FxLayer {
     public State create(FxShared shared) {
         Ripples ripples = new Ripples();
         if (shared.ripples != null) {
-            Ref.LOG.warn("Effect has more than one ripple layer; only the last one is used");
+            FxLog.warnOnce("Effect has more than one ripple layer; only the last one is used");
         }
         shared.ripples = ripples;
         return ripples;

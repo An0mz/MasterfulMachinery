@@ -2,7 +2,6 @@ package io.ticticboom.mods.mm.client.fx;
 
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import io.ticticboom.mods.mm.Ref;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
@@ -68,7 +67,7 @@ public final class PoolLayer implements FxLayer {
         for (FxColumn c : columns) {
             c.hasPool = true;
             if (!c.hasLanding()) {
-                Ref.LOG.warn("Pool layer: drip point {} of '{}' has no landing height ('to': '{}')", c.index, at, to);
+                FxLog.warnOnce("Pool layer: drip point {} of '{}' has no landing height ('to': '{}')", c.index, at, to);
             }
         }
         return new Pools(shared, columns);

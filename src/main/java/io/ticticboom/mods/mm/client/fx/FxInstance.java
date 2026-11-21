@@ -1,6 +1,5 @@
 package io.ticticboom.mods.mm.client.fx;
 
-import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import io.ticticboom.mods.mm.structure.attachment.visuals.EffectVisual;
 import net.minecraft.core.BlockPos;
@@ -64,7 +63,7 @@ public final class FxInstance {
             EffectVisual visual = visuals.get(i);
             FxDefinition definition = FxManager.get(visual.getFx());
             if (definition == null) {
-                Ref.LOG.warn("Structure {}: no effect file for {}", structure.id(), visual.getFx());
+                FxLog.warnOnce("Structure {}: no effect file for {}", structure.id(), visual.getFx());
                 continue;
             }
             var anchors = visual.resolve(structure.layout(), rotation);

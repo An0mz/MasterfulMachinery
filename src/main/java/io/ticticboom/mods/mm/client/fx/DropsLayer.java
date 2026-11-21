@@ -2,7 +2,6 @@ package io.ticticboom.mods.mm.client.fx;
 
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import io.ticticboom.mods.mm.Ref;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
@@ -45,7 +44,7 @@ public final class DropsLayer implements FxLayer {
     public State create(FxShared shared) {
         Drops drops = new Drops(shared);
         if (shared.drops != null) {
-            Ref.LOG.warn("Effect has more than one drops layer; only the last one is used");
+            FxLog.warnOnce("Effect has more than one drops layer; only the last one is used");
         }
         shared.drops = drops;
         return drops;

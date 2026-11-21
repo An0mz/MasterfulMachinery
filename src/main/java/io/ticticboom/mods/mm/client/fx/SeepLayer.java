@@ -3,7 +3,6 @@ package io.ticticboom.mods.mm.client.fx;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import io.ticticboom.mods.mm.Ref;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
@@ -79,7 +78,7 @@ public final class SeepLayer implements FxLayer {
             return null;
         }
         if (seepTop == null) {
-            Ref.LOG.warn("Seep layer: no height anchor named '{}'", top);
+            FxLog.warnOnce("Seep layer: no height anchor named '{}'", top);
             return null;
         }
         var faces = new Face[columns.length][];
