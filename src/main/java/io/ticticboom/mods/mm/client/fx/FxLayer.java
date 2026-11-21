@@ -17,6 +17,11 @@ public interface FxLayer {
             return 0;
         }
 
+        @Nullable
+        default String problem(double intensity) {
+            return null;
+        }
+
         default void update(FxContext ctx) {
         }
 

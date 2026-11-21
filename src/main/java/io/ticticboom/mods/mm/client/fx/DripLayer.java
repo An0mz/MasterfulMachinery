@@ -76,9 +76,16 @@ public final class DripLayer implements FxLayer {
         }
 
         @Override
+        @Nullable
+        public String problem(double intensity) {
+            String problem = FxColumn.problem(columns, true, hideWhenBlocked, false);
+            return problem != null ? problem : intensity > 0.5 ? "drip_working" : null;
+        }
+
+        @Override
         public void update(FxContext ctx) {
             double ws = ctx.intensity.now();
-            double scale = rate.at(ws);
+            double scale = rate.at(ws) * ctx.boost;
             for (FxColumn c : columns) {
                 if (!c.blockAbove) {
                     continue;

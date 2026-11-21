@@ -94,6 +94,12 @@ public final class PoolLayer implements FxLayer {
         }
 
         @Override
+        @Nullable
+        public String problem(double intensity) {
+            return FxColumn.problem(columns, true, false, hideWhenBlocked);
+        }
+
+        @Override
         public void update(FxContext ctx) {
             double turnSpeed = swirlSpeed(ctx.intensity.now());
             for (FxColumn c : columns) {

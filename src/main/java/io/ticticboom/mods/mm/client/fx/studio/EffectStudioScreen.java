@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.ticticboom.mods.mm.client.fx.FxInstance;
 import io.ticticboom.mods.mm.client.fx.FxManager;
 import io.ticticboom.mods.mm.client.fx.FxRenderer;
@@ -17,12 +18,16 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -33,6 +38,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +51,8 @@ public class EffectStudioScreen extends Screen {
     private static final Set<String> SPEED = Set.of("velocity", "scroll", "speed", "start_speed", "pulse_speed", "jitter_rate", "frame_rate");
     private static final int PANEL = 130;
     private static final Set<String> AUTO = Set.of("floor", "landing", "sky", "block", "below");
+    private static final Set<String> FALLING = Set.of("drip", "stream", "pool", "seep");
+    private static final Set<String> NOTES = Set.of("drip_working", "hidden_now");
 
     private final EffectStudio.Session session;
     private final Map<String, JsonObject> presets = EffectStudio.library("mm_fx_presets");
@@ -70,6 +78,13 @@ public class EffectStudioScreen extends Screen {
     private double pressX;
     private double pressY;
     private long lastFrame;
+    private final List<int[]> dots = new ArrayList<>();
+    private final Set<String> undersides = new HashSet<>();
+    @Nullable
+    private BlockHitResult hover;
+    @Nullable
+    private Vec3 ghostAt;
+    private double ghostFloor;
 
     public EffectStudioScreen(EffectStudio.Session session) {
         super(Component.translatable("gui.mm.effect_studio.title"));
@@ -84,6 +99,7 @@ public class EffectStudioScreen extends Screen {
             return;
         }
         session.open = true;
+        dots.clear();
         if (view == null || model != be.getStructure()) {
             model = be.getStructure();
             view = new GuiStructureRenderer(model);
@@ -143,9 +159,13 @@ public class EffectStudioScreen extends Screen {
             JsonObject base = base(id);
             if (base != null && base.has("layers")) {
                 JsonArray layers = base.getAsJsonArray("layers");
+                int live = 0;
                 for (int i = 0; i < layers.size(); i++) {
                     JsonObject layer = layers.get(i).getAsJsonObject();
                     boolean off = layer.has("off") && layer.get("off").getAsBoolean();
+                    if (!off) {
+                        dots.add(new int[]{x + (i % 2) * 66, y + (i / 2) * 18, live++});
+                    }
                     String name = layer.has("name") ? layer.get("name").getAsString() : pretty(layer.has("type") ? layer.get("type").getAsString() : "?");
                     addRenderableWidget(Button.builder(Component.literal(name).withStyle(off ? ChatFormatting.DARK_GRAY : ChatFormatting.GREEN), b -> {
                         setOff(layer, !off);
@@ -175,12 +195,16 @@ public class EffectStudioScreen extends Screen {
             session.idle = !session.idle;
             b.setMessage(Component.translatable(session.idle ? "gui.mm.effect_studio.idle" : "gui.mm.effect_studio.working"));
         }).bounds(viewport.x(), by, 90, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable(session.fast ? "gui.mm.effect_studio.fast_on" : "gui.mm.effect_studio.fast_off"), b -> {
+            session.fast = !session.fast;
+            b.setMessage(Component.translatable(session.fast ? "gui.mm.effect_studio.fast_on" : "gui.mm.effect_studio.fast_off"));
+        }).bounds(viewport.x() + 94, by, 70, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.save"), b -> {
             boolean ok = EffectStudio.save(session);
             minecraft.player.displayClientMessage(Component.translatable(ok ? "gui.mm.effect_studio.saved" : "gui.mm.effect_studio.save_failed"), true);
-        }).bounds(viewport.x() + 94, by, 70, 20).build());
+        }).bounds(viewport.x() + 168, by, 70, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.close"), b -> onClose())
-                .bounds(viewport.x() + 168, by, 70, 20).build());
+                .bounds(viewport.x() + 242, by, 70, 20).build());
     }
 
     @Nullable
@@ -210,14 +234,20 @@ public class EffectStudioScreen extends Screen {
         placing = preset;
         firstHit = null;
         steps.clear();
+        undersides.clear();
         for (String key : pending.keySet().toArray(new String[0])) {
             pending.remove(key);
         }
         var seen = new LinkedHashMap<String, String>();
         for (JsonElement element : presets.get(preset).getAsJsonArray("layers")) {
             JsonObject layer = element.getAsJsonObject();
-            boolean area = "glow".equals(layer.has("type") ? layer.get("type").getAsString() : "")
-                    && !(layer.has("mode") && layer.get("mode").getAsString().equals("halo"));
+            String type = layer.has("type") ? layer.get("type").getAsString() : "";
+            boolean area = "glow".equals(type) && !(layer.has("mode") && layer.get("mode").getAsString().equals("halo"));
+            for (String key : new String[]{"at", "from"}) {
+                if (FALLING.contains(type) && layer.has(key) && !(layer.has("off") && layer.get("off").getAsBoolean())) {
+                    undersides.add(layer.get(key).getAsString());
+                }
+            }
             for (String key : new String[]{"at", "from", "to"}) {
                 if (layer.has(key)) {
                     String name = layer.get(key).getAsString();
@@ -254,7 +284,10 @@ public class EffectStudioScreen extends Screen {
             }
             pending.addProperty(step[0], key);
         } else {
-            Vec3 at = hit.getLocation();
+            if (undersides.contains(step[0]) && hit.getDirection() != Direction.DOWN) {
+                return;
+            }
+            Vec3 at = snap(hit);
             if (firstHit == null) {
                 firstHit = hit;
             }
@@ -410,6 +443,22 @@ public class EffectStudioScreen extends Screen {
         rebuildWidgets();
     }
 
+    private static Vec3 snap(BlockHitResult hit) {
+        Vec3 at = hit.getLocation();
+        double x = Math.round(at.x * 16) / 16.0;
+        double y = Math.round(at.y * 16) / 16.0;
+        double z = Math.round(at.z * 16) / 16.0;
+        Direction.Axis axis = hit.getDirection().getAxis();
+        BlockPos block = hit.getBlockPos();
+        return new Vec3(axis == Direction.Axis.X ? x : inset(x, block.getX()),
+                axis == Direction.Axis.Y ? y : inset(y, block.getY()),
+                axis == Direction.Axis.Z ? z : inset(z, block.getZ()));
+    }
+
+    private static double inset(double value, int block) {
+        return Math.max(block + 1 / 16.0, Math.min(block + 15 / 16.0, value));
+    }
+
     private static JsonArray point(double x, double y, double z) {
         var a = new JsonArray();
         a.add(Math.round(x * 16) / 16.0);
@@ -445,7 +494,7 @@ public class EffectStudioScreen extends Screen {
                 continue;
             }
             var shape = state.getShape(world, pos);
-            var hit = (shape.isEmpty() ? Shapes.block() : shape).clip(new Vec3(fx, Math.min(rel - 0.001, y + 1), fz), new Vec3(fx, y, fz), pos);
+            var hit = (shape.isEmpty() ? Shapes.block() : shape).clip(new Vec3(fx, Math.min(rel - 0.001, y + 1.01), fz), new Vec3(fx, y, fz), pos);
             if (hit != null) {
                 floor = hit.getLocation().y + origin.getY();
                 base = y;
@@ -603,7 +652,40 @@ public class EffectStudioScreen extends Screen {
         return value;
     }
 
+    private void renderGhost(PoseStack pose, MultiBufferSource buffers) {
+        String[] step = placing == null ? null : currentStep();
+        if (hover == null || step == null || step[1].equals("area")) {
+            return;
+        }
+        Vec3 at = snap(hover);
+        boolean underside = undersides.contains(step[0]);
+        boolean ok = !underside || hover.getDirection() == Direction.DOWN;
+        VertexConsumer lines = buffers.getBuffer(RenderType.lines());
+        LevelRenderer.renderLineBox(pose, lines, new AABB(at.x - 0.06, at.y - 0.06, at.z - 0.06, at.x + 0.06, at.y + 0.06, at.z + 0.06),
+                ok ? 0.25f : 1f, ok ? 1f : 0.2f, 0.2f, 1f);
+        if (!underside || !ok) {
+            return;
+        }
+        if (!at.equals(ghostAt)) {
+            var origin = model.layout().getCharGrid().getControllerPos();
+            JsonElement floor = auto("floor", point(at.x + origin.getX(), at.y + origin.getY(), at.z + origin.getZ()), Direction.DOWN, null);
+            ghostFloor = floor == null ? at.y - 4 : floor.getAsDouble() - origin.getY();
+            ghostAt = at;
+        }
+        boolean lands = at.y - ghostFloor > 0.05;
+        float r = lands ? 0.25f : 1f;
+        float g = lands ? 1f : 0.2f;
+        LevelRenderer.renderLineBox(pose, lines, new AABB(at.x - 0.01, ghostFloor, at.z - 0.01, at.x + 0.01, at.y, at.z + 0.01), r, g, 0.2f, 1f);
+        LevelRenderer.renderLineBox(pose, lines, new AABB(at.x - 0.2, ghostFloor, at.z - 0.2, at.x + 0.2, ghostFloor + 0.01, at.z + 0.2), r, g, 0.2f, 1f);
+    }
+
+    @Nullable
+    private String problem(int layer) {
+        return preview == null || session.selected < 0 ? null : preview.problem(session.selected, layer);
+    }
+
     private void renderEffects(PoseStack pose, MultiBufferSource buffers, Matrix4f modelView) {
+        renderGhost(pose, buffers);
         var be = EffectStudio.machine(session);
         var visuals = be == null ? null : EffectStudio.effects(be);
         if (visuals == null || model == null) {
@@ -615,7 +697,7 @@ public class EffectStudioScreen extends Screen {
         Vector3f look = inverse.transformDirection(new Vector3f(0, 0, -1)).normalize();
         Vector3f up = inverse.transformDirection(new Vector3f(0, 1, 0)).normalize();
         Vector3f left = inverse.transformDirection(new Vector3f(-1, 0, 0)).normalize();
-        FxRenderer.renderPreview(preview, view.previewWorld(), pose, buffers, camera, left, up, look, !session.idle, partialTick);
+        FxRenderer.renderPreview(preview, view.previewWorld(), pose, buffers, camera, left, up, look, !session.idle, session.fast ? 4 : 1, partialTick);
     }
 
     @Override
@@ -626,6 +708,7 @@ public class EffectStudioScreen extends Screen {
         }
         this.partialTick = partialTick;
         move();
+        hover = placing != null && viewport.contains(mouseX, mouseY) ? view.pick(mouseX, mouseY) : null;
         gfx.fill(viewport.x(), viewport.y(), viewport.x() + viewport.w(), viewport.y() + viewport.h(), 0x66000000);
         gfx.pose().pushPose();
         gfx.pose().setIdentity();
@@ -636,10 +719,25 @@ public class EffectStudioScreen extends Screen {
         gfx.drawString(font, Component.translatable("gui.mm.effect_studio.add_effect"), 6, 8, 0xFFFFFF);
         gfx.drawString(font, Component.translatable("gui.mm.effect_studio.placed"), width - PANEL - 6, 8, 0xFFFFFF);
         String[] step = placing == null ? null : currentStep();
+        boolean underside = step != null && undersides.contains(step[0]);
         Component hint = step != null
-                ? Component.translatable("gui.mm.effect_studio.click." + step[1], pretty(placing), step[0])
+                ? Component.translatable("gui.mm.effect_studio.click." + (underside ? "underside" : step[1]), pretty(placing), step[0])
                 : Component.translatable("gui.mm.effect_studio.controls");
-        gfx.drawCenteredString(font, hint, viewport.x() + viewport.w() / 2, viewport.y() + 4, step != null ? 0xFFFF55 : 0xA0A0A0);
+        boolean wrong = underside && hover != null && hover.getDirection() != Direction.DOWN;
+        gfx.drawCenteredString(font, hint, viewport.x() + viewport.w() / 2, viewport.y() + 4, wrong ? 0xFF5555 : step != null ? 0xFFFF55 : 0xA0A0A0);
+        String tip = null;
+        for (int[] dot : dots) {
+            String problem = problem(dot[2]);
+            int color = problem == null ? 0xFF40E040 : NOTES.contains(problem) ? 0xFFE0C040 : 0xFFE04040;
+            gfx.fill(dot[0] + 57, dot[1] + 2, dot[0] + 62, dot[1] + 7, 0xFF000000);
+            gfx.fill(dot[0] + 58, dot[1] + 3, dot[0] + 61, dot[1] + 6, color);
+            if (problem != null && mouseX >= dot[0] && mouseX < dot[0] + 64 && mouseY >= dot[1] && mouseY < dot[1] + 16) {
+                tip = problem;
+            }
+        }
+        if (tip != null) {
+            gfx.renderTooltip(font, font.split(Component.translatable("gui.mm.effect_studio.health." + tip), 180), mouseX, mouseY);
+        }
         if (selectedId() != null) {
             int x = width - PANEL - 6;
             for (int i = 0; i < COLORS.length; i++) {

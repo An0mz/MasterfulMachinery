@@ -1,5 +1,7 @@
 package io.ticticboom.mods.mm.client.fx;
 
+import org.jetbrains.annotations.Nullable;
+
 public final class FxColumn {
     public final int index;
     public final double x;
@@ -41,6 +43,25 @@ public final class FxColumn {
 
     public boolean hasLanding() {
         return fall > 0;
+    }
+
+    @Nullable
+    static String problem(FxColumn[] columns, boolean needsBlockAbove, boolean needsPath, boolean needsLanding) {
+        for (FxColumn c : columns) {
+            if (needsBlockAbove && !c.blockAbove) {
+                return "no_block_above";
+            }
+            if (!c.hasLanding()) {
+                return "no_landing";
+            }
+            if (needsPath && !c.pathClear) {
+                return "blocked";
+            }
+            if (needsLanding && !c.landingClear) {
+                return "landing_blocked";
+            }
+        }
+        return null;
     }
 
     public int lightAt(double y) {

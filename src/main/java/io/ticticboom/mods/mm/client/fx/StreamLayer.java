@@ -88,7 +88,7 @@ public final class StreamLayer implements FxLayer {
                 tracks[i] = new Track(columns[i]);
             }
         }
-        return new StreamState(shared, tracks);
+        return new StreamState(shared, tracks, columns);
     }
 
     boolean visible(FxColumn c) {
@@ -180,12 +180,21 @@ public final class StreamLayer implements FxLayer {
     private final class StreamState implements State {
         private final FxShared shared;
         private final Track[] tracks;
+        private final FxColumn[] columns;
         private final int[] sideColor = new int[6];
         private RenderType renderType;
 
-        StreamState(FxShared shared, Track[] tracks) {
+        StreamState(FxShared shared, Track[] tracks, FxColumn[] columns) {
             this.shared = shared;
             this.tracks = tracks;
+            this.columns = columns;
+        }
+
+        @Override
+        @Nullable
+        public String problem(double intensity) {
+            String problem = FxColumn.problem(columns, needsBlockAbove, hideWhenBlocked, false);
+            return problem != null ? problem : alpha.at(intensity) <= 0 ? "hidden_now" : null;
         }
 
         @Override

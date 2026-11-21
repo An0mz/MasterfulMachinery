@@ -8,6 +8,7 @@ import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.fluids.FluidStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +34,8 @@ public final class FxInstance {
     private AABB renderBoundsVisual;
     private List<FluidStack> fluids;
 
-    record Effect(int visual, FxDefinition definition, FxIntensity intensity, FxShared shared, double viewDistance, List<FxLayer.State> states) {
+    record Effect(int visual, FxDefinition definition, FxIntensity intensity, FxShared shared, double viewDistance, List<FxLayer.State> states,
+                  FxLayer.State[] slots) {
     }
 
     private FxInstance(StructureModel structure, List<EffectVisual> visuals, Rotation rotation, int generation, List<Effect> effects, AABB bounds) {
@@ -68,8 +70,10 @@ public final class FxInstance {
             var anchors = visual.resolve(structure.layout(), rotation);
             var shared = new FxShared(anchors, seed + i * 31L, rotation);
             var states = new ArrayList<FxLayer.State>();
-            for (int l = 0; l < definition.layers().size(); l++) {
+            var slots = new FxLayer.State[definition.layers().size()];
+            for (int l = 0; l < slots.length; l++) {
                 var state = definition.layers().get(l).create(shared);
+                slots[l] = state;
                 if (state != null) {
                     states.add(state);
                 }
@@ -83,7 +87,7 @@ public final class FxInstance {
                 bounds = bounds == null ? box : bounds.minmax(box);
             }
             effects.add(new Effect(i, definition, new FxIntensity(definition.rise(), definition.fall(), definition.hold()),
-                    shared, definition.viewDistance(), List.copyOf(states)));
+                    shared, definition.viewDistance(), List.copyOf(states), slots));
         }
         return new FxInstance(structure, visuals, rotation, FxManager.generation(), List.copyOf(effects), bounds);
     }
@@ -95,6 +99,21 @@ public final class FxInstance {
             renderBoundsVisual = visual;
         }
         return renderBounds;
+    }
+
+    @Nullable
+    public String problem(int visual, int layer) {
+        for (Effect effect : effects) {
+            if (effect.visual() != visual) {
+                continue;
+            }
+            if (layer < 0 || layer >= effect.slots().length) {
+                return null;
+            }
+            FxLayer.State state = effect.slots()[layer];
+            return state == null ? "no_anchor" : state.problem(effect.intensity().now());
+        }
+        return null;
     }
 
     public boolean matches(StructureModel structure, Rotation rotation, List<EffectVisual> visuals) {

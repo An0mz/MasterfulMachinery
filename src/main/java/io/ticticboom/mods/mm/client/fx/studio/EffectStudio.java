@@ -49,6 +49,7 @@ public final class EffectStudio {
         final List<JsonObject> effects;
         int selected = -1;
         boolean idle;
+        boolean fast;
         boolean open;
         boolean dirty = true;
         @Nullable

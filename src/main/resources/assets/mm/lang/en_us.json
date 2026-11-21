@@ -571,5 +571,15 @@
   "gui.mm.effect_studio.advanced": "Advanced",
   "gui.mm.effect_studio.working": "Showing: Working",
   "gui.mm.effect_studio.idle": "Showing: Idle",
-  "gui.mm.effect_studio.add_part": "+ Part"
+  "gui.mm.effect_studio.add_part": "+ Part",
+  "gui.mm.effect_studio.fast_on": "Fast: On",
+  "gui.mm.effect_studio.fast_off": "Fast: Off",
+  "gui.mm.effect_studio.click.underside": "%s: click the underside of a block for '%s' (Esc to cancel)",
+  "gui.mm.effect_studio.health.no_anchor": "Its anchor is missing. Remove the effect and place it again.",
+  "gui.mm.effect_studio.health.no_block_above": "Hidden: no block above this point. Place it on the underside of a block.",
+  "gui.mm.effect_studio.health.no_landing": "Hidden: a block sits right under this point, so there is nothing to fall through.",
+  "gui.mm.effect_studio.health.blocked": "Hidden: a block or liquid is between this point and the floor.",
+  "gui.mm.effect_studio.health.landing_blocked": "Hidden: the landing spot is inside a block or liquid.",
+  "gui.mm.effect_studio.health.hidden_now": "Invisible in this mode. Switch between Idle and Working to see it.",
+  "gui.mm.effect_studio.health.drip_working": "Drips almost stop while working. Switch to Idle to see them."
 }

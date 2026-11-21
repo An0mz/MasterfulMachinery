@@ -151,7 +151,7 @@ public final class FxShared {
                 if (!c.hasLanding()) {
                     continue;
                 }
-                int landingBlock = (int) Math.floor(c.landing() + 1e-6);
+                int landingBlock = (int) Math.ceil(c.landing() - 0.01);
                 boolean clear = true;
                 for (int y = (int) Math.floor(c.top + 1e-6) - 1; y >= landingBlock && clear; y--) {
                     clear = ctx.passable(bx, y, bz);
