@@ -1354,10 +1354,10 @@ public class EffectStudioScreen extends Screen {
         setFocused(null);
     }
 
-    private int menuWidth(String[] entries) {
+    private int menuWidth(String[] entries, Handle h) {
         int w = 0;
         for (String entry : entries) {
-            w = Math.max(w, font.width(Component.translatable("gui.mm.effect_studio.menu." + entry)));
+            w = Math.max(w, font.width(menuLabel(entry, h)));
         }
         return w + 8;
     }
@@ -1367,7 +1367,74 @@ public class EffectStudioScreen extends Screen {
             return new String[0];
         }
         ResourceLocation id = selectedId();
-        return id != null && linkedOf(base(id)).contains(h.name()) ? new String[]{"link", "unlink", "centre", "delete"} : new String[]{"centre", "delete"};
+        var entries = new ArrayList<String>();
+        String target = id == null ? null : arcTargetAt(h);
+        if (target != null && selectedAnchors().has(target) && selectedAnchors().get(target).isJsonArray()) {
+            entries.add("add_to");
+        }
+        if (id != null && linkedOf(base(id)).contains(h.name())) {
+            entries.add("link");
+            entries.add("unlink");
+        }
+        entries.add("centre");
+        entries.add("delete");
+        return entries.toArray(new String[0]);
+    }
+
+    @Nullable
+    private static String arcTarget(@Nullable JsonObject fx, String name) {
+        if (fx == null || !fx.has("layers")) {
+            return null;
+        }
+        for (JsonElement element : fx.getAsJsonArray("layers")) {
+            JsonObject layer = element.getAsJsonObject();
+            if (!"beam".equals(layer.has("type") ? layer.get("type").getAsString() : "") || !layer.has("from") || !layer.has("to")
+                    || (layer.has("off") && layer.get("off").getAsBoolean())) {
+                continue;
+            }
+            String from = layer.get("from").getAsString();
+            String to = layer.get("to").getAsString();
+            if (from.equals(to) || DERIVED.contains(to) || DERIVED.contains(from)) {
+                continue;
+            }
+            if (name.equals(from)) {
+                return to;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private String arcTargetAt(Handle h) {
+        ResourceLocation id = selectedId();
+        if (id == null) {
+            return null;
+        }
+        JsonObject fx = base(id);
+        String target = arcTarget(fx, h.name());
+        if (target != null) {
+            return target;
+        }
+        for (Handle other : handles()) {
+            if (!other.height() && Math.abs(other.x() - h.x()) < 1e-3 && Math.abs(other.y() - h.y()) < 1e-3 && Math.abs(other.z() - h.z()) < 1e-3) {
+                target = arcTarget(fx, other.name());
+                if (target != null) {
+                    return target;
+                }
+            }
+        }
+        return null;
+    }
+
+    private Component menuLabel(String entry, Handle h) {
+        if (entry.equals("add_to")) {
+            String target = arcTargetAt(h);
+            if (target != null && !target.equals("pillars")) {
+                return Component.translatable("gui.mm.effect_studio.menu.add_to", pretty(target));
+            }
+            return Component.translatable("gui.mm.effect_studio.menu.add_pillar");
+        }
+        return Component.translatable("gui.mm.effect_studio.menu." + entry);
     }
 
     @Nullable
@@ -2150,7 +2217,7 @@ public class EffectStudioScreen extends Screen {
         }
         if (menu != null) {
             String[] entries = menuEntries(menu);
-            int menuW = menuWidth(entries);
+            int menuW = menuWidth(entries, menu);
             gfx.fill(menuX, menuY, menuX + menuW, menuY + entries.length * 14 + 2, 0xEE101010);
             for (int i = 0; i < entries.length; i++) {
                 int ey = menuY + 1 + i * 14;
@@ -2158,7 +2225,7 @@ public class EffectStudioScreen extends Screen {
                 if (over) {
                     gfx.fill(menuX + 1, ey, menuX + menuW - 1, ey + 14, 0xFF3A3A3A);
                 }
-                gfx.drawString(font, Component.translatable("gui.mm.effect_studio.menu." + entries[i]), menuX + 4, ey + 3, 0xFFFFFF);
+                gfx.drawString(font, menuLabel(entries[i], menu), menuX + 4, ey + 3, 0xFFFFFF);
             }
         }
     }
@@ -2245,10 +2312,21 @@ public class EffectStudioScreen extends Screen {
             String[] entries = menuEntries(target);
             menu = null;
             int index = (int) ((mouseY - menuY - 1) / 14);
-            if (button == 0 && mouseX >= menuX && mouseX < menuX + menuWidth(entries) && mouseY >= menuY && index >= 0 && index < entries.length) {
+            if (button == 0 && mouseX >= menuX && mouseX < menuX + menuWidth(entries, target) && mouseY >= menuY && index >= 0 && index < entries.length) {
                 switch (entries[index]) {
                     case "delete" -> deleteHandle(target);
                     case "unlink" -> unlink(target);
+                    case "add_to" -> {
+                        String into = arcTargetAt(target);
+                        if (into != null) {
+                            adding = into;
+                            linkFrom = -1;
+                            handleName = null;
+                            placing = null;
+                            steps.clear();
+                            rebuildWidgets();
+                        }
+                    }
                     case "link" -> {
                         handleName = target.name();
                         handleIndex = target.index();

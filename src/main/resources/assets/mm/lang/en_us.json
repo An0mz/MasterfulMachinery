@@ -614,6 +614,8 @@
   "gui.mm.effect_studio.menu.delete": "Delete point",
   "gui.mm.effect_studio.menu.link": "Add an arc from here",
   "gui.mm.effect_studio.menu.unlink": "Remove its arcs",
+  "gui.mm.effect_studio.menu.add_pillar": "Add a pillar",
+  "gui.mm.effect_studio.menu.add_to": "Add a point to %s",
   "gui.mm.effect_studio.spot.link": "Add an arc from this point: click a point to connect to, or where a new point goes",
   "gui.mm.effect_studio.click.link": "Arc from point %s: click a point to connect to, or where a new point goes. Ctrl keeps going (Esc to stop)",
   "gui.mm.effect_studio.spot.add": "Add a point: click where it goes. Ctrl-click to add several.",
