@@ -404,12 +404,16 @@ public final class SeepLayer implements FxLayer {
                 }
                 for (Face f : list) {
                     if (f.rivulet && f.exposed) {
-                        rivulet(vc, ctx, f, ws);
-                    } else if (f.stain && f.stainExposed) {
+                        if (ctx.lod == 0) {
+                            rivulet(vc, ctx, f, ws);
+                        } else {
+                            simpleRivulet(vc, ctx, f, ws);
+                        }
+                    } else if (f.stain && f.stainExposed && ctx.lod < 2) {
                         stain(vc, ctx, f, ws);
                     }
                 }
-                if (dripPatch) {
+                if (dripPatch && ctx.lod < 2) {
                     patch(vc, ctx, columns[i], ws);
                 }
             }
@@ -495,6 +499,12 @@ public final class SeepLayer implements FxLayer {
                 double hh = 0.5 / 16 * (1 + phEdge * 0.5);
                 FxMesh.box(vc, ctx.pose, ex, r.column.top - hh, ez, 0.5 / 16, hh, color(3, a), glow ? LightTexture.FULL_BRIGHT : underLight);
             }
+        }
+
+        private void simpleRivulet(VertexConsumer vc, FxContext ctx, Face r, double ws) {
+            double a = (215 + 35 * ws) * ctx.fade * alpha;
+            int topPx = (int) Math.round(r.seepTop * 16);
+            px(vc, ctx, r, r.path[0], topPx, ws > 0.5 ? 3 : 2, r.rows, color(ws > 0.5 ? 3 : 2, a), r.light[0]);
         }
 
         private static int inCell(Face f, int u) {

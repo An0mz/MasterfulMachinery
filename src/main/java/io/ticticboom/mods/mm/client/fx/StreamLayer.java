@@ -232,8 +232,8 @@ public final class StreamLayer implements FxLayer {
         public void render(FxContext ctx) {
             VertexConsumer vc = null;
             int tint = FxColor.pick(portColor, color, ctx);
-            int segments = ctx.distance < 32 ? 44 : (ctx.distance < 60 ? 28 : 18);
-            int sides = ctx.distance < 48 ? 6 : 4;
+            int segments = ctx.lod == 0 ? 44 : ctx.lod == 1 ? 28 : 18;
+            int sides = ctx.lod == 0 ? 6 : 4;
             int a = (int) (255 * FxNoise.clamp(alpha.at(ctx.intensity.now())) * ctx.fade);
             double[] cos = FxTrig.cos(sides);
             double[] sin = FxTrig.sin(sides);

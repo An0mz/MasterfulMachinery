@@ -60,6 +60,7 @@ public final class FxRenderer {
         ctx.origin = BlockPos.ZERO;
         ctx.fullBright = true;
         ctx.boost = boost;
+        ctx.lod = 0;
         ctx.time = (mc.level.getGameTime() + (double) partialTick) / 20.0;
         ctx.distance = 8;
         ctx.pose = pose.last();
@@ -115,8 +116,12 @@ public final class FxRenderer {
         ctx.origin = pos;
         ctx.time = (level.getGameTime() + (double) partialTick) / 20.0;
         ctx.distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (ctx.distance > FxSettings.distance + instance.radius()) {
+            return;
+        }
+        ctx.lod = FxSettings.lod(ctx.distance);
         ctx.pose = pose.last();
-        ctx.buffers = buffers;
+        ctx.buffers = FxBuffers.BUFFERS;
         var left = cam.getLeftVector();
         var up = cam.getUpVector();
         var look = cam.getLookVector();

@@ -283,7 +283,11 @@ public final class EmitterLayer implements FxLayer {
         @Override
         public void update(FxContext ctx) {
             double dt = Math.min(ctx.dt, 0.25);
-            pending += Math.max(0, rate.at(ctx.intensity.now())) * dt;
+            double budget = FxSettings.maxParticles <= 0 ? 0 : FxStats.lastParticles > FxSettings.maxParticles
+                    ? (double) FxSettings.maxParticles / FxStats.lastParticles : 1;
+            double detail = ctx.lod == 0 ? 1 : ctx.lod == 1 ? 0.6 : 0.35;
+            double spawnScale = ctx.fullBright ? 1 : FxSettings.particleScale * detail * budget;
+            pending += Math.max(0, rate.at(ctx.intensity.now())) * dt * spawnScale;
             while (pending >= 1) {
                 if (count == max) {
                     pending = 0;
@@ -355,6 +359,12 @@ public final class EmitterLayer implements FxLayer {
                 double g = easeOut ? 1 - (1 - f) * (1 - f) : f;
                 double size = (sizeStart + (sizeEnd - sizeStart) * g) * 0.5 * scale[i];
                 if (size <= 0) {
+                    continue;
+                }
+                double ex = x[i] - ctx.cameraX;
+                double ey = y[i] - ctx.cameraY;
+                double ez = z[i] - ctx.cameraZ;
+                if (size * size < (ex * ex + ey * ey + ez * ez) * 0.000004) {
                     continue;
                 }
                 double alpha = (alphaStart + (alphaEnd - alphaStart) * f) * ctx.fade;

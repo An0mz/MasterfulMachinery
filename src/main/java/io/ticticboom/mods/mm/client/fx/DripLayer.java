@@ -107,8 +107,11 @@ public final class DripLayer implements FxLayer {
 
         @Override
         public void render(FxContext ctx) {
+            if (ctx.lod >= 2) {
+                return;
+            }
             VertexConsumer vc = null;
-            int sides = ctx.distance < 48 ? 6 : 4;
+            int sides = ctx.lod == 0 ? 6 : 4;
             int col = FxColor.argb((int) (255 * alpha * ctx.fade), FxColor.pick(portColor, color, ctx), 1.0);
             for (FxColumn c : columns) {
                 if (!visible(c)) {

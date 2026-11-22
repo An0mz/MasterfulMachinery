@@ -99,6 +99,9 @@ public final class RippleLayer implements FxLayer {
 
         @Override
         public void render(FxContext ctx) {
+            if (ctx.lod >= 2) {
+                return;
+            }
             VertexConsumer vc = null;
             for (int i = 0; i < count; i++) {
                 FxColumn c = column[i];

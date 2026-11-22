@@ -16,6 +16,7 @@ public final class FxStats {
     static int vertices;
     static int particles;
     static int machines;
+    static int lastParticles;
 
     private static double avgMs;
     private static double avgQuads;
@@ -70,6 +71,8 @@ public final class FxStats {
             benchMachines += machines;
         }
         lastFrame = now;
+        lastParticles = particles;
+        FxSettings.refresh();
         nanos = 0;
         vertices = 0;
         particles = 0;

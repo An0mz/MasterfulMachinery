@@ -161,9 +161,10 @@ public final class PoolLayer implements FxLayer {
                     }
                 }
                 int light = glow ? LightTexture.FULL_BRIGHT : c.lightAt(c.landing() + 0.5);
+                int step = ctx.lod == 0 ? 1 : 2;
                 for (int k = 0; k < RINGS.length - 1; k++) {
-                    for (int i = 0; i < POINTS; i++) {
-                        int j = (i + 1) % POINTS;
+                    for (int i = 0; i < POINTS; i += step) {
+                        int j = (i + step) % POINTS;
                         FxMesh.vertex(vc, ctx.pose, xs[k][i], y, zs[k][i], us[k][i], vs[k][i], colors[k], light, 0, 1, 0);
                         FxMesh.vertex(vc, ctx.pose, xs[k + 1][i], y, zs[k + 1][i], us[k + 1][i], vs[k + 1][i], colors[k + 1], light, 0, 1, 0);
                         FxMesh.vertex(vc, ctx.pose, xs[k + 1][j], y, zs[k + 1][j], us[k + 1][j], vs[k + 1][j], colors[k + 1], light, 0, 1, 0);
