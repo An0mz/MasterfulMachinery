@@ -55,6 +55,7 @@ public class EffectStudioScreen extends Screen {
     private static final Set<String> FALLING = Set.of("drip", "stream", "pool", "seep");
     private static final Set<String> NOTES = Set.of("drip_working", "hidden_now");
     private static final Set<String> DERIVED = Set.of("floor", "landing", "sky");
+    private static final Set<String> VERTICAL = Set.of("floor", "seep_top");
     private static final int[] SPOT_COLORS = {0xFF40E0FF, 0xFFFFD040, 0xFFFF60C0, 0xFF3AFF7A, 0xFFFF7A1A, 0xFFA040FF};
 
     private final EffectStudio.Session session;
@@ -1024,7 +1025,7 @@ public class EffectStudioScreen extends Screen {
     private static List<String> spotNames(JsonObject anchors) {
         var names = new ArrayList<String>();
         for (var entry : anchors.entrySet()) {
-            if (entry.getValue().isJsonArray() && !DERIVED.contains(entry.getKey())) {
+            if (entry.getValue().isJsonArray() && !DERIVED.contains(entry.getKey()) && !VERTICAL.contains(entry.getKey())) {
                 names.add(entry.getKey());
             }
         }
@@ -1406,14 +1407,15 @@ public class EffectStudioScreen extends Screen {
         for (var entry : anchors.entrySet()) {
             String name = entry.getKey();
             JsonElement value = entry.getValue();
-            if (DERIVED.contains(name)) {
+            if (DERIVED.contains(name) && !VERTICAL.contains(name)) {
                 continue;
             }
             if (value.isJsonArray()) {
+                boolean vertical = VERTICAL.contains(name);
                 List<double[]> points = pointsOf(value);
                 for (int i = 0; i < points.size(); i++) {
                     double[] p = points.get(i);
-                    result.add(new Handle(name, i, p[0], p[1], p[2], false));
+                    result.add(new Handle(name, i, p[0], p[1], p[2], vertical));
                 }
             } else if (value.isJsonPrimitive() && value.getAsJsonPrimitive().isNumber()) {
                 result.add(new Handle(name, -1, hx, value.getAsDouble(), hz, true));
@@ -1470,7 +1472,14 @@ public class EffectStudioScreen extends Screen {
 
     private void setHandle(Handle h, double x, double y, double z) {
         JsonObject anchors = selectedAnchors();
-        if (h.height()) {
+        if (h.height() && anchors.has(h.name()) && anchors.get(h.name()).isJsonArray()) {
+            List<double[]> points = pointsOf(anchors.get(h.name()));
+            if (h.index() < 0 || h.index() >= points.size()) {
+                return;
+            }
+            points.get(h.index())[1] = Math.round(y * 16) / 16.0;
+            anchors.add(h.name(), pointsJson(points));
+        } else if (h.height()) {
             anchors.addProperty(h.name(), Math.round(y * 16) / 16.0);
         } else {
             List<double[]> points = pointsOf(anchors.get(h.name()));
@@ -2122,7 +2131,8 @@ public class EffectStudioScreen extends Screen {
         if (points.isEmpty()) {
             return auto(name, null, face == null ? Direction.DOWN : face, clicked);
         }
-        if (points.size() == 1 || !DERIVED.contains(name)) {
+        boolean perPoint = DERIVED.contains(name) || name.equals("seep_top");
+        if (points.size() == 1 || !perPoint) {
             double[] p = points.get(0);
             return auto(name, point(p[0], p[1], p[2]), face == null ? faceOf(p) : face, clicked);
         }
@@ -2134,7 +2144,7 @@ public class EffectStudioScreen extends Screen {
             if (value == null) {
                 return null;
             }
-            if (name.equals("floor")) {
+            if (name.equals("floor") || name.equals("seep_top")) {
                 double h = value.getAsDouble();
                 differ |= same != null && Math.abs(same - h) > 1e-6;
                 same = same == null ? h : same;
@@ -2147,7 +2157,7 @@ public class EffectStudioScreen extends Screen {
                 list.add(value);
             }
         }
-        return name.equals("floor") && !differ ? new JsonPrimitive(same) : list;
+        return (name.equals("floor") || name.equals("seep_top")) && !differ ? new JsonPrimitive(same) : list;
     }
 
     @Nullable
@@ -2456,8 +2466,8 @@ public class EffectStudioScreen extends Screen {
             if (!h.height()) {
                 continue;
             }
-            boolean selected = h.name().equals(handleName);
-            boolean hot = hovered != null && hovered.name().equals(h.name()) && hovered.height();
+            boolean selected = h.name().equals(handleName) && h.index() == handleIndex;
+            boolean hot = hovered != null && hovered.name().equals(h.name()) && hovered.height() && hovered.index() == h.index();
             double x = h.x() - origin.getX();
             double y = h.y() - origin.getY();
             double z = h.z() - origin.getZ();
@@ -2611,7 +2621,7 @@ public class EffectStudioScreen extends Screen {
         }
         Handle selectedHandle = handle();
         if (coords != null && selectedHandle != null) {
-            String label = selectedHandle.height() ? selectedHandle.name() : selectedHandle.name() + " #" + (selectedHandle.index() + 1);
+            String label = selectedHandle.index() < 0 ? pretty(selectedHandle.name()) : pretty(selectedHandle.name()) + " #" + (selectedHandle.index() + 1);
             gfx.drawString(font, label, coords.getX(), coords.getY() - 10, 0xFFFFFF);
             coords.render(gfx, mouseX, mouseY, partialTick);
         }

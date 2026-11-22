@@ -149,17 +149,19 @@ public final class SeepLayer implements FxLayer {
     public State create(FxShared shared) {
         FxColumn[] columns = FxSkip.keep(shared.columns(at, null), skip);
         Double seepTop = shared.height(top);
+        double[] tops = seepTop == null ? shared.points(top) : null;
         if (columns == null) {
             return null;
         }
-        if (seepTop == null) {
-            FxLog.warnOnce("Seep layer: no height anchor named '{}'", top);
+        if (seepTop == null && (tops == null || tops.length < 3)) {
+            FxLog.warnOnce("Seep layer: no height or point anchor named '{}'", top);
             return null;
         }
         var faces = new Face[columns.length][];
         for (int i = 0; i < columns.length; i++) {
             FxColumn c = columns[i];
-            int rows = (int) Math.round((seepTop - c.top) * 16);
+            double columnTop = seepTop != null ? seepTop : tops[Math.min(c.index, tops.length / 3 - 1) * 3 + 1];
+            int rows = (int) Math.round((columnTop - c.top) * 16);
             if (rows <= 0) {
                 continue;
             }
@@ -169,7 +171,7 @@ public final class SeepLayer implements FxLayer {
             for (int s = 0; s < streams; s++) {
                 int slot = streams == 1 ? -1 : 3 + (int) Math.round(s * 9.0 / (streams - 1));
                 for (int d = 0; d < 4; d++) {
-                    faces[i][s * 4 + d] = new Face(c, DIRECTIONS[d][0], DIRECTIONS[d][1], seepTop, rows, random, slot);
+                    faces[i][s * 4 + d] = new Face(c, DIRECTIONS[d][0], DIRECTIONS[d][1], columnTop, rows, random, slot);
                 }
             }
         }
