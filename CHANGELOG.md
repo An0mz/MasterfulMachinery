@@ -4,6 +4,57 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.19.0] - 2026-11-22
+
+### Added
+- **Machine effects.** A structure can show animated effects on the formed machine: liquid streams,
+  drips, falling drops, pools and ripples, blood seeping down the sides of blocks, particles such as
+  smoke, steam and sparks, beams and arcs, and glowing faces and halos. Effects follow the machine's
+  idle and working state and can take their colour from a port's fluid. Put an effect file at
+  `assets/<namespace>/mm_fx/<name>.json` in a resource pack or `kubejs/assets` (its textures come from
+  your pack), then attach it to a structure with `.effect({ fx: 'mypack:kiln_fire', anchors: { ... } })`
+  in KubeJS or a `data/<namespace>/mm/structure_effects/<name>.json` file.
+- **Effect Studio.** Hold the Effect Wand and right-click a formed controller (operators only) to build
+  effects on the real machine. Drag a preset or part from the library onto the machine, drag its
+  points into place, connect arcs between points, pick which blocks glow and which sides of a block
+  bleed, and turn a layer off for a single spot. The Look tab sets amount, size and speed (separately
+  for idle and working), colour and particle direction, and Reroll gives a new random look. Save your
+  own presets to reuse them on other machines. Save writes the effect files into `kubejs/`; on a
+  dedicated server, copy the saved `kubejs/data/<namespace>/mm/structure_effects` files to the server.
+- **Effect settings.** Under `[effects]` in the client config, or on the Client page of the mod's
+  config screen: `quality` (Low, Medium or High, Medium by default), `viewDistance`, `particleAmount`
+  and `maxParticles`. Bind "Cycle machine effect quality" in Controls to switch quality in game. F3
+  shows how much frame time machine effects take.
+- **Particles visual.** `.particles({ ... })` spawns any particle over a region of the machine, while
+  it works by default (`when`), with `rate`, `velocity`, `offset` and `spread`.
+- **Flex recipes.** An `mm:input/flex` input takes any items matching its ingredient, and an
+  `mm:output/flex` output gives a result for each kind it took. Limit it with `max_types`,
+  `min_tier` / `max_tier` and `exclude`, add `mm:input/flex_match` inputs needed once per kind, and use
+  `mm:input/count` for inputs that are counted but not used up. JEI shows a page per kind.
+- **Entity groups.** An entity input can take `"group": "passive"`, `"hostile"` or `"boss"` instead of
+  `entity` or `tag`.
+- **Same recipe several times at once.** Set `maxRecipeCopies` on a structure, or `.maxRecipeCopies(n)`
+  in KubeJS, to let it run several copies of the same recipe in parallel.
+- **Why a recipe isn't running.** The controller screen and Jade show the reason: missing input, not
+  enough energy, output doesn't fit, or a condition not met.
+- **Controller model switch.** A row on the controller screen shows a machine's model animated, still
+  or hidden, for every player.
+- **Input Gateway rules.** Allow Input Gateways on a structure piece with `allowHelper` and limit how
+  many a machine takes with `maxHelpers`. Admins can change both per structure from the Structure
+  Builder.
+
+### Changed
+- A recipe only starts when all of its outputs fit in the output ports together.
+- The Structure Builder's dismantle key is F by default.
+- Machines with many recipes find the right one faster.
+
+### Fixed
+- Block rotations in captured and rotated structures.
+- The structure preview going dark with shader packs.
+- Port priority not saving, and not being used by radiation and matter outputs.
+- KubeJS structures losing `portsAnywhere` when reloaded.
+- Port screens drawing their background twice.
+
 ## [1.21.1-0.18.1] - 2026-11-16
 
 ### Added
