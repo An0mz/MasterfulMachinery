@@ -3,7 +3,7 @@
     {
       "type": "emitter",
       "at": "spot",
-      "texture": "kubejs:textures/fx/soft.png",
+      "texture": "mm:textures/fx/soft.png",
       "rate": {
         "idle": 1,
         "working": 12
@@ -54,7 +54,7 @@
     {
       "type": "glow",
       "at": "block",
-      "texture": "kubejs:textures/fx/glow_face.png",
+      "texture": "mm:textures/fx/glow_face.png",
       "color": "#ffa040",
       "alpha": {
         "idle": 0.08,
@@ -67,7 +67,7 @@
       "type": "drip",
       "at": "spot",
       "to": "floor",
-      "texture": "kubejs:textures/fx/liquid_flow.png",
+      "texture": "mm:textures/fx/liquid_flow.png",
       "color": "#4a8ae8",
       "rate": {
         "idle": 0.2,
@@ -78,7 +78,7 @@
     },
     {
       "type": "drops",
-      "texture": "kubejs:textures/fx/liquid_flow.png",
+      "texture": "mm:textures/fx/liquid_flow.png",
       "color": "#4a8ae8",
       "name": "Drops",
       "off": true

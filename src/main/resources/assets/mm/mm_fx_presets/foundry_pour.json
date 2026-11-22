@@ -4,7 +4,7 @@
       "type": "stream",
       "from": "spot",
       "to": "floor",
-      "texture": "kubejs:textures/fx/molten_flow.png",
+      "texture": "mm:textures/fx/molten_flow.png",
       "color": "#ff7a1a",
       "radius": 0.11,
       "alpha": {
@@ -18,7 +18,7 @@
       "type": "drip",
       "at": "spot",
       "to": "floor",
-      "texture": "kubejs:textures/fx/molten_flow.png",
+      "texture": "mm:textures/fx/molten_flow.png",
       "color": "#ff7a1a",
       "rate": {
         "idle": 0,
@@ -29,7 +29,7 @@
     },
     {
       "type": "drops",
-      "texture": "kubejs:textures/fx/molten_flow.png",
+      "texture": "mm:textures/fx/molten_flow.png",
       "color": "#ff7a1a",
       "glow": true,
       "name": "Drops"
@@ -38,7 +38,7 @@
       "type": "pool",
       "at": "spot",
       "to": "floor",
-      "texture": "kubejs:textures/fx/molten_pool.png",
+      "texture": "mm:textures/fx/molten_pool.png",
       "color": "#ff7a1a",
       "size": 0.45,
       "glow": true,
@@ -46,7 +46,7 @@
     },
     {
       "type": "ripple",
-      "texture": "kubejs:textures/fx/molten_pool.png",
+      "texture": "mm:textures/fx/molten_pool.png",
       "color": "#ffb060",
       "glow": true,
       "name": "Ripples"
@@ -54,7 +54,7 @@
     {
       "type": "glow",
       "at": "below",
-      "texture": "kubejs:textures/fx/glow_face.png",
+      "texture": "mm:textures/fx/glow_face.png",
       "color": "#ff4000",
       "alpha": {
         "idle": 0.08,
@@ -67,7 +67,7 @@
       "type": "glow",
       "mode": "halo",
       "at": "landing",
-      "texture": "kubejs:textures/fx/spark.png",
+      "texture": "mm:textures/fx/spark.png",
       "color": "#ff6a00",
       "size": {
         "idle": 0.4,
@@ -83,7 +83,7 @@
     {
       "type": "emitter",
       "at": "landing",
-      "texture": "kubejs:textures/fx/spark.png",
+      "texture": "mm:textures/fx/spark.png",
       "blend": "additive",
       "rate": {
         "idle": 0,
@@ -129,7 +129,7 @@
     {
       "type": "emitter",
       "at": "landing",
-      "texture": "kubejs:textures/fx/soft.png",
+      "texture": "mm:textures/fx/soft.png",
       "rate": {
         "idle": 1.5,
         "working": 16

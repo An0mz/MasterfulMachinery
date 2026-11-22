@@ -3,7 +3,7 @@
     {
       "type": "emitter",
       "at": "spot",
-      "texture": "kubejs:textures/fx/spark.png",
+      "texture": "mm:textures/fx/spark.png",
       "blend": "additive",
       "rate": {
         "idle": 0.3,

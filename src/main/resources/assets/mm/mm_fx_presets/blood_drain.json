@@ -4,7 +4,7 @@
       "type": "stream",
       "from": "spot",
       "to": "floor",
-      "texture": "kubejs:textures/fx/blood_flow.png",
+      "texture": "mm:textures/fx/blood_flow.png",
       "color": "#ffffff",
       "alpha": {
         "idle": 0,
@@ -16,13 +16,13 @@
       "type": "drip",
       "at": "spot",
       "to": "floor",
-      "texture": "kubejs:textures/fx/blood_flow.png",
+      "texture": "mm:textures/fx/blood_flow.png",
       "color": "#ffffff",
       "name": "Drips"
     },
     {
       "type": "drops",
-      "texture": "kubejs:textures/fx/blood_flow.png",
+      "texture": "mm:textures/fx/blood_flow.png",
       "color": "#ffffff",
       "name": "Drops"
     },
@@ -30,14 +30,14 @@
       "type": "pool",
       "at": "spot",
       "to": "floor",
-      "texture": "kubejs:textures/fx/blood_pool.png",
+      "texture": "mm:textures/fx/blood_pool.png",
       "color": "#ffffff",
       "size": 0.35,
       "name": "Pool"
     },
     {
       "type": "ripple",
-      "texture": "kubejs:textures/fx/blood_pool.png",
+      "texture": "mm:textures/fx/blood_pool.png",
       "color": "#ffffff",
       "name": "Ripples"
     },
@@ -45,7 +45,7 @@
       "type": "glow",
       "mode": "halo",
       "at": "spot",
-      "texture": "kubejs:textures/fx/spark.png",
+      "texture": "mm:textures/fx/spark.png",
       "color": "#c01818",
       "size": {
         "idle": 0.2,
@@ -62,7 +62,7 @@
     {
       "type": "emitter",
       "at": "landing",
-      "texture": "kubejs:textures/fx/spark.png",
+      "texture": "mm:textures/fx/spark.png",
       "blend": "additive",
       "rate": {
         "idle": 0.3,

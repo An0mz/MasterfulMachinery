@@ -3,7 +3,7 @@
     {
       "type": "emitter",
       "at": "landing",
-      "texture": "kubejs:textures/fx/soft.png",
+      "texture": "mm:textures/fx/soft.png",
       "rate": {
         "idle": 1.5,
         "working": 16

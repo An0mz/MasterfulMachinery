@@ -3,7 +3,7 @@
     {
       "type": "glow",
       "at": "block",
-      "texture": "kubejs:textures/fx/glow_face.png",
+      "texture": "mm:textures/fx/glow_face.png",
       "color": "#ffffff",
       "alpha": {
         "idle": 0.08,

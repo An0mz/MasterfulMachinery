@@ -3,7 +3,7 @@
     {
       "type": "glow",
       "at": "block",
-      "texture": "kubejs:textures/fx/glow_face.png",
+      "texture": "mm:textures/fx/glow_face.png",
       "color": "#28ff6a",
       "alpha": {
         "idle": 0.08,
@@ -18,7 +18,7 @@
       "type": "beam",
       "from": "spot",
       "to": "sky",
-      "texture": "kubejs:textures/fx/beam.png",
+      "texture": "mm:textures/fx/beam.png",
       "blend": "additive",
       "color": "#3aff7a",
       "width": {
@@ -36,7 +36,7 @@
       "type": "glow",
       "mode": "halo",
       "at": "spot",
-      "texture": "kubejs:textures/fx/spark.png",
+      "texture": "mm:textures/fx/spark.png",
       "color": "#3aff7a",
       "size": {
         "idle": 0.6,
@@ -53,7 +53,7 @@
     {
       "type": "emitter",
       "at": "spot",
-      "texture": "kubejs:textures/fx/spark.png",
+      "texture": "mm:textures/fx/spark.png",
       "blend": "additive",
       "rate": {
         "idle": 1,

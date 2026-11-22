@@ -4,7 +4,7 @@
       "type": "beam",
       "from": "spot",
       "to": "sky",
-      "texture": "kubejs:textures/fx/beam.png",
+      "texture": "mm:textures/fx/beam.png",
       "blend": "additive",
       "color": "#ffffff",
       "width": {

@@ -4,7 +4,7 @@
       "type": "glow",
       "mode": "halo",
       "at": "spot",
-      "texture": "kubejs:textures/fx/spark.png",
+      "texture": "mm:textures/fx/spark.png",
       "color": "#ffffff",
       "size": {
         "idle": 0.4,

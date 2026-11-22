@@ -1,4 +1,5 @@
-The machine effect engine (io.ticticboom.mods.mm.client.fx) is adapted from
+The machine effect engine (io.ticticboom.mods.mm.client.fx) and the textures
+assets/mm/textures/fx/blood_flow.png, blood_pool.png and blood_white.png are adapted from
 Blood Factory FX by Mechanical Infinity, released under the MIT License:
 
 MIT License

@@ -4,7 +4,7 @@
       "type": "drip",
       "at": "spot",
       "to": "floor",
-      "texture": "kubejs:textures/fx/liquid_flow.png",
+      "texture": "mm:textures/fx/liquid_flow.png",
       "color": "#4a8ae8",
       "name": "Drips"
     }
