@@ -50,6 +50,16 @@ public final class FxStats {
         }
     }
 
+    private static final java.util.Map<String, Long> LAYERS = new java.util.TreeMap<>();
+
+    static void layer(Object state, int vertices) {
+        if (phase == 2 && vertices > 0) {
+            Class<?> type = state.getClass();
+            String name = type.getEnclosingClass() == null ? type.getSimpleName() : type.getEnclosingClass().getSimpleName() + "." + type.getSimpleName();
+            LAYERS.merge(name, (long) vertices, Long::sum);
+        }
+    }
+
     static void machine() {
         machines++;
     }
@@ -139,6 +149,9 @@ public final class FxStats {
                             Math.round(benchParticles / benchFrames),
                             String.format("%.1f", benchMachines / benchFrames),
                             benchFrames);
+                    for (var entry : LAYERS.entrySet()) {
+                        Ref.LOG.info("MM FX BENCH layer {}: {} quads/frame", entry.getKey(), Math.round(entry.getValue() / 4.0 / benchFrames));
+                    }
                     var options = mc.options;
                     options.framerateLimit().set(savedLimit);
                     options.enableVsync().set(savedVsync);

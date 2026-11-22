@@ -204,7 +204,9 @@ public final class FxInstance {
             ctx.portColor = effect.shared().portColor;
             var states = effect.states();
             for (int s = 0; s < states.size(); s++) {
+                int before = FxStats.vertices;
                 states.get(s).render(ctx);
+                FxStats.layer(states.get(s), FxStats.vertices - before);
             }
         }
     }
