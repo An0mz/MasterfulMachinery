@@ -1,7 +1,9 @@
 package io.ticticboom.mods.mm.compat.waila;
 
 import io.ticticboom.mods.mm.Ref;
+import io.ticticboom.mods.mm.client.util.BlockReasonText;
 import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
+import io.ticticboom.mods.mm.recipe.RecipeBlockReason;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -22,6 +24,7 @@ public class ControllerDataProvider implements IServerDataProvider<BlockAccessor
     private static final String LIMIT_KEY = "ParallelLimit";
     private static final String REDSTONE_KEY = "RedstoneMode";
     private static final String OWNER_KEY = "Owner";
+    private static final String BLOCKED_KEY = "Blocked";
 
     public static final ControllerDataProvider INSTANCE = new ControllerDataProvider();
 
@@ -43,6 +46,9 @@ public class ControllerDataProvider implements IServerDataProvider<BlockAccessor
         if (cbe.getNetworkLink() != null) {
             data.putString(OWNER_KEY, cbe.getNetworkLink().ownerName());
         }
+        if (cbe.getBlockReason() != null) {
+            data.put(BLOCKED_KEY, cbe.getBlockReason().save());
+        }
     }
 
     @Override
@@ -58,6 +64,12 @@ public class ControllerDataProvider implements IServerDataProvider<BlockAccessor
         }
         String status = data.getString(STATUS_KEY);
         tooltip.add(Component.translatable("gui.mm.controller.status." + status).withStyle(statusColor(status)));
+        RecipeBlockReason blocked = data.contains(BLOCKED_KEY) ? RecipeBlockReason.load(data.getCompound(BLOCKED_KEY)) : null;
+        if (blocked != null) {
+            tooltip.add(BlockReasonText.title(blocked).copy().withStyle(ChatFormatting.GOLD)
+                    .append(Component.literal(": ").withStyle(ChatFormatting.GOLD))
+                    .append(BlockReasonText.detail(blocked).copy().withStyle(ChatFormatting.GRAY)));
+        }
         if (data.contains(PROGRESS_KEY)) {
             tooltip.add(Component.translatable("jade.mm.controller.progress", String.format("%.0f%%", data.getFloat(PROGRESS_KEY))));
         }

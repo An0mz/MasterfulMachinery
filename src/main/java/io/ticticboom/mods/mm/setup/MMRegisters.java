@@ -1,5 +1,8 @@
 package io.ticticboom.mods.mm.setup;
 
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.InteractionResult;
 import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
 import io.ticticboom.mods.mm.tool.ToolComponents;
 import io.ticticboom.mods.mm.tool.MultiblockToolMenu;
@@ -44,6 +47,12 @@ public class MMRegisters {
             () -> IMenuTypeExtension.create(MultiblockToolMenu::new));
     public static final DeferredHolder<MenuType<?>, MenuType<SingleMachineMenu>> SINGLE_MACHINE_MENU = MENUS.register("single_machine",
             () -> IMenuTypeExtension.create(SingleMachineMenu::new));
+    public static final DeferredHolder<Item, Item> EFFECT_WAND = ITEMS.register("effect_wand", () -> new Item(new Item.Properties().stacksTo(1)) {
+        @Override
+        public InteractionResult onItemUseFirst(ItemStack stack, UseOnContext context) {
+            return InteractionResult.sidedSuccess(context.getLevel().isClientSide());
+        }
+    });
     public static final DeferredHolder<Item, WrenchItem> WRENCH = ITEMS.register("wrench", WrenchItem::new);
     public static final DeferredHolder<Block, InputGatewayBlock> INPUT_GATEWAY = BLOCKS.register("input_gateway", InputGatewayBlock::new);
     public static final DeferredHolder<Item, BlockItem> INPUT_GATEWAY_ITEM = ITEMS.register("input_gateway", () -> new BlockItem(INPUT_GATEWAY.get(), new Item.Properties()));

@@ -195,4 +195,14 @@ public class FluidPortIngredient implements IPortIngredient {
         return new net.neoforged.neoforge.fluids.FluidStack(
                 net.minecraft.core.registries.BuiltInRegistries.FLUID.get(getFluidId()), 1).getHoverName();
     }
+
+    @Override
+    public boolean canSimulateOutput() {
+        return true;
+    }
+
+    @Override
+    public IPortIngredient scaled(double factor) {
+        return new FluidPortIngredient(fluidId, amount.scaled(factor));
+    }
 }

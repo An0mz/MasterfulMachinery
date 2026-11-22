@@ -1,0 +1,182 @@
+{
+  "layers": [
+    {
+      "type": "stream",
+      "from": "spot",
+      "to": "floor",
+      "texture": "kubejs:textures/fx/molten_flow.png",
+      "color": "#ff7a1a",
+      "radius": 0.11,
+      "alpha": {
+        "idle": 0,
+        "working": 0.95
+      },
+      "glow": true,
+      "name": "Stream"
+    },
+    {
+      "type": "drip",
+      "at": "spot",
+      "to": "floor",
+      "texture": "kubejs:textures/fx/molten_flow.png",
+      "color": "#ff7a1a",
+      "rate": {
+        "idle": 0,
+        "working": 1.5
+      },
+      "glow": true,
+      "name": "Drips"
+    },
+    {
+      "type": "drops",
+      "texture": "kubejs:textures/fx/molten_flow.png",
+      "color": "#ff7a1a",
+      "glow": true,
+      "name": "Drops"
+    },
+    {
+      "type": "pool",
+      "at": "spot",
+      "to": "floor",
+      "texture": "kubejs:textures/fx/molten_pool.png",
+      "color": "#ff7a1a",
+      "size": 0.45,
+      "glow": true,
+      "name": "Pool"
+    },
+    {
+      "type": "ripple",
+      "texture": "kubejs:textures/fx/molten_pool.png",
+      "color": "#ffb060",
+      "glow": true,
+      "name": "Ripples"
+    },
+    {
+      "type": "glow",
+      "at": "below",
+      "texture": "kubejs:textures/fx/glow_face.png",
+      "color": "#ff4000",
+      "alpha": {
+        "idle": 0.08,
+        "working": 0.45
+      },
+      "flicker": 0.4,
+      "name": "Hot floor"
+    },
+    {
+      "type": "glow",
+      "mode": "halo",
+      "at": "landing",
+      "texture": "kubejs:textures/fx/spark.png",
+      "color": "#ff6a00",
+      "size": {
+        "idle": 0.4,
+        "working": 1.6
+      },
+      "alpha": {
+        "idle": 0.3,
+        "working": 0.9
+      },
+      "flicker": 0.3,
+      "name": "Glow"
+    },
+    {
+      "type": "emitter",
+      "at": "landing",
+      "texture": "kubejs:textures/fx/spark.png",
+      "blend": "additive",
+      "rate": {
+        "idle": 0,
+        "working": 18
+      },
+      "life": [
+        0.4,
+        1.0
+      ],
+      "box": [
+        0.2,
+        0,
+        0.2
+      ],
+      "velocity": [
+        0,
+        2.2,
+        0
+      ],
+      "velocity_spread": [
+        1.4,
+        0.8,
+        1.4
+      ],
+      "gravity": 9.8,
+      "drag": 0.4,
+      "size": [
+        0.07,
+        0.02
+      ],
+      "color": [
+        "#fff0a0",
+        "#ff3000"
+      ],
+      "alpha": [
+        1,
+        0
+      ],
+      "collide": true,
+      "max": 64,
+      "name": "Sparks"
+    },
+    {
+      "type": "emitter",
+      "at": "landing",
+      "texture": "kubejs:textures/fx/soft.png",
+      "rate": {
+        "idle": 1.5,
+        "working": 16
+      },
+      "life": [
+        2.5,
+        4.5
+      ],
+      "box": [
+        0.25,
+        0,
+        0.25
+      ],
+      "velocity": [
+        0,
+        0.75,
+        0
+      ],
+      "velocity_spread": [
+        0.08,
+        0.15,
+        0.08
+      ],
+      "gravity": -0.06,
+      "drag": 0.35,
+      "turbulence": 0.6,
+      "size": [
+        0.35,
+        1.5
+      ],
+      "size_spread": 0.35,
+      "size_curve": "ease_out",
+      "color": [
+        "#9a9a9a",
+        "#4a4a4a"
+      ],
+      "alpha": [
+        0.5,
+        0
+      ],
+      "fade_in": 0.15,
+      "spin": [
+        -20,
+        20
+      ],
+      "max": 96,
+      "name": "Smoke"
+    }
+  ]
+}

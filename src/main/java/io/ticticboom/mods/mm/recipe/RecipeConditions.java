@@ -45,6 +45,24 @@ public class RecipeConditions {
         return true;
     }
 
+    public int firstFailingStart(RecipeConditionContext ctx) {
+        for (int i = 0; i < conditions.size(); i++) {
+            if (!conditions.get(i).canStart(ctx)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public int firstFailingRun(RecipeConditionContext ctx) {
+        for (int i = 0; i < conditions.size(); i++) {
+            if (!conditions.get(i).canRun(ctx)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     public void start(RecipeConditionContext ctx) {
         for (IRecipeCondition condition : conditions) {
             condition.onStart(ctx);

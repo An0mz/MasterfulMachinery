@@ -1,5 +1,8 @@
 package io.ticticboom.mods.mm.config;
 
+import io.ticticboom.mods.mm.recipe.flex.FlexCost;
+import java.util.List;
+
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 public class MMCommonConfig {
@@ -11,6 +14,9 @@ public class MMCommonConfig {
     public final ModConfigSpec.BooleanValue parallelProcessingDefault;
     public final ModConfigSpec.IntValue maxParallelRecipes;
     public final ModConfigSpec.BooleanValue showJeiMaxParallel;
+    public final ModConfigSpec.BooleanValue showJeiFlexInputCopies;
+    public final ModConfigSpec.EnumValue<FlexCost.Mode> flexCostScaling;
+    public final ModConfigSpec.ConfigValue<List<? extends String>> flexCostTable;
     public final ModConfigSpec.IntValue portAutoIOInterval;
     public final ModConfigSpec.IntValue assemblyBlocksPerTick;
     public final ModConfigSpec.IntValue toolEnergyCapacity;
@@ -46,6 +52,21 @@ public class MMCommonConfig {
                 .define("networkLinkSendOnRemove", true);
         networkLinkOpBypass = builder.comment("Operators may open and break machines linked to other players. Default: true")
                 .define("networkLinkOpBypass", true);
+
+        showJeiFlexInputCopies = builder.comment("In JEI, show a flex recipe's input slot once per kind a run can take (\"max_types\", up to 9).",
+                        "When false, one slot. Default: true")
+                .define("showJeiFlexInputCopies", true);
+        builder.comment("Flex recipes (\"mode\": \"flex\"): one run takes several kinds of item at once (e.g. mixed seeds).")
+                .push("flex");
+        flexCostScaling = builder.comment("How the other consumed inputs of a flex run (energy, fluids, items...) grow with the number of kinds it takes.",
+                        "LINEAR: cost x kinds. ONCE: the same cost for any number of kinds.",
+                        "TABLE: the multiplier comes from costTable. A recipe can override this with \"flex_cost\". Default: LINEAR")
+                .defineEnum("costScaling", FlexCost.Mode.LINEAR);
+        flexCostTable = builder.comment("For costScaling = TABLE: \"kinds=multiplier\" steps; a run uses the step with the most kinds not above its own.",
+                        "Example: [\"1=1\", \"4=2\", \"7=3.5\"] means 1-3 kinds x1, 4-6 kinds x2, 7 or more x3.5. Default: [\"1=1\"]")
+                .defineListAllowEmpty("costTable", () -> List.of("1=1"), () -> "1=1",
+                        o -> o instanceof String step && FlexCost.isStep(step));
+        builder.pop();
 
         builder.push("tool");
         toolEnergyCapacity = builder.comment("Max FE the Structure Builder can store. Default: 1,000,000")

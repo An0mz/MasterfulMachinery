@@ -178,4 +178,11 @@ public class MekanismChemicalPortStorage implements IPortStorage, ILockablePortS
         var type = stack.getChemical();
         return java.util.List.of(PortContent.chemical(type.getTextComponent(), type.getIcon(), type.getTint(), stack.getAmount(), chemicalTank.getCapacity()));
     }
+
+    @Override
+    public IPortStorage simulationCopy(HolderLookup.Provider registries) {
+        var copy = new MekanismChemicalPortStorage(model, () -> {});
+        copy.load(save(new CompoundTag(), registries), registries);
+        return copy;
+    }
 }

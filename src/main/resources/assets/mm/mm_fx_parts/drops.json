@@ -1,0 +1,10 @@
+{
+  "layers": [
+    {
+      "type": "drops",
+      "texture": "kubejs:textures/fx/liquid_flow.png",
+      "color": "#4a8ae8",
+      "name": "Drops"
+    }
+  ]
+}

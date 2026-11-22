@@ -1,0 +1,53 @@
+{
+  "layers": [
+    {
+      "type": "emitter",
+      "at": "spot",
+      "texture": "kubejs:textures/fx/spark.png",
+      "blend": "additive",
+      "rate": {
+        "idle": 1,
+        "working": 10
+      },
+      "life": [
+        2.5,
+        4
+      ],
+      "box": [
+        1.6,
+        0.2,
+        1.6
+      ],
+      "velocity": [
+        0,
+        0.5,
+        0
+      ],
+      "velocity_spread": [
+        0.2,
+        0.2,
+        0.2
+      ],
+      "gravity": -0.1,
+      "drag": 0.2,
+      "size": [
+        0.07,
+        0.0
+      ],
+      "color": [
+        "#f0c0ff",
+        "#6010c0"
+      ],
+      "alpha": [
+        1,
+        0
+      ],
+      "spin": [
+        -180,
+        180
+      ],
+      "max": 64,
+      "name": "Motes"
+    }
+  ]
+}

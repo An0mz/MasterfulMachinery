@@ -48,6 +48,7 @@ public class StructureModel {
     private final JsonObject config;
 
     private final List<StructureBoost> boosts;
+    private final int maxRecipeCopies;
 
     @OnlyIn(Dist.CLIENT)
     private GuiStructureRenderer renderer;
@@ -88,6 +89,7 @@ public class StructureModel {
         this.attachments = attachments;
         this.config = config;
         this.boosts = StructureBoost.parseAll(config);
+        this.maxRecipeCopies = parseMaxRecipeCopies(config);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             renderer = new GuiStructureRenderer(this);
 //            countedPartItems = getCountedItemStacks();
@@ -214,6 +216,21 @@ public class StructureModel {
             }
         } catch (RuntimeException ignored) { }
         return -1;
+    }
+
+    public int maxRecipeCopies() {
+        return maxRecipeCopies;
+    }
+
+    private static int parseMaxRecipeCopies(JsonObject config) {
+        if (config == null || !config.has("maxRecipeCopies")) {
+            return 1;
+        }
+        try {
+            return Math.max(1, Math.min(config.get("maxRecipeCopies").getAsInt(), 100));
+        } catch (RuntimeException ignored) {
+            return 1;
+        }
     }
 
     public List<StructureBoost> boosts() {

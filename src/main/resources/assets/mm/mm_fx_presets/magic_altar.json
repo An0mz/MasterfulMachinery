@@ -1,0 +1,125 @@
+{
+  "layers": [
+    {
+      "type": "beam",
+      "from": "spot",
+      "to": "pillars",
+      "texture": "kubejs:textures/fx/beam.png",
+      "blend": "additive",
+      "color": "#c060ff",
+      "width": {
+        "idle": 0.03,
+        "working": 0.12
+      },
+      "alpha": {
+        "idle": 0.3,
+        "working": 1
+      },
+      "segments": 12,
+      "arc": 0.6,
+      "scroll": -3,
+      "texture_length": 1.5,
+      "pulse": 0.3,
+      "pulse_speed": 0.9,
+      "name": "Arcs"
+    },
+    {
+      "type": "glow",
+      "at": "block",
+      "texture": "kubejs:textures/fx/glow_face.png",
+      "color": "#8020ff",
+      "alpha": {
+        "idle": 0.08,
+        "working": 0.45
+      },
+      "flicker": 0.3,
+      "name": "Glowing stone"
+    },
+    {
+      "type": "glow",
+      "mode": "halo",
+      "at": "spot",
+      "texture": "kubejs:textures/fx/spark.png",
+      "color": "#e0a0ff",
+      "size": {
+        "idle": 0.3,
+        "working": 1.6
+      },
+      "alpha": {
+        "idle": 0.3,
+        "working": 0.9
+      },
+      "pulse": 0.4,
+      "pulse_speed": 0.9,
+      "name": "Glow"
+    },
+    {
+      "type": "emitter",
+      "at": "spot",
+      "texture": "kubejs:textures/fx/spark.png",
+      "blend": "additive",
+      "rate": {
+        "idle": 1,
+        "working": 10
+      },
+      "life": [
+        2.5,
+        4
+      ],
+      "box": [
+        1.6,
+        0.2,
+        1.6
+      ],
+      "velocity": [
+        0,
+        0.5,
+        0
+      ],
+      "velocity_spread": [
+        0.2,
+        0.2,
+        0.2
+      ],
+      "gravity": -0.1,
+      "drag": 0.2,
+      "size": [
+        0.07,
+        0.0
+      ],
+      "color": [
+        "#f0c0ff",
+        "#6010c0"
+      ],
+      "alpha": [
+        1,
+        0
+      ],
+      "spin": [
+        -180,
+        180
+      ],
+      "max": 64,
+      "name": "Motes"
+    },
+    {
+      "type": "beam",
+      "from": "spot",
+      "to": "sky",
+      "texture": "kubejs:textures/fx/beam.png",
+      "blend": "additive",
+      "color": "#c060ff",
+      "width": {
+        "idle": 0,
+        "working": 0.12
+      },
+      "taper": 0.7,
+      "scroll": 4,
+      "texture_length": 3,
+      "pulse": 0.2,
+      "pulse_speed": 0.8,
+      "name": "Beam",
+      "off": true
+    }
+  ]
+}

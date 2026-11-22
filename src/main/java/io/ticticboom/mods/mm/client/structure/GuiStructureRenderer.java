@@ -1,5 +1,16 @@
 package io.ticticboom.mods.mm.client.structure;
 
+import lombok.Setter;
+import org.joml.Vector4f;
+import org.joml.Matrix4f;
+import org.jetbrains.annotations.Nullable;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.client.renderer.MultiBufferSource;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.systems.RenderSystem;
 import java.util.function.Supplier;
 import io.ticticboom.mods.mm.builder.structure.BuildableStructure;
 import io.ticticboom.mods.mm.client.RenderUtil;
@@ -25,6 +36,10 @@ public class GuiStructureRenderer {
 
     private static GuiStructureRenderer hovered = null;
 
+    public static void clearHovered() {
+        hovered = null;
+    }
+
     public static GuiStructureRenderer getHovered() {
         return hovered;
     }
@@ -48,6 +63,15 @@ public class GuiStructureRenderer {
     @Getter
     private Vector3i maxBound = new Vector3i(0);
     private boolean isInitialized = false;
+    @Setter
+    @Nullable
+    private Overlay overlay;
+    private final Matrix4f lastMatrix = new Matrix4f();
+    private boolean rendered;
+
+    public interface Overlay {
+        void render(PoseStack pose, MultiBufferSource buffers, Matrix4f modelView);
+    }
 
 
     public GuiStructureRenderer(StructureModel model) {
@@ -153,7 +177,11 @@ public class GuiStructureRenderer {
     }
 
     public void scroll(double delta) {
-        viewTransform.zoom(delta);
+        if (viewTransform.isStudio()) {
+            viewTransform.fly((float) delta, 0, 0, false);
+        } else {
+            viewTransform.zoom(delta);
+        }
     }
 
     public void render(GuiGraphics gfx, int mouseX, int mouseY) {
@@ -174,13 +202,29 @@ public class GuiStructureRenderer {
 
         viewTransform.run(mouseX, mouseY, overView);
         updatePreviewWorld();
-        renderSetup.preRender((float) viewTransform.getYRotation(), (float) viewTransform.getXRotation(), boundingRadius, viewTransform.getViewTransform());
+        if (viewTransform.isStudio()) {
+            viewTransform.placeCamera(boundingRadius);
+            renderSetup.preRenderCamera(viewTransform.cameraView());
+        } else {
+            renderSetup.preRender((float) viewTransform.getYRotation(), (float) viewTransform.getXRotation(), boundingRadius, viewTransform.getViewTransform());
+        }
         for (PositionedCyclingBlockRenderer part : parts) {
             if (!canRenderPart(part)) {
                 continue;
             }
             GuiBlockRenderer next = part.part.next();
             next.render(gfx, mouseX, mouseY, viewTransform, previewWorld, worldGeneration);
+        }
+        var model = new Matrix4f(gfx.pose().last().pose()).mul(viewTransform.getModelTransform());
+        var modelView = new Matrix4f(RenderSystem.getModelViewMatrix()).mul(model);
+        lastMatrix.set(RenderSystem.getProjectionMatrix()).mul(modelView);
+        rendered = true;
+        if (overlay != null) {
+            gfx.bufferSource().endBatch();
+            gfx.pose().pushPose();
+            gfx.pose().mulPose(viewTransform.getModelTransform());
+            overlay.render(gfx.pose(), gfx.bufferSource(), modelView);
+            gfx.pose().popPose();
         }
         gfx.bufferSource().endBatch();
         renderSetup.postRender();
@@ -205,6 +249,76 @@ public class GuiStructureRenderer {
             previewWorld.put(part.pos, block.getState(), block.getBlockEntity());
         }
         worldGeneration++;
+    }
+
+    public void setStudio(boolean studio) {
+        viewTransform.setStudio(studio);
+    }
+
+    public void fly(float forward, float strafe, float up, boolean level) {
+        viewTransform.fly(forward, strafe, up, level);
+    }
+
+    @Nullable
+    public double[] project(double x, double y, double z) {
+        GuiPos viewport = renderSetup.getViewportPos();
+        if (!rendered || viewport == null) {
+            return null;
+        }
+        var clip = lastMatrix.transform(new Vector4f((float) x, (float) y, (float) z, 1));
+        if (clip.w <= 0) {
+            return null;
+        }
+        return new double[]{viewport.x() + (clip.x / clip.w + 1) / 2 * viewport.w(), viewport.y() + (1 - clip.y / clip.w) / 2 * viewport.h()};
+    }
+
+    public BlockAndTintGetter previewWorld() {
+        return previewWorld;
+    }
+
+    @Nullable
+    public double[] ray(double mouseX, double mouseY) {
+        GuiPos viewport = renderSetup.getViewportPos();
+        if (!rendered || viewport == null) {
+            return null;
+        }
+        float nx = (float) ((mouseX - viewport.x()) / viewport.w() * 2 - 1);
+        float ny = (float) (1 - (mouseY - viewport.y()) / viewport.h() * 2);
+        var inverse = new Matrix4f(lastMatrix).invert();
+        var near = inverse.transform(new Vector4f(nx, ny, -1, 1));
+        var far = inverse.transform(new Vector4f(nx, ny, 0.99f, 1));
+        var from = new Vec3(near.x / near.w, near.y / near.w, near.z / near.w);
+        var dir = new Vec3(far.x / far.w, far.y / far.w, far.z / far.w).subtract(from).normalize();
+        return new double[]{from.x, from.y, from.z, dir.x, dir.y, dir.z};
+    }
+
+    @Nullable
+    public BlockHitResult pick(double mouseX, double mouseY) {
+        GuiPos viewport = renderSetup.getViewportPos();
+        if (!rendered || viewport == null) {
+            return null;
+        }
+        float nx = (float) ((mouseX - viewport.x()) / viewport.w() * 2 - 1);
+        float ny = (float) (1 - (mouseY - viewport.y()) / viewport.h() * 2);
+        var inverse = new Matrix4f(lastMatrix).invert();
+        var near = inverse.transform(new Vector4f(nx, ny, -1, 1));
+        var far = inverse.transform(new Vector4f(nx, ny, 0.99f, 1));
+        var from = new Vec3(near.x / near.w, near.y / near.w, near.z / near.w);
+        var to = from.add(new Vec3(far.x / far.w, far.y / far.w, far.z / far.w).subtract(from).normalize().scale(100000));
+        BlockHitResult best = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (PositionedCyclingBlockRenderer part : parts) {
+            if (!ySliceProcessor.canProcess(part)) {
+                continue;
+            }
+            var shape = previewWorld.getBlockState(part.pos).getShape(previewWorld, part.pos);
+            BlockHitResult hit = (shape.isEmpty() ? Shapes.block() : shape).clip(from, to, part.pos);
+            if (hit != null && hit.getLocation().distanceToSqr(from) < bestDistance) {
+                bestDistance = hit.getLocation().distanceToSqr(from);
+                best = hit;
+            }
+        }
+        return best;
     }
 
     public void setupViewState(BlueprintStructureViewState state) {

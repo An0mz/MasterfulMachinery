@@ -80,6 +80,16 @@ public class MMKubeJSInterop implements IKubeJSInterop {
     }
 
     @Override
+    public net.minecraft.world.item.ItemStack resolveFlexOutput(ResourceLocation recipeId, String from, net.minecraft.world.item.ItemStack input, net.minecraft.world.item.ItemStack templateOutput) {
+        if (!MMKubeEvents.FLEX_OUTPUT.hasListeners()) {
+            return templateOutput;
+        }
+        var event = new io.ticticboom.mods.mm.compat.kjs.event.FlexOutputEventJS(recipeId.toString(), from, input, templateOutput);
+        MMKubeEvents.FLEX_OUTPUT.post(event, recipeId);
+        return event.getResult();
+    }
+
+    @Override
     public List<BuildableStructure> postBuilderStructures(List<BuildableStructure> loaded, Function<ResourceLocation, CompoundTag> reader) {
         if (!MMKubeEvents.BUILDER_STRUCTURES.hasListeners()) {
             return loaded;

@@ -9,7 +9,9 @@ import io.ticticboom.mods.mm.model.IdList;
 import io.ticticboom.mods.mm.structure.StructureBoost;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import io.ticticboom.mods.mm.structure.attachment.StructureAttachments;
+import io.ticticboom.mods.mm.structure.attachment.visuals.EffectVisual;
 import io.ticticboom.mods.mm.structure.attachment.visuals.FluidVolumeVisual;
+import io.ticticboom.mods.mm.structure.attachment.visuals.ParticleVisual;
 import io.ticticboom.mods.mm.structure.layout.StructureLayout;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
@@ -27,7 +29,10 @@ public class StructureBuilderJS {
     private String name;
     private Consumer<StructureLayoutBuilderJS> layoutConsumer;
     private int maxParallelRecipes = -1;
+    private int maxRecipeCopies = 1;
     private final List<FluidVolumeVisual> fluidVolumes = new ArrayList<>();
+    private final List<ParticleVisual> particles = new ArrayList<>();
+    private final List<EffectVisual> effects = new ArrayList<>();
     private JsonElement geoModel;
     private final List<StructureBoost> boosts = new ArrayList<>();
     private final JsonObject stateLists = new JsonObject();
@@ -55,6 +60,11 @@ public class StructureBuilderJS {
     public StructureBuilderJS maxParallelRecipes(int maxParallelRecipes) {
         if (maxParallelRecipes < 0) this.maxParallelRecipes = -1;
         else this.maxParallelRecipes = Math.min(maxParallelRecipes, 100);
+        return this;
+    }
+
+    public StructureBuilderJS maxRecipeCopies(int maxRecipeCopies) {
+        this.maxRecipeCopies = Math.max(1, Math.min(maxRecipeCopies, 100));
         return this;
     }
 
@@ -106,6 +116,16 @@ public class StructureBuilderJS {
         return this;
     }
 
+    public StructureBuilderJS particles(JsonObject particles) {
+        this.particles.add(ParticleVisual.parse(particles));
+        return this;
+    }
+
+    public StructureBuilderJS effect(JsonObject effect) {
+        this.effects.add(EffectVisual.parse(effect));
+        return this;
+    }
+
     private static BlockPos toPos(List<Number> values) {
         return new BlockPos(values.get(0).intValue(), values.get(1).intValue(), values.get(2).intValue());
     }
@@ -117,9 +137,14 @@ public class StructureBuilderJS {
         IdList controllerIds = new IdList(controllers);
         StructureLayout layout = event.build();
         var json = StructureModel.paramsToJson(id, name, controllerIds, layout, maxParallelRecipes);
-        if (!fluidVolumes.isEmpty()) {
+        if (maxRecipeCopies > 1) {
+            json.addProperty("maxRecipeCopies", maxRecipeCopies);
+        }
+        if (!fluidVolumes.isEmpty() || !particles.isEmpty() || !effects.isEmpty()) {
             var visuals = new JsonArray();
             fluidVolumes.forEach(volume -> visuals.add(volume.toJson()));
+            particles.forEach(particle -> visuals.add(particle.toJson()));
+            effects.forEach(effect -> visuals.add(effect.toJson()));
             json.add("visuals", visuals);
         }
         if (geoModel != null) {

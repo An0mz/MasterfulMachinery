@@ -1,0 +1,56 @@
+{
+  "layers": [
+    {
+      "type": "emitter",
+      "at": "landing",
+      "texture": "kubejs:textures/fx/soft.png",
+      "rate": {
+        "idle": 1.5,
+        "working": 16
+      },
+      "life": [
+        2.5,
+        4.5
+      ],
+      "box": [
+        0.25,
+        0,
+        0.25
+      ],
+      "velocity": [
+        0,
+        0.75,
+        0
+      ],
+      "velocity_spread": [
+        0.08,
+        0.15,
+        0.08
+      ],
+      "gravity": -0.06,
+      "drag": 0.35,
+      "turbulence": 0.6,
+      "size": [
+        0.35,
+        1.5
+      ],
+      "size_spread": 0.35,
+      "size_curve": "ease_out",
+      "color": [
+        "#9a9a9a",
+        "#4a4a4a"
+      ],
+      "alpha": [
+        0.5,
+        0
+      ],
+      "fade_in": 0.15,
+      "spin": [
+        -20,
+        20
+      ],
+      "max": 96,
+      "name": "Smoke"
+    }
+  ]
+}

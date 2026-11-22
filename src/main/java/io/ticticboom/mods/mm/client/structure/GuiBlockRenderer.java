@@ -6,15 +6,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.block.ModelBlockRenderer;
-import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.CommonColors;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.EmptyBlockGetter;
 import org.jetbrains.annotations.Nullable;
@@ -68,7 +65,6 @@ public class GuiBlockRenderer {
         }
     }
 
-    private static RandomSource randomSource = RandomSource.create();
 
     private ModelData cachedModelData = ModelData.EMPTY;
     private int cachedGeneration = -1;
@@ -112,10 +108,10 @@ public class GuiBlockRenderer {
         }
         if (!modelBroken) {
             try {
-                renderModel(brd, pose, bufferSource, model, modeldata);
+                renderModel(brd, pose, bufferSource, modeldata);
             } catch (RuntimeException e) {
                 try {
-                    renderModel(brd, pose, bufferSource, model, ModelData.EMPTY);
+                    renderModel(brd, pose, bufferSource, ModelData.EMPTY);
                 } catch (RuntimeException e2) {
                     modelBroken = true;
                 }
@@ -132,10 +128,8 @@ public class GuiBlockRenderer {
         pose.popPose();
     }
 
-    private void renderModel(BlockRenderDispatcher brd, PoseStack pose, MultiBufferSource bufferSource, BakedModel model, ModelData modeldata) {
-        for (RenderType layer : model.getRenderTypes(state, randomSource, modeldata)) {
-            brd.renderSingleBlock(state, pose, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, modeldata, layer);
-        }
+    private void renderModel(BlockRenderDispatcher brd, PoseStack pose, MultiBufferSource bufferSource, ModelData modeldata) {
+        brd.renderSingleBlock(state, pose, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, modeldata, null);
     }
 
     public BlockState getState() {

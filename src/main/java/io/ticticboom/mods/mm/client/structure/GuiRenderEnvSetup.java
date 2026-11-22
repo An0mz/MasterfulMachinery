@@ -10,6 +10,7 @@ import lombok.Setter;
 import net.minecraft.client.Minecraft;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 @Getter
 public class GuiRenderEnvSetup {
@@ -18,6 +19,8 @@ public class GuiRenderEnvSetup {
     private static Minecraft mc = Minecraft.getInstance();
     private static final float FOV_DEGREES = 85;
     private static final float FIT_MARGIN = 1.1f;
+    private static final Vector3f FLAT_LIGHT_0 = new Vector3f(3.0f, 3.3f, 3.7f);
+    private static final Vector3f FLAT_LIGHT_1 = new Vector3f(-3.0f, -3.3f, -3.7f);
 
     public GuiRenderEnvSetup() {
     }
@@ -36,11 +39,22 @@ public class GuiRenderEnvSetup {
         var quat = new Quaternionf().rotateXYZ((float) Math.toRadians(xRot), (float) Math.toRadians(yRot), 0);
         modelViewStack.rotate(quat);
         RenderSystem.applyModelViewMatrix();
+        setup(0.01f, 1000000f);
+    }
 
-        // projection
+    public void preRenderCamera(Matrix4f view) {
+        var modelViewStack = RenderSystem.getModelViewStack();
+        modelViewStack.pushMatrix();
+        modelViewStack.identity();
+        modelViewStack.mul(view);
+        RenderSystem.applyModelViewMatrix();
+        setup(0.05f, 2000f);
+    }
+
+    private void setup(float near, float far) {
         RenderSystem.backupProjectionMatrix();
         var proj = new Matrix4f().identity();
-        proj.setPerspective((float) Math.toRadians(FOV_DEGREES), (float) viewportPos.w() / viewportPos.h(), 0.01f, 1000000f);
+        proj.setPerspective((float) Math.toRadians(FOV_DEGREES), (float) viewportPos.w() / viewportPos.h(), near, far);
         RenderSystem.setProjectionMatrix(proj, VertexSorting.DISTANCE_TO_ORIGIN);
 
         setupViewport();
@@ -50,7 +64,7 @@ public class GuiRenderEnvSetup {
         RenderSystem.clear(256, Minecraft.ON_OSX);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        Lighting.setupFor3DItems();
+        RenderSystem.setShaderLights(FLAT_LIGHT_0, FLAT_LIGHT_1);
 
 
     }

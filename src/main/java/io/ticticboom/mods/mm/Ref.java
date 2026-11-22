@@ -60,6 +60,10 @@ public class Ref {
         public static final ResourceLocation SIMPLE_OUTPUT = id("output/simple");
         public static final ResourceLocation WEIGHTED_OUTPUT = id("output/weighted");
         public static final ResourceLocation MERGE_ENCHANTMENTS_OUTPUT = id("output/merge_enchantments");
+        public static final ResourceLocation FLEX_INPUT = id("input/flex");
+        public static final ResourceLocation FLEX_MATCH_INPUT = id("input/flex_match");
+        public static final ResourceLocation COUNT_INPUT = id("input/count");
+        public static final ResourceLocation FLEX_OUTPUT = id("output/flex");
     }
 
     public static class RecipeConditions {

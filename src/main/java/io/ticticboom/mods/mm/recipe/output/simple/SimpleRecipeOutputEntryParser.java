@@ -20,7 +20,8 @@ public class SimpleRecipeOutputEntryParser implements IRecipeOutputEntryParser {
         if (json.has("per_tick")) {
             perTick = json.get("per_tick").getAsBoolean();
         }
-        return new SimpleRecipeOutputEntry(ingredient, chance, perTick);
+        String scaleBy = json.has("scale_by") ? json.get("scale_by").getAsString() : null;
+        return new SimpleRecipeOutputEntry(ingredient, chance, perTick, scaleBy);
     }
 
     public static IPortIngredient parseIngredient(JsonObject json, String what) {

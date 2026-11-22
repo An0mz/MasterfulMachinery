@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.compat.jei.ingredient.entity;
 
+import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.compat.jei.ingredient.MMJeiIngredients;
 import mezz.jei.api.ingredients.IIngredientHelper;
 import mezz.jei.api.ingredients.IIngredientType;
@@ -21,21 +22,36 @@ public class EntityIngredientHelper implements IIngredientHelper<EntityIngredien
 
     @Override
     public @NotNull String getUniqueId(@NotNull EntityIngredient ingredient, @NotNull UidContext context) {
+        if (ingredient.group() != null) {
+            return "entity/group/" + ingredient.group().serialize();
+        }
+        if (ingredient.id() == null) {
+            return "entity/any";
+        }
         return "entity/" + (ingredient.tag() ? "tag/" : "") + ingredient.id();
     }
 
     @Override
     public @NotNull ResourceLocation getResourceLocation(@NotNull EntityIngredient ingredient) {
-        return ingredient.id();
+        if (ingredient.group() != null) {
+            return Ref.id("entity_group/" + ingredient.group().serialize());
+        }
+        return ingredient.id() == null ? Ref.id("any_entity") : ingredient.id();
     }
 
     @Override
     public @NotNull EntityIngredient copyIngredient(@NotNull EntityIngredient ingredient) {
-        return new EntityIngredient(ingredient.id(), ingredient.tag(), ingredient.amount());
+        return new EntityIngredient(ingredient.id(), ingredient.tag(), ingredient.group(), ingredient.amount());
     }
 
     @Override
     public @NotNull String getErrorInfo(@Nullable EntityIngredient ingredient) {
-        return ingredient == null || ingredient.id() == null ? "Error" : ingredient.id().toString();
+        if (ingredient == null) {
+            return "Error";
+        }
+        if (ingredient.group() != null) {
+            return "group/" + ingredient.group().serialize();
+        }
+        return ingredient.id() == null ? "any" : ingredient.id().toString();
     }
 }

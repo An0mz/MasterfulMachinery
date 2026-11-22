@@ -148,4 +148,12 @@ public abstract class BaseItemPortIngredient implements IPortIngredient {
         return requiredNbt != null ? requiredNbt.copy() : null;
     }
 
+
+    public boolean matches(ItemStack stack) {
+        return !stack.isEmpty() && filter.test(stack);
+    }
+
+    public List<ItemStack> exampleStacks() {
+        return List.of();
+    }
 }

@@ -16,6 +16,8 @@ import io.ticticboom.mods.mm.net.packet.SelectRecipePkt;
 import io.ticticboom.mods.mm.net.packet.StructureSyncPkt;
 import io.ticticboom.mods.mm.net.packet.ToggleRedstoneModePkt;
 import io.ticticboom.mods.mm.net.packet.StructureCategoryEditPkt;
+import io.ticticboom.mods.mm.net.packet.HelperSlotEditPkt;
+import io.ticticboom.mods.mm.net.packet.HelperSlotsSyncPkt;
 import io.ticticboom.mods.mm.net.packet.StructureCategoriesSyncPkt;
 import io.ticticboom.mods.mm.net.packet.MMConfigRequestPkt;
 import io.ticticboom.mods.mm.net.packet.MMConfigEditPkt;
@@ -54,6 +56,8 @@ public class MMNetwork {
         registrar.playToServer(PortConfigPkt.TYPE, PortConfigPkt.STREAM_CODEC, PortConfigPkt::handle);
         registrar.playToClient(StructureCategoriesSyncPkt.TYPE, StructureCategoriesSyncPkt.STREAM_CODEC, StructureCategoriesSyncPkt::handle);
         registrar.playToServer(StructureCategoryEditPkt.TYPE, StructureCategoryEditPkt.STREAM_CODEC, StructureCategoryEditPkt::handle);
+        registrar.playToClient(HelperSlotsSyncPkt.TYPE, HelperSlotsSyncPkt.STREAM_CODEC, HelperSlotsSyncPkt::handle);
+        registrar.playToServer(HelperSlotEditPkt.TYPE, HelperSlotEditPkt.STREAM_CODEC, HelperSlotEditPkt::handle);
         registrar.playToServer(MMConfigRequestPkt.TYPE, MMConfigRequestPkt.STREAM_CODEC, MMConfigRequestPkt::handle);
         registrar.playToServer(MMConfigEditPkt.TYPE, MMConfigEditPkt.STREAM_CODEC, MMConfigEditPkt::handle);
         registrar.playToClient(MMConfigSyncPkt.TYPE, MMConfigSyncPkt.STREAM_CODEC, MMConfigSyncPkt::handle);

@@ -1,10 +1,13 @@
 package io.ticticboom.mods.mm.structure;
 
 import io.ticticboom.mods.mm.controller.single.SingleMachines;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.compat.interop.MMInteropManager;
 import io.ticticboom.mods.mm.setup.MMRegisters;
+import io.ticticboom.mods.mm.structure.attachment.visuals.EffectVisual;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
@@ -53,11 +56,73 @@ public class StructureManager extends SimpleJsonResourceReloadListener {
     @Override
     protected void apply(@NotNull Map<ResourceLocation, JsonElement> jsons, @NotNull ResourceManager resourceManager, ProfilerFiller profilerFiller) {
         profilerFiller.push("MM Structures");
-        receiveStructures(jsons);
+        var bindings = new HashMap<ResourceLocation, JsonElement>();
+        scanDirectory(resourceManager, "mm/structure_effects", Ref.GSON, bindings);
+        receiveStructures(jsons, effectBindings(bindings), true);
         profilerFiller.pop();
     }
 
     public static void receiveStructures(Map<ResourceLocation, JsonElement> jsons) {
+        receiveStructures(jsons, Map.of(), false);
+    }
+
+    private static Map<ResourceLocation, JsonObject> effectBindings(Map<ResourceLocation, JsonElement> files) {
+        var result = new HashMap<ResourceLocation, JsonObject>();
+        for (var entry : files.entrySet()) {
+            try {
+                var json = entry.getValue().getAsJsonObject();
+                var structure = ResourceLocation.parse(json.get("structure").getAsString());
+                var binding = result.computeIfAbsent(structure, x -> {
+                    var created = new JsonObject();
+                    created.add("effects", new JsonArray());
+                    return created;
+                });
+                if (json.has("replace") && json.get("replace").getAsBoolean()) {
+                    binding.addProperty("replace", true);
+                }
+                var list = json.getAsJsonArray("effects");
+                for (int i = 0; i < list.size(); i++) {
+                    try {
+                        var copy = list.get(i).getAsJsonObject().deepCopy();
+                        copy.addProperty("type", "effect");
+                        EffectVisual.parse(copy);
+                        binding.getAsJsonArray("effects").add(copy);
+                    } catch (Exception e) {
+                        Ref.LOG.error("Skipping effect {} in {}: {}", i, entry.getKey(), e.toString());
+                    }
+                }
+            } catch (Exception e) {
+                Ref.LOG.error("Skipping structure effects {}: {}", entry.getKey(), e.toString());
+            }
+        }
+        return result;
+    }
+
+    private static StructureModel withEffects(StructureModel model, Map<ResourceLocation, JsonObject> bindings) {
+        var binding = bindings.get(model.id());
+        if (binding == null) {
+            return model;
+        }
+        try {
+            var json = model.getConfig().deepCopy();
+            var visuals = new JsonArray();
+            if (json.has("visuals")) {
+                for (JsonElement visual : json.getAsJsonArray("visuals")) {
+                    if (!binding.has("replace") || !visual.getAsJsonObject().get("type").getAsString().equals("effect")) {
+                        visuals.add(visual);
+                    }
+                }
+            }
+            visuals.addAll(binding.getAsJsonArray("effects"));
+            json.add("visuals", visuals);
+            return StructureModel.parse(json, model.id());
+        } catch (Exception e) {
+            Ref.LOG.error("Skipping structure effects for {}: {}", model.id(), e.getMessage());
+            return model;
+        }
+    }
+
+    private static void receiveStructures(Map<ResourceLocation, JsonElement> jsons, Map<ResourceLocation, JsonObject> bindings, boolean server) {
         STRUCTURES.clear();
         STRUCTURES_BY_CONTROLLER.clear();
         try {
@@ -72,7 +137,7 @@ public class StructureManager extends SimpleJsonResourceReloadListener {
                 Ref.LCTX.push(String.format("Loading Structure: %s", entry.getKey().toString()));
                 try {
                     var model = StructureModel.parse(entry.getValue().getAsJsonObject(), entry.getKey());
-                    storeStructure(entry.getKey(), model);
+                    storeStructure(entry.getKey(), withEffects(model, bindings));
                 } catch (Exception e) {
                     skipped++;
                     Ref.LOG.error("Skipping structure {}: {}", entry.getKey(), e.getMessage());
@@ -82,15 +147,20 @@ public class StructureManager extends SimpleJsonResourceReloadListener {
             if (skipped > 0) {
                 Ref.LOG.error("{} MM structure(s) failed to load and were skipped.", skipped);
             }
-            if (MMInteropManager.KUBEJS.isPresent()) {
+            if (server && MMInteropManager.KUBEJS.isPresent()) {
                 Ref.LCTX.push("Loading KubeJS Structures");
                 for (StructureModel structureModel : MMInteropManager.KUBEJS.get().postCreateStructures()) {
                     Ref.LCTX.push(String.format("Loading KubeJS Structure: %s", structureModel.id()));
 
-                    storeStructure(structureModel.id(), structureModel);
+                    storeStructure(structureModel.id(), withEffects(structureModel, bindings));
                     Ref.LCTX.pop();
                 }
                 Ref.LCTX.pop();
+            }
+            for (ResourceLocation id : bindings.keySet()) {
+                if (!STRUCTURES.containsKey(id)) {
+                    Ref.LOG.warn("Structure effects name a structure that does not exist: {}", id);
+                }
             }
             for (var entry : SingleMachines.implicitStructures().entrySet()) {
                 STRUCTURES.put(entry.getKey(), entry.getValue());

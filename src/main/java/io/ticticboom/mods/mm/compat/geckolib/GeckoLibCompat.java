@@ -1,5 +1,6 @@
 package io.ticticboom.mods.mm.compat.geckolib;
 
+import io.ticticboom.mods.mm.controller.machine.register.ModelDisplay;
 import com.mojang.blaze3d.vertex.PoseStack;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.client.geo.GeoBridge;
@@ -32,6 +33,7 @@ public class GeckoLibCompat implements GeoBridge {
             return;
         }
         animatable.setState(state);
+        animatable.setAnimated(be.getModelDisplay() == ModelDisplay.ON);
         PoseStack local = new PoseStack();
         local.last().pose().set(pose.last().pose());
         local.last().normal().set(pose.last().normal());

@@ -17,11 +17,18 @@ public class EntityPortParser implements IPortParser {
     public IPortIngredient parseRecipeIngredient(JsonObject json) {
         var entity = ParserUtils.parseOptionalId(json, "entity");
         var tag = ParserUtils.parseOptionalId(json, "tag");
-        if (entity == null && tag == null) {
-            throw new RuntimeException(String.format(
-                    "An MM entity ingredient needs either 'entity' or 'tag': %s", json));
+        EntityGroup group = null;
+        if (json.has("group") && !json.get("group").isJsonNull()) {
+            if (entity != null || tag != null) {
+                throw new RuntimeException("An entity ingredient takes one of 'entity', 'tag' or 'group', not several");
+            }
+            var value = json.get("group");
+            if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) {
+                throw new RuntimeException("Entity 'group' must be 'passive', 'hostile' or 'boss'");
+            }
+            group = EntityGroup.parse(value.getAsString());
         }
         var amount = json.has("amount") ? AmountRange.parse(json, "amount") : AmountRange.of(1);
-        return new EntityPortIngredient(entity, tag, amount);
+        return new EntityPortIngredient(entity, tag, group, amount);
     }
 }

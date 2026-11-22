@@ -96,4 +96,9 @@ public record AmountRange(int min, int max, String rollKey) {
     public String toString() {
         return isRanged() ? min + "-" + max : Integer.toString(min);
     }
+
+    public AmountRange scaled(double factor) {
+        return new AmountRange(io.ticticboom.mods.mm.port.IPortIngredient.scaleAmount(min, factor),
+                io.ticticboom.mods.mm.port.IPortIngredient.scaleAmount(max, factor), rollKey);
+    }
 }

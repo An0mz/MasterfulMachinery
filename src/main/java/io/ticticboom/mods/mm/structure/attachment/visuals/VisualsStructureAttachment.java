@@ -8,7 +8,6 @@ import io.ticticboom.mods.mm.recipe.RecipeStorages;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import io.ticticboom.mods.mm.structure.attachment.StructureAttachment;
 import io.ticticboom.mods.mm.structure.layout.PositionedLayoutPiece;
-import io.ticticboom.mods.mm.structure.layout.StructureKeyChar;
 import io.ticticboom.mods.mm.structure.layout.StructureLayout;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
@@ -16,6 +15,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Rotation;
 import net.neoforged.neoforge.fluids.FluidStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,9 +23,15 @@ import java.util.List;
 public class VisualsStructureAttachment extends StructureAttachment {
     @Getter
     private final List<FluidVolumeVisual> fluidVolumes;
+    @Getter
+    private final List<ParticleVisual> particles;
+    @Getter
+    private final List<EffectVisual> effects;
 
-    public VisualsStructureAttachment(List<FluidVolumeVisual> fluidVolumes) {
+    public VisualsStructureAttachment(List<FluidVolumeVisual> fluidVolumes, List<ParticleVisual> particles, List<EffectVisual> effects) {
         this.fluidVolumes = fluidVolumes;
+        this.particles = particles;
+        this.effects = effects;
     }
 
     @Override
@@ -37,34 +43,17 @@ public class VisualsStructureAttachment extends StructureAttachment {
     public void validate(StructurePieceSetupMetadata meta) {
         var layout = meta.model().layout();
         for (FluidVolumeVisual volume : fluidVolumes) {
-            if (volume.getPort() != null && !isKey(layout, volume.getPort())) {
+            if (volume.getPort() != null && !VisualRegion.isKey(layout, volume.getPort())) {
                 Ref.LOG.warn("Structure {}: fluid_volume port '{}' is not a key in the layout", meta.structureId(), volume.getPort());
             }
-            if (volume.getArea() != null) {
-                if (!isKey(layout, volume.getArea())) {
-                    Ref.LOG.warn("Structure {}: fluid_volume area '{}' is not a key in the layout", meta.structureId(), volume.getArea());
-                }
-                continue;
-            }
-            var min = volume.min();
-            var max = volume.max();
-            boolean open = false;
-            for (int x = min.getX(); x <= max.getX() && !open; x++) {
-                for (int y = min.getY(); y <= max.getY() && !open; y++) {
-                    for (int z = min.getZ(); z <= max.getZ() && !open; z++) {
-                        open = layout.getCharGrid().valueFromBottom(x, y, z) == ' ';
-                    }
-                }
-            }
-            if (open) {
-                Ref.LOG.warn("Structure {}: fluid_volume from {} to {} covers spaces in the layout, so blocks placed there will hide the fluid. Use a key that requires minecraft:air.",
-                        meta.structureId(), volume.getFrom().toShortString(), volume.getTo().toShortString());
-            }
+            volume.getRegion().validate(meta.structureId(), layout, "fluid_volume", "fluid");
         }
-    }
-
-    private static boolean isKey(StructureLayout layout, String key) {
-        return key.length() == 1 && layout.getPieces().containsKey(new StructureKeyChar(key.charAt(0)));
+        for (ParticleVisual particle : particles) {
+            particle.validate(meta.structureId(), layout);
+        }
+        for (EffectVisual effect : effects) {
+            effect.validate(meta.structureId(), layout);
+        }
     }
 
     public List<FluidVolumeState> snapshot(Level level, BlockPos controllerPos, StructureModel structure, Rotation rotation, RecipeStorages storages) {
@@ -95,6 +84,68 @@ public class VisualsStructureAttachment extends StructureAttachment {
             result.add(new FluidVolumeState(volume.relativeCells(layout, rotation), shown, fill));
         }
         return result;
+    }
+
+    public List<FluidStack> effectFluids(Level level, BlockPos controllerPos, StructureModel structure, Rotation rotation, List<FluidStack> current) {
+        boolean any = false;
+        for (int e = 0; e < effects.size(); e++) {
+            any |= effects.get(e).getPort() != null;
+        }
+        if (!any) {
+            return List.of();
+        }
+        List<FluidStack> result = current.size() == effects.size() ? current : null;
+        for (int e = 0; e < effects.size(); e++) {
+            FluidStack shown = firstFluid(level, controllerPos, structure.layout(), rotation, effects.get(e).getPort());
+            FluidStack before = result == null ? FluidStack.EMPTY : result.get(e);
+            if (result != null && FluidStack.isSameFluidSameComponents(before, shown)) {
+                continue;
+            }
+            if (result == current) {
+                result = new ArrayList<>(current);
+            } else if (result == null) {
+                result = new ArrayList<>(effects.size());
+                for (int i = 0; i < effects.size(); i++) {
+                    result.add(FluidStack.EMPTY);
+                }
+            }
+            result.set(e, shown.isEmpty() ? FluidStack.EMPTY : shown.copyWithAmount(1));
+        }
+        return result;
+    }
+
+    private static FluidStack firstFluid(Level level, BlockPos controllerPos, StructureLayout layout, Rotation rotation, @Nullable String key) {
+        if (key == null) {
+            return FluidStack.EMPTY;
+        }
+        for (PositionedLayoutPiece piece : layout.getRotatedPositionedPieces().get(rotation)) {
+            if (!key.equals(piece.piece().valueId())) {
+                continue;
+            }
+            if (level.getBlockEntity(piece.findAbsolutePos(controllerPos)) instanceof IPortBlockEntity port
+                    && port.getStorage() instanceof FluidPortStorage storage) {
+                var handler = storage.getHandler();
+                for (int i = 0; i < handler.getTanks(); i++) {
+                    var stack = handler.getFluidInTank(i);
+                    if (!stack.isEmpty()) {
+                        return stack;
+                    }
+                }
+            }
+        }
+        return FluidStack.EMPTY;
+    }
+
+    public static boolean sameFluids(List<FluidStack> a, List<FluidStack> b) {
+        if (a.size() != b.size()) {
+            return false;
+        }
+        for (int i = 0; i < a.size(); i++) {
+            if (!FluidStack.isSameFluidSameComponents(a.get(i), b.get(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static List<FluidPortStorage> allFluidStorages(RecipeStorages storages) {

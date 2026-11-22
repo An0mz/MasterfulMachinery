@@ -25,7 +25,10 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class WeightedRecipeOutputEntry implements IRecipeOutputEntry {
 
-    public record Option(@Nullable IPortIngredient ingredient, int weight) {
+    public record Option(@Nullable IPortIngredient ingredient, int weight, List<IPortIngredient> planned) {
+        public Option(@Nullable IPortIngredient ingredient, int weight) {
+            this(ingredient, weight, ingredient == null ? List.of() : List.of(ingredient));
+        }
     }
 
     private final List<Option> options;
@@ -45,6 +48,12 @@ public class WeightedRecipeOutputEntry implements IRecipeOutputEntry {
 
     @Nullable
     private IPortIngredient picked(@Nullable RecipeStateModel state) {
+        var option = pickedOption(state);
+        return option == null ? null : option.ingredient();
+    }
+
+    @Nullable
+    private Option pickedOption(@Nullable RecipeStateModel state) {
         double chanceRoll = state == null ? ThreadLocalRandom.current().nextDouble() : state.getRollToken(chanceRollKey);
         if (chance < 1 && chanceRoll >= chance) {
             return null;
@@ -54,10 +63,10 @@ public class WeightedRecipeOutputEntry implements IRecipeOutputEntry {
         for (Option option : options) {
             roll -= option.weight();
             if (roll < 0) {
-                return option.ingredient();
+                return option;
             }
         }
-        return options.get(options.size() - 1).ingredient();
+        return options.get(options.size() - 1);
     }
 
     @Override
@@ -72,6 +81,12 @@ public class WeightedRecipeOutputEntry implements IRecipeOutputEntry {
         if (ingredient != null) {
             ingredient.output(level, storages, state);
         }
+    }
+
+    @Override
+    public List<IPortIngredient> plannedOutputs(Level level, RecipeStateModel state) {
+        var option = pickedOption(state);
+        return option == null ? List.of() : option.planned();
     }
 
     @Override

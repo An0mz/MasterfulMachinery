@@ -25,4 +25,6 @@ public interface IKubeJSInterop {
     boolean postRecipeStarted(MachineControllerBlockEntity controller, ResourceLocation recipeId);
 
     void postRecipeFinished(MachineControllerBlockEntity controller, ResourceLocation recipeId);
+
+    net.minecraft.world.item.ItemStack resolveFlexOutput(ResourceLocation recipeId, String from, net.minecraft.world.item.ItemStack input, net.minecraft.world.item.ItemStack templateOutput);
 }

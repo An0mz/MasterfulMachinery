@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.18.1] - 2026-11-16
+
+### Added
+- **Any-entity input.** Leave out both `entity` and `tag` on an entity recipe input and any mob in the
+  port counts, e.g. `{ "type": "mm:entity", "amount": 1 }`. JEI shows it as "Any Entity".
+
 ## [1.21.1-0.18.0] - 2026-11-12
 
 ### Added

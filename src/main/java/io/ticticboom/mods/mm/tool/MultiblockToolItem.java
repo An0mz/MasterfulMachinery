@@ -33,7 +33,7 @@ public class MultiblockToolItem extends Item {
     private static final int BAR_COLOR = 0x3399FF;
     private static final int NOTICE_TICKS = 200;
     private static final Map<UUID, Integer> LAST_NOTICE = new HashMap<>();
-    private static Supplier<Component> dismantleKeyName = () -> Component.literal("V");
+    private static Supplier<Component> dismantleKeyName = () -> Component.literal("F");
 
     public MultiblockToolItem() {
         super(new Item.Properties().stacksTo(1));

@@ -24,6 +24,11 @@ import io.ticticboom.mods.mm.tool.ToolData;
 import io.ticticboom.mods.mm.tool.ToolEnergy;
 import io.ticticboom.mods.mm.tool.ToolSlot;
 import io.ticticboom.mods.mm.tool.StructureCategories;
+import io.ticticboom.mods.mm.net.packet.HelperSlotEditPkt;
+import io.ticticboom.mods.mm.structure.HelperSlotOverrides;
+import io.ticticboom.mods.mm.structure.layout.StructureKeyChar;
+import io.ticticboom.mods.mm.structure.layout.StructureLayout;
+import io.ticticboom.mods.mm.structure.layout.StructureLayoutPiece;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -49,6 +54,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class MultiblockToolScreen extends AbstractContainerScreen<MultiblockToolMenu> {
     private static final int MIN_WIDTH = 378;
@@ -106,6 +112,7 @@ public class MultiblockToolScreen extends AbstractContainerScreen<MultiblockTool
     private final ToolSettingsTab settings;
     @Nullable
     private StructureModel selected;
+    private int helperScroll;
     @Nullable
     private BuildableStructure selectedBuilder;
     @Nullable
@@ -217,8 +224,7 @@ public class MultiblockToolScreen extends AbstractContainerScreen<MultiblockTool
 
         int adminX = this.leftPos + INSET + 4;
         int adminY = this.topPos + TOP + 27;
-        int adminWidth = imageWidth - 2 * INSET - 8;
-        categoryNameBox = new EditBox(this.font, adminX, adminY, Math.max(60, adminWidth - 152), 12,
+        categoryNameBox = new EditBox(this.font, adminX, adminY, Math.max(48, categoryWidth() - 152), 12,
                 Component.translatable("gui.mm.tool.admin.name"));
         categoryNameBox.setHint(Component.translatable("gui.mm.tool.admin.name").withStyle(ChatFormatting.DARK_GRAY));
         categoryNameBox.setMaxLength(32);
@@ -407,10 +413,15 @@ public class MultiblockToolScreen extends AbstractContainerScreen<MultiblockTool
     private int adminButtonY() { return topPos + TOP + 27; }
     private int adminListTop() { return topPos + TOP + 46; }
     private int adminListBottom() { return topPos + bandBottom - 4; }
+    private int helperWidth() { return Mth.clamp(adminWidth() * 2 / 5, 130, 190); }
+    private int helperX() { return adminX() + adminWidth() - helperWidth(); }
+    private int categoryWidth() { return adminWidth() - helperWidth() - 8; }
 
     private void drawCategoryAdmin(GuiGraphics gfx, int mouseX, int mouseY) {
+        drawHelperAdmin(gfx, mouseX, mouseY);
+        gfx.fill(helperX() - 5, topPos + TOP + 3, helperX() - 4, adminListBottom(), 0xFF3A3A3A);
         int x = adminX();
-        int width = adminWidth();
+        int width = categoryWidth();
         var snapshot = StructureCategories.clientSnapshot();
         if (!adminSelectedCategory.equals(StructureCategories.DEFAULT) &&
                 !snapshot.categories().contains(adminSelectedCategory)) adminSelectedCategory = StructureCategories.DEFAULT;
@@ -499,10 +510,113 @@ public class MultiblockToolScreen extends AbstractContainerScreen<MultiblockTool
         drawClipped(gfx, Component.translatable(key), x + 3, y + 2, width - 6, TEXT);
     }
 
+    private List<Map.Entry<Character, StructureLayoutPiece>> helperPieces() {
+        List<Map.Entry<Character, StructureLayoutPiece>> result = new ArrayList<>();
+        if (selected == null) return result;
+        for (Map.Entry<StructureKeyChar, StructureLayoutPiece> entry : selected.layout().getPieces().entrySet()) {
+            if (!StructureLayout.isPortPiece(entry.getValue().piece())) {
+                result.add(Map.entry(entry.getKey().character(), entry.getValue()));
+            }
+        }
+        result.sort(Map.Entry.comparingByKey());
+        return result;
+    }
+
+    private int helperButtonsX() { return helperX() + helperWidth() - 100; }
+
+    private void drawHelperAdmin(GuiGraphics gfx, int mouseX, int mouseY) {
+        int x = helperX();
+        int width = helperWidth();
+        drawClipped(gfx, Component.translatable("gui.mm.tool.admin.helpers.title"), x, topPos + TOP + 4, width, TEXT);
+        if (selected == null) {
+            drawClipped(gfx, Component.translatable("gui.mm.tool.admin.helpers.select"), x, topPos + TOP + 15, width, LABEL);
+            return;
+        }
+        boolean admin = HelperSlotOverrides.rule(selected.id(), true) != null;
+        HelperSlotOverrides.Rule rule = HelperSlotOverrides.effective(selected, true);
+        drawClipped(gfx, Component.translatable(admin ? "gui.mm.tool.admin.helpers.source.admin"
+                : "gui.mm.tool.admin.helpers.source.structure"), x, topPos + TOP + 15, width, admin ? ADJUSTED : LABEL);
+
+        int y = adminButtonY();
+        Component max = rule.maxHelpers() < 0 ? Component.translatable("gui.mm.tool.admin.helpers.no_limit")
+                : Component.literal(String.valueOf(rule.maxHelpers()));
+        drawClipped(gfx, Component.translatable("gui.mm.tool.admin.helpers.max"), x, y + 2, width - 104, LABEL);
+        int bx = helperButtonsX();
+        drawSmallButton(gfx, bx, y, 12, Component.literal("-"), mouseX, mouseY);
+        int textWidth = this.font.width(max);
+        gfx.drawString(this.font, max, bx + 12 + (34 - textWidth) / 2, y + 2, TEXT, false);
+        drawSmallButton(gfx, bx + 46, y, 12, Component.literal("+"), mouseX, mouseY);
+        drawSmallButton(gfx, bx + 62, y, 38, Component.translatable("gui.mm.tool.admin.helpers.reset"), mouseX, mouseY);
+
+        List<Map.Entry<Character, StructureLayoutPiece>> pieces = helperPieces();
+        int listTop = adminListTop();
+        int listBottom = adminListBottom();
+        helperScroll = Mth.clamp(helperScroll, 0, Math.max(0, pieces.size() * 12 - (listBottom - listTop)));
+        gfx.enableScissor(x, listTop, x + width, listBottom);
+        for (int i = 0; i < pieces.size(); i++) {
+            int rowY = listTop + i * 12 - helperScroll;
+            if (rowY + 12 <= listTop || rowY >= listBottom) continue;
+            char key = pieces.get(i).getKey();
+            boolean allowed = rule.keys().contains(key);
+            if (mouseX >= x && mouseX < x + width && mouseY >= rowY && mouseY < rowY + 12) {
+                gfx.fill(x, rowY, x + width, rowY + 11, 0xFF2E3A52);
+            }
+            Component name = pieces.get(i).getValue().piece().createDisplayComponent();
+            drawClipped(gfx, Component.literal((allowed ? "✓ " : "✗ ") + key + "  ").append(name), x + 3, rowY + 2,
+                    width - 6, allowed ? 0xFF55D76A : LABEL);
+        }
+        gfx.disableScissor();
+    }
+
+    private void drawSmallButton(GuiGraphics gfx, int x, int y, int width, Component text, int mouseX, int mouseY) {
+        boolean hovered = mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + 12;
+        NineSliceUtil.blitNineSliced(gfx, hovered ? Ref.UiTextures.BUTTON_PRESSED : Ref.UiTextures.BUTTON_ACTIVE,
+                x, y, width, 12, 2, 2, 2, 2, 16, 16, 0, 0, 16, 16);
+        int textWidth = Math.min(this.font.width(text), width - 4);
+        drawClipped(gfx, text, x + (width - textWidth) / 2, y + 2, width - 4, TEXT);
+    }
+
+    private boolean helperMouseClicked(double mouseX, double mouseY) {
+        int x = helperX();
+        int width = helperWidth();
+        if (mouseX < x || mouseX >= x + width) return false;
+        if (selected == null) return true;
+        HelperSlotOverrides.Rule rule = HelperSlotOverrides.effective(selected, true);
+        int y = adminButtonY();
+        if (mouseY >= y && mouseY < y + 12) {
+            int bx = helperButtonsX();
+            if (mouseX >= bx && mouseX < bx + 12) {
+                int next = rule.maxHelpers() <= 0 ? -1 : rule.maxHelpers() - 1;
+                sendHelperEdit(HelperSlotOverrides.Action.SET_MAX, ' ', next);
+            } else if (mouseX >= bx + 46 && mouseX < bx + 58) {
+                int next = Math.min(HelperSlotOverrides.MAX_LIMIT, rule.maxHelpers() + 1);
+                sendHelperEdit(HelperSlotOverrides.Action.SET_MAX, ' ', next);
+            } else if (mouseX >= bx + 62 && mouseX < bx + 100) {
+                sendHelperEdit(HelperSlotOverrides.Action.RESET, ' ', 0);
+            }
+            return true;
+        }
+        if (mouseY >= adminListTop() && mouseY < adminListBottom()) {
+            int index = ((int) mouseY - adminListTop() + helperScroll) / 12;
+            List<Map.Entry<Character, StructureLayoutPiece>> pieces = helperPieces();
+            if (index >= 0 && index < pieces.size()) {
+                sendHelperEdit(HelperSlotOverrides.Action.TOGGLE_KEY, pieces.get(index).getKey(), 0);
+            }
+        }
+        return true;
+    }
+
+    private void sendHelperEdit(HelperSlotOverrides.Action action, char key, int value) {
+        if (selected == null) return;
+        PacketDistributor.sendToServer(new HelperSlotEditPkt(action, selected.id(), key, value));
+        playClick();
+    }
+
     private boolean adminMouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0 || !canManageCategories()) return false;
+        if (helperMouseClicked(mouseX, mouseY)) return true;
         int x = adminX();
-        int width = adminWidth();
+        int width = categoryWidth();
         if (mouseY >= adminButtonY() && mouseY < adminButtonY() + 12) {
             String name = categoryNameBox.getValue().strip();
             if (mouseX >= x + width - 146 && mouseX < x + width - 104) {
@@ -537,7 +651,12 @@ public class MultiblockToolScreen extends AbstractContainerScreen<MultiblockTool
     }
 
     private boolean adminMouseScrolled(double mouseX, double mouseY, double delta) {
-        if (mouseX < adminX() || mouseX >= adminX() + adminWidth() ||
+        if (mouseX >= helperX() && mouseX < helperX() + helperWidth() && mouseY >= adminListTop() && mouseY < adminListBottom()) {
+            int max = Math.max(0, helperPieces().size() * 12 - (adminListBottom() - adminListTop()));
+            helperScroll = Mth.clamp(helperScroll - (int) Math.signum(delta) * 24, 0, max);
+            return true;
+        }
+        if (mouseX < adminX() || mouseX >= adminX() + categoryWidth() ||
                 mouseY < adminListTop() || mouseY >= adminListBottom()) return false;
         int max = Math.max(0, adminCategories().size() * 12 - (adminListBottom() - adminListTop()));
         adminScroll = Mth.clamp(adminScroll - (int) Math.signum(delta) * 24, 0, max);
@@ -834,7 +953,6 @@ public class MultiblockToolScreen extends AbstractContainerScreen<MultiblockTool
 
     @Override
     public void render(@NotNull GuiGraphics gfx, int mouseX, int mouseY, float partialTick) {
-        renderBackground(gfx, mouseX, mouseY, partialTick);
         super.render(gfx, mouseX, mouseY, partialTick);
         renderTooltip(gfx, mouseX, mouseY);
         if (this.hoveredSlot != null && this.hoveredSlot.hasItem()) {

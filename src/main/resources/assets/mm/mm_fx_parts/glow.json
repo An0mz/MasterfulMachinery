@@ -1,0 +1,20 @@
+{
+  "layers": [
+    {
+      "type": "glow",
+      "mode": "halo",
+      "at": "spot",
+      "texture": "kubejs:textures/fx/spark.png",
+      "color": "#ffffff",
+      "size": {
+        "idle": 0.4,
+        "working": 1.6
+      },
+      "alpha": {
+        "idle": 0.3,
+        "working": 0.9
+      },
+      "name": "Glow"
+    }
+  ]
+}

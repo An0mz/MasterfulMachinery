@@ -1,6 +1,7 @@
 package io.ticticboom.mods.mm.client.event;
 
 import io.ticticboom.mods.mm.Ref;
+import io.ticticboom.mods.mm.client.fx.FxManager;
 import io.ticticboom.mods.mm.config.WorkingEffectsConfig;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.neoforged.api.distmarker.Dist;
@@ -17,5 +18,6 @@ public final class WorkingEffectsEvents {
     @SubscribeEvent
     public static void onRegisterReloadListeners(RegisterClientReloadListenersEvent event) {
         event.registerReloadListener((ResourceManagerReloadListener) resourceManager -> WorkingEffectsConfig.reload());
+        event.registerReloadListener((ResourceManagerReloadListener) FxManager::reload);
     }
 }

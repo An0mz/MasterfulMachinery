@@ -10,7 +10,14 @@ public class MMClientConfig {
     public final ModConfigSpec.ConfigValue<String> controllerWorkingColor;
     public final ModConfigSpec.BooleanValue bigControllerScreen;
     public final ModConfigSpec.BooleanValue workingEffects;
+    public final ModConfigSpec.BooleanValue machineEffects;
     public final ModConfigSpec.BooleanValue portStatusLight;
+    public final ModConfigSpec.EnumValue<EffectQuality> effectQuality;
+    public final ModConfigSpec.IntValue effectDistance;
+    public final ModConfigSpec.IntValue effectParticles;
+    public final ModConfigSpec.IntValue effectMaxParticles;
+
+    public enum EffectQuality { LOW, MEDIUM, HIGH }
 
     public MMClientConfig(ModConfigSpec.Builder builder) {
         builder.push("controller");
@@ -26,9 +33,24 @@ public class MMClientConfig {
         workingEffects = builder.comment("Play the sound and show the particles a controller sets with workingSound / workingParticle",
                         "while its machine is working. Controllers that set neither stay silent either way.")
                 .define("workingEffects", true);
+        machineEffects = builder.comment("Show the visual effects a structure adds, such as streams, drips, particles, beams and glows.",
+                        "Turn off to save frame time. Fluid shown inside tanks stays visible.")
+                .define("machineEffects", true);
         bigControllerScreen = builder.comment("Open the controller screen large (sized to the window) instead of small.",
                         "The button in the screen's top-right corner switches it too.")
                 .define("bigScreen", true);
+        builder.pop();
+
+        builder.push("effects");
+        effectQuality = builder.comment("Detail of machine effects. HIGH keeps full detail within 24 blocks, MEDIUM within 12,",
+                        "LOW always draws the simple version. Lower is faster. A key binding can cycle this in game.")
+                .defineEnum("quality", EffectQuality.MEDIUM);
+        effectDistance = builder.comment("How far away, in blocks, machine effects are drawn. Lower is faster.")
+                .defineInRange("viewDistance", 64, 8, 256);
+        effectParticles = builder.comment("Amount of effect particles such as smoke, steam and sparks, in percent. Lower is faster.")
+                .defineInRange("particleAmount", 100, 0, 200);
+        effectMaxParticles = builder.comment("Most effect particles alive at once across all machines. New ones slow down past this.")
+                .defineInRange("maxParticles", 1500, 0, 20000);
         builder.pop();
 
         builder.push("ports");

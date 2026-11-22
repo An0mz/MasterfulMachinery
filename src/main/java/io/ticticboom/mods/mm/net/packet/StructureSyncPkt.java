@@ -23,6 +23,8 @@ public class StructureSyncPkt implements CustomPacketPayload {
     public static final StreamCodec<RegistryFriendlyByteBuf, StructureSyncPkt> STREAM_CODEC =
             StreamCodec.of(StructureSyncPkt::encode, StructureSyncPkt::decode);
 
+    private static final int MAX_CONFIG = 262144;
+
     public Map<ResourceLocation, JsonElement> structures;
 
     public StructureSyncPkt(final Map<ResourceLocation, StructureModel> structures) {
@@ -40,7 +42,7 @@ public class StructureSyncPkt implements CustomPacketPayload {
         for (Map.Entry<ResourceLocation, JsonElement> strcture : packet.structures.entrySet()) {
             String string = strcture.getValue().toString();
             buf.writeResourceLocation(strcture.getKey());
-            buf.writeUtf(string);
+            buf.writeUtf(string, MAX_CONFIG);
         }
     }
 
@@ -50,7 +52,7 @@ public class StructureSyncPkt implements CustomPacketPayload {
         packet.structures = new HashMap<>(initialCapacity);
         for (int i = 0; i < initialCapacity; i++) {
             ResourceLocation key = buf.readResourceLocation();
-            String string = buf.readUtf();
+            String string = buf.readUtf(MAX_CONFIG);
             packet.structures.put(key, JsonParser.parseString(string));
         }
         return packet;

@@ -59,7 +59,7 @@ public class NuclearRadiationPortIngredient implements IPortIngredient {
 
     private double insertAll(RecipeStorages storages, double wanted, boolean simulate) {
         double remaining = wanted;
-        for (var storage : storages.getOutputStorages(NuclearRadiationPortStorage.class)) {
+        for (var storage : storages.getOutputStoragesByPriority(NuclearRadiationPortStorage.class)) {
             remaining -= storage.insert(isotope, remaining, simulate);
             if (satisfied(remaining, wanted)) {
                 break;

@@ -12,8 +12,14 @@ import net.minecraft.world.item.SpawnEggItem;
 public class EntityIngredientNames {
 
     public static Component displayName(EntityIngredient ingredient) {
-        if (ingredient == null || ingredient.id() == null) {
+        if (ingredient == null) {
             return Component.literal("?");
+        }
+        if (ingredient.group() != null) {
+            return Component.translatable("jei.mm.ingredient.entity.group." + ingredient.group().serialize());
+        }
+        if (ingredient.id() == null) {
+            return Component.translatable("jei.mm.ingredient.entity.any");
         }
         if (ingredient.tag()) {
             return Component.literal("#" + ingredient.id());
@@ -23,6 +29,9 @@ public class EntityIngredientNames {
     }
 
     public static EntityType<?> type(EntityIngredient ingredient) {
+        if (ingredient != null && ingredient.group() != null) {
+            return ingredient.group().representative();
+        }
         if (ingredient == null || ingredient.id() == null) {
             return null;
         }

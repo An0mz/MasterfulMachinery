@@ -1,8 +1,11 @@
 package io.ticticboom.mods.mm.client.render;
 
+import io.ticticboom.mods.mm.controller.machine.register.ModelDisplay;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import io.ticticboom.mods.mm.client.fx.FxRenderer;
+import io.ticticboom.mods.mm.client.fx.studio.EffectStudio;
 import io.ticticboom.mods.mm.client.geo.GeoBridge;
 import io.ticticboom.mods.mm.client.geo.GeoModelConfig;
 import io.ticticboom.mods.mm.controller.machine.register.ControllerState;
@@ -35,6 +38,7 @@ public class ControllerVisualsRenderer implements BlockEntityRenderer<MachineCon
                 renderFluidVolume(be, volume, pose, buffers);
             }
         }
+        FxRenderer.render(be, partialTick, pose, buffers);
         renderGeoModel(be, pose, buffers, light, partialTick);
     }
 
@@ -49,7 +53,7 @@ public class ControllerVisualsRenderer implements BlockEntityRenderer<MachineCon
         }
         GeoModelConfig config = be.geoModel();
         GeoBridge bridge = GeoBridge.get();
-        if (config == null || bridge == null) {
+        if (config == null || bridge == null || be.getModelDisplay() == ModelDisplay.HIDDEN) {
             return;
         }
         Direction facing = blockState.getValue(HorizontalDirectionalBlock.FACING);
@@ -162,12 +166,12 @@ public class ControllerVisualsRenderer implements BlockEntityRenderer<MachineCon
 
     @Override
     public boolean shouldRenderOffScreen(MachineControllerBlockEntity be) {
-        return be.getVisualBounds() != null || be.geoModel() != null;
+        return be.getVisualBounds() != null || be.geoModel() != null || EffectStudio.effects(be) != null;
     }
 
     @Override
     public int getViewDistance() {
-        return 96;
+        return Math.max(96, io.ticticboom.mods.mm.client.fx.FxSettings.viewDistance() + 16);
     }
 
     @Override
@@ -176,6 +180,10 @@ public class ControllerVisualsRenderer implements BlockEntityRenderer<MachineCon
             return AABB.INFINITE;
         }
         var bounds = be.getVisualBounds();
+        var effects = FxRenderer.enabled() ? EffectStudio.effects(be) : null;
+        if (effects != null) {
+            return FxRenderer.instance(be, effects).renderBounds(be.getBlockPos(), bounds);
+        }
         return bounds != null ? bounds : BlockEntityRenderer.super.getRenderBoundingBox(be);
     }
 }

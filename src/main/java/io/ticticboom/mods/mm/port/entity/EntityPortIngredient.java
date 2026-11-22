@@ -27,11 +27,13 @@ public class EntityPortIngredient implements IPortIngredient {
 
     private final ResourceLocation entityId;
     private final ResourceLocation tagId;
+    private final EntityGroup group;
     private final AmountRange amount;
 
-    public EntityPortIngredient(ResourceLocation entityId, ResourceLocation tagId, AmountRange amount) {
+    public EntityPortIngredient(ResourceLocation entityId, ResourceLocation tagId, EntityGroup group, AmountRange amount) {
         this.entityId = entityId;
         this.tagId = tagId;
+        this.group = group;
         this.amount = amount;
     }
 
@@ -41,6 +43,10 @@ public class EntityPortIngredient implements IPortIngredient {
 
     public ResourceLocation getTagId() {
         return tagId;
+    }
+
+    public EntityGroup getGroup() {
+        return group;
     }
 
     @Override
@@ -56,11 +62,23 @@ public class EntityPortIngredient implements IPortIngredient {
         if (entityId != null) {
             return entityId.equals(entry.type());
         }
+        if (group != null) {
+            return group.matches(EntityTypes.get(entry.type()));
+        }
+        if (tagId == null) {
+            return true;
+        }
         return EntityTypes.inTagById(entry.type(), tagId);
     }
 
     private EntityType<?> producedType() {
-        return entityId != null ? EntityTypes.get(entityId) : EntityTypes.firstInTag(tagId);
+        if (entityId != null) {
+            return EntityTypes.get(entityId);
+        }
+        if (group != null) {
+            return group.representative();
+        }
+        return EntityTypes.firstInTag(tagId);
     }
 
     @Override
@@ -123,7 +141,7 @@ public class EntityPortIngredient implements IPortIngredient {
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, RecipeModel model, IFocusGroup focus, IJeiHelpers helpers, SlotGrid grid, IRecipeSlotBuilder recipeSlot) {
         recipeSlot.addIngredient(MMJeiIngredients.ENTITY,
-                new EntityIngredient(entityId != null ? entityId : tagId, entityId == null, amount.max()));
+                new EntityIngredient(entityId != null ? entityId : tagId, entityId == null && tagId != null, group, amount.max()));
     }
 
     @Override
@@ -133,6 +151,7 @@ public class EntityPortIngredient implements IPortIngredient {
         json.addProperty("ingredientType", Ref.Ports.ENTITY.toString());
         json.addProperty("entity", entityId == null ? null : entityId.toString());
         json.addProperty("tag", tagId == null ? null : tagId.toString());
+        json.addProperty("group", group == null ? null : group.serialize());
         amount.addToDebug(json, "amountToExtract", null);
 
         int remaining = amount.max();
@@ -160,6 +179,7 @@ public class EntityPortIngredient implements IPortIngredient {
         json.addProperty("ingredientType", Ref.Ports.ENTITY.toString());
         json.addProperty("entity", entityId == null ? null : entityId.toString());
         json.addProperty("tag", tagId == null ? null : tagId.toString());
+        json.addProperty("group", group == null ? null : group.serialize());
         amount.addToDebug(json, "amountToInsert", null);
 
         int remaining = amount.max();
@@ -181,7 +201,7 @@ public class EntityPortIngredient implements IPortIngredient {
 
     @Override
     public PortContent display() {
-        var type = entityId != null ? EntityTypes.get(entityId) : EntityTypes.firstInTag(tagId);
+        var type = producedType();
         var egg = type == null ? null : SpawnEggItem.byId(type);
         if (egg != null) {
             return PortContent.item(new ItemStack(egg), amount.max());

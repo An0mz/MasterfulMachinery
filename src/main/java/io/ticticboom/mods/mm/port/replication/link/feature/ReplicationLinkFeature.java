@@ -119,7 +119,7 @@ public class ReplicationLinkFeature {
         startsForTask += controller.takeRequestStarts(this);
         int remaining = task.getTotalAmount() - task.getCurrentAmount();
         int waiting = countWaiting(controller, task.getReplicatingStack());
-        int inFlight = controller.isRecipeRunning(recipe.id()) ? 1 : 0;
+        int inFlight = controller.runningCopies(recipe.id());
         int crafts = Math.min(remaining - waiting - inFlight, task.getTotalAmount() - startsForTask);
         controller.reserveOutput(this, task.getReplicatingStack(), remaining, now);
         requestedRecipe = recipe.id();

@@ -1,0 +1,11 @@
+{
+  "layers": [
+    {
+      "type": "seep",
+      "at": "spot",
+      "top": "seep_top",
+      "texture": "kubejs:textures/fx/blood_white.png",
+      "name": "Seep"
+    }
+  ]
+}

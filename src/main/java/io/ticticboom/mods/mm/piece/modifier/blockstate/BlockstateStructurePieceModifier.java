@@ -51,7 +51,7 @@ public class BlockstateStructurePieceModifier extends StructurePieceModifier {
 
     @Override
     public boolean formed(Level level, BlockPos pos, StructureModel model, Rotation rotation) {
-        BlockState blockState = WorldUtil.getBlockState(pos, (ServerLevel) level);
+        BlockState blockState = unrotate(WorldUtil.getBlockState(pos, (ServerLevel) level), rotation);
         var matched = new AtomicInteger();
         for (Property.Value<?> value : propValues.values()) {
             var prop = blockState.getOptionalValue(value.property());
@@ -96,6 +96,15 @@ public class BlockstateStructurePieceModifier extends StructurePieceModifier {
             json.addProperty("failedToSerializeBlockState", true);
         }
         return json;
+    }
+
+    private static BlockState unrotate(BlockState state, Rotation rotation) {
+        return switch (rotation) {
+            case CLOCKWISE_90 -> state.rotate(Rotation.COUNTERCLOCKWISE_90);
+            case COUNTERCLOCKWISE_90 -> state.rotate(Rotation.CLOCKWISE_90);
+            case CLOCKWISE_180 -> state.rotate(Rotation.CLOCKWISE_180);
+            default -> state;
+        };
     }
 
     private BlockState modifyBlockstate(BlockState state) {
