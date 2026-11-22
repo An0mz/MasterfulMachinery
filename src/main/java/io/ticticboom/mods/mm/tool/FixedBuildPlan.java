@@ -2,6 +2,7 @@ package io.ticticboom.mods.mm.tool;
 
 import io.ticticboom.mods.mm.builder.AssemblyPlanner;
 import io.ticticboom.mods.mm.builder.structure.BuildableStructure;
+import io.ticticboom.mods.mm.util.BlockStateRotation;
 import io.ticticboom.mods.mm.util.StructurePasteUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -33,7 +34,7 @@ public record FixedBuildPlan(BlockPos center, AssemblyPlanner.Plan plan, List<Bl
         var obstructed = new ArrayList<BlockPos>();
         for (int i = 0; i < rotated.size(); i++) {
             BlockPos pos = rotated.get(i).offset(offset);
-            BlockState state = structure.blocks().get(i).state().rotate(rotation);
+            BlockState state = BlockStateRotation.rotate(structure.blocks().get(i).state(), rotation);
             steps.add(new AssemblyPlanner.Planned(pos, state, List.of(state.getBlock())));
             BlockState existing = level.getBlockState(pos);
             if (!existing.isAir() && !existing.canBeReplaced() && !existing.is(state.getBlock())) {

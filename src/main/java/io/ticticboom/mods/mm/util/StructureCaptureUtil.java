@@ -27,7 +27,7 @@ import java.util.*;
 
 public class StructureCaptureUtil {
 
-    private static final Set<String> SHAPE_PROPERTIES = Set.of("half", "type", "shape", "face", "attachment", "hinge", "rotation", "orientation");
+    private static final Set<String> SHAPE_PROPERTIES = Set.of("half", "type", "shape", "face", "attachment", "hinge", "rotation", "orientation", "connection");
 
     private static final char[] KEYS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".toCharArray();
 
@@ -129,7 +129,7 @@ public class StructureCaptureUtil {
                         if ("minecraft:podzol".equals(key)) {
                             key = "minecraft:air";
                         } else if (!(b instanceof IControllerPart) && (rl == null || !Ref.ID.equals(rl.getNamespace()))) {
-                            props = orientationProperties(state.rotate(stateRotation));
+                            props = orientationProperties(BlockStateRotation.rotate(state, stateRotation));
                             if (!props.isEmpty()) {
                                 key = key + props;
                             }

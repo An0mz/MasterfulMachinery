@@ -5,6 +5,7 @@ import io.ticticboom.mods.mm.piece.modifier.framed.FramedCamoStructurePieceModif
 import io.ticticboom.mods.mm.piece.type.StructurePiece;
 import io.ticticboom.mods.mm.structure.StructureModel;
 import io.ticticboom.mods.mm.structure.layout.PositionedLayoutPiece;
+import io.ticticboom.mods.mm.util.BlockStateRotation;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
@@ -98,7 +99,7 @@ public final class AssemblyPlanner {
                     }
                 }
             }
-            state = state.rotate(rotation);
+            state = BlockStateRotation.rotate(state, rotation);
             List<Block> candidates = piece.createBlocksSupplier().get();
             List<Block> accepted = candidates == null ? List.of() : candidates.stream().filter(Objects::nonNull).toList();
             steps.add(new Planned(pos, state, accepted, List.copyOf(camos)));

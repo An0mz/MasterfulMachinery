@@ -7,6 +7,7 @@ import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.piece.StructurePieceSetupMetadata;
 import io.ticticboom.mods.mm.piece.modifier.StructurePieceModifier;
 import io.ticticboom.mods.mm.structure.StructureModel;
+import io.ticticboom.mods.mm.util.BlockStateRotation;
 import io.ticticboom.mods.mm.util.WorldUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -51,7 +52,7 @@ public class BlockstateStructurePieceModifier extends StructurePieceModifier {
 
     @Override
     public boolean formed(Level level, BlockPos pos, StructureModel model, Rotation rotation) {
-        BlockState blockState = unrotate(WorldUtil.getBlockState(pos, (ServerLevel) level), rotation);
+        BlockState blockState = BlockStateRotation.unrotate(WorldUtil.getBlockState(pos, (ServerLevel) level), rotation);
         var matched = new AtomicInteger();
         for (Property.Value<?> value : propValues.values()) {
             var prop = blockState.getOptionalValue(value.property());
@@ -96,15 +97,6 @@ public class BlockstateStructurePieceModifier extends StructurePieceModifier {
             json.addProperty("failedToSerializeBlockState", true);
         }
         return json;
-    }
-
-    private static BlockState unrotate(BlockState state, Rotation rotation) {
-        return switch (rotation) {
-            case CLOCKWISE_90 -> state.rotate(Rotation.COUNTERCLOCKWISE_90);
-            case COUNTERCLOCKWISE_90 -> state.rotate(Rotation.CLOCKWISE_90);
-            case CLOCKWISE_180 -> state.rotate(Rotation.CLOCKWISE_180);
-            default -> state;
-        };
     }
 
     private BlockState modifyBlockstate(BlockState state) {
