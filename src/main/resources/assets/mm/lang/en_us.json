@@ -54,6 +54,7 @@
   "port.mm.create_kinetic.title": "Kinetic Port",
   "port.mm.botania_mana.name": "Botania Mana",
   "port.mm.botania_mana.title": "Botania Mana Port",
+  "gui.mm.port.botania_mana.storage": "Stored Mana: %s / %s",
   "port.mm.pneumaticcraft_air.name": "PneumaticCraft Air",
   "port.mm.pneumaticcraft_air.title": "PneumaticCraft Air Port",
   "port.mm.mekanism_chemical.name": "Mekanism Chemical",
