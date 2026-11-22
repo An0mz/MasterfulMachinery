@@ -42,6 +42,8 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 - **Input Gateway rules.** Allow Input Gateways on a structure piece with `allowHelper` and limit how
   many a machine takes with `maxHelpers`. Admins can change both per structure from the Structure
   Builder.
+- **Botania mana ports.** Mana ports work again with Botania Revived. Mana spreaders fill input ports
+  and pull from output ports, and the Wand of the Forest and Jade show how much mana a port holds.
 
 ### Changed
 - A recipe only starts when all of its outputs fit in the output ports together.
@@ -54,6 +56,7 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 - Port priority not saving, and not being used by radiation and matter outputs.
 - KubeJS structures losing `portsAnywhere` when reloaded.
 - Port screens drawing their background twice.
+- The game crashing when the structure preview showed a structure whose controller doesn't exist.
 
 ## [1.21.1-0.18.1] - 2026-11-16
 
