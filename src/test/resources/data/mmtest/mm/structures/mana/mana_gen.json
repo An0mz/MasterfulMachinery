@@ -1,6 +1,6 @@
 {
   "name": "Mana Generator",
-  "controllerIds": "mm:mana_controller",
+  "controllerIds": "mm:mana_test",
   "layout": [
     [
       "CA"

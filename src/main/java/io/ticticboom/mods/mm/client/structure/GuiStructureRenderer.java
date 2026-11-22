@@ -78,7 +78,10 @@ public class GuiStructureRenderer {
         this(new AutoTransform(model), () -> {
             model.layout().setup(model);
             List<PositionedCyclingBlockRenderer> list = new ArrayList<>(new GuiStructureLayout(model.layout()).createBlockRenderers());
-            list.add(model.controllerUiRenderer());
+            var controller = model.controllerUiRenderer();
+            if (controller != null) {
+                list.add(controller);
+            }
             return list;
         });
     }

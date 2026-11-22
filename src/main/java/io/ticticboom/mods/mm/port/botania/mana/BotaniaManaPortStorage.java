@@ -3,17 +3,22 @@ package io.ticticboom.mods.mm.port.botania.mana;
 import com.google.gson.JsonObject;
 import io.ticticboom.mods.mm.port.IPortStorage;
 import io.ticticboom.mods.mm.port.IPortStorageModel;
+import io.ticticboom.mods.mm.port.PortContent;
 import io.ticticboom.mods.mm.port.common.INotifyChangeFunction;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.UUID;
 
 public class BotaniaManaPortStorage implements IPortStorage {
+
+    public static final int FILL_COLOR = 0xFF0095FF;
 
     private final BotaniaManaPortStorageModel model;
     private final INotifyChangeFunction changed;
@@ -61,6 +66,26 @@ public class BotaniaManaPortStorage implements IPortStorage {
     @Override
     public UUID getStorageUid() {
         return uid;
+    }
+
+    @Override
+    public List<PortContent> contents() {
+        return List.of(PortContent.gauge(Component.translatable("port.mm.botania_mana.name"), FILL_COLOR, stored, capacity, "Mana"));
+    }
+
+    @Override
+    public List<Component> describeContents() {
+        return List.of(Component.translatable("gui.mm.port.botania_mana.storage", stored, capacity));
+    }
+
+    @Override
+    public double fillRatio() {
+        return capacity <= 0 ? -1 : Math.min(1, (double) stored / capacity);
+    }
+
+    @Override
+    public int fillColor() {
+        return FILL_COLOR;
     }
 
     @Override

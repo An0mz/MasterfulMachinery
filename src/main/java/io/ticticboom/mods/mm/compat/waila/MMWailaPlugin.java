@@ -10,6 +10,7 @@ import io.ticticboom.mods.mm.port.energy.register.EnergyPortBlock;
 import io.ticticboom.mods.mm.port.kinetic.register.CreateKineticPortBlock;
 import io.ticticboom.mods.mm.port.pneumaticcraft.air.register.PneumaticAirPortBlock;
 import io.ticticboom.mods.mm.port.botania.mana.register.BotaniaManaPortBlock;
+import io.ticticboom.mods.mm.port.botania.mana.register.BotaniaManaPortBlockEntity;
 import io.ticticboom.mods.mm.port.replication.matter.register.ReplicationMatterPortBlock;
 import net.neoforged.fml.ModList;
 import snownee.jade.api.IWailaClientRegistration;
@@ -37,6 +38,9 @@ public class MMWailaPlugin implements IWailaPlugin {
         registration.registerBlockDataProvider(PortPriorityDataProvider.INSTANCE, AbstractPortBlockEntity.class);
         registration.registerBlockDataProvider(PortContentsDataProvider.INSTANCE, AbstractPortBlockEntity.class);
         registration.registerBlockDataProvider(PortMachineDataProvider.INSTANCE, AbstractPortBlockEntity.class);
+        if (ModList.get().isLoaded("botania")) {
+            registration.registerBlockDataProvider(PortContentsDataProvider.INSTANCE, BotaniaManaPortBlockEntity.class);
+        }
     }
 
     @Override
@@ -62,6 +66,9 @@ public class MMWailaPlugin implements IWailaPlugin {
         if (ModList.get().isLoaded("replication")) {
             registration.registerBlockComponent(PortPriorityDataProvider.INSTANCE, ReplicationMatterPortBlock.class);
             registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, ReplicationMatterPortBlock.class);
+        }
+        if (ModList.get().isLoaded("botania")) {
+            registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, BotaniaManaPortBlock.class);
         }
         if (ModList.get().isLoaded("ars_nouveau")) {
             registration.registerBlockComponent(PortContentsDataProvider.INSTANCE, ArsSourcePortBlock.class);

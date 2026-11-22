@@ -22,24 +22,15 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
+import velrondevs.botania.api.BotaniaAPI;
+import velrondevs.botania.api.mana.ManaBlockType;
+import velrondevs.botania.api.mana.ManaNetworkAction;
+import velrondevs.botania.api.mana.ManaPool;
+import velrondevs.botania.common.handler.ManaNetworkHandler;
 
 import java.util.Optional;
 
-/**
- * Botania has no 1.21.1 release, so this block entity is stubbed: the mana storage, menu wiring
- * and serialisation are intact, but every hook into Botania is removed. MMPortRegistry only
- * registers the mana port when Botania is loaded, so on 1.21.1 this class is unreachable.
- *
- * <p>The restored version lives on the feature/botania-1.21.1 branch, built against a local
- * Botania build in libs/. Merge that once Botania publishes a 1.21.1 artifact.
- *
- * <p>The 1.21.1 API differs from the 1.20.1 one this was written against: ManaPool no longer has
- * getColor/setColor, ManaBlockType.POOL and ManaNetworkHandler.isPoolIn are gone because pools
- * are not part of the mana network any more, capabilities come from
- * BotaniaNeoForgeCapabilities.getBlockApiLookupById rather than being declared, and
- * WandHUD.renderHUD takes a Window and Font instead of a Minecraft.
- */
-public class BotaniaManaPortBlockEntity extends BlockEntity implements IPortBlockEntity {
+public class BotaniaManaPortBlockEntity extends BlockEntity implements ManaPool, IPortBlockEntity {
 
     private final PortModel model;
     private final RegistryGroupHolder groupHolder;
@@ -50,6 +41,20 @@ public class BotaniaManaPortBlockEntity extends BlockEntity implements IPortBloc
         this.model = model;
         this.groupHolder = groupHolder;
         this.storage = (BotaniaManaPortStorage) model.config().createPortStorage(this::setChanged);
+    }
+
+    public void tick() {
+        if (!ManaNetworkHandler.instance.isPoolIn(level, this) && !isRemoved()) {
+            BotaniaAPI.instance().getManaNetworkInstance().fireManaNetworkEvent(this, ManaBlockType.POOL, ManaNetworkAction.ADD);
+        }
+    }
+
+    @Override
+    public void setRemoved() {
+        super.setRemoved();
+        if (level != null && !level.isClientSide()) {
+            BotaniaAPI.instance().getManaNetworkInstance().fireManaNetworkEvent(this, ManaBlockType.POOL, ManaNetworkAction.REMOVE);
+        }
     }
 
     @Override
@@ -78,39 +83,46 @@ public class BotaniaManaPortBlockEntity extends BlockEntity implements IPortBloc
         return null;
     }
 
-    // --- ManaPool implementation, kept unannotated while Botania is unavailable ---
-
+    @Override
     public boolean isOutputtingPower() {
         return !this.model.input();
     }
 
+    @Override
     public int getMaxMana() {
         return storage.getCapacity();
     }
 
+    @Override
     public Optional<DyeColor> getColor() {
         return Optional.of(DyeColor.CYAN);
     }
 
+    @Override
     public void setColor(Optional<DyeColor> optional) {
     }
 
+    @Override
     public Level getManaReceiverLevel() {
         return level;
     }
 
+    @Override
     public BlockPos getManaReceiverPos() {
         return this.getBlockPos();
     }
 
+    @Override
     public int getCurrentMana() {
         return storage.getStored();
     }
 
+    @Override
     public boolean isFull() {
         return storage.getStored() >= storage.getCapacity();
     }
 
+    @Override
     public void receiveMana(int i) {
         if (i < 0) {
             storage.extractMana(i, false);
@@ -119,11 +131,10 @@ public class BotaniaManaPortBlockEntity extends BlockEntity implements IPortBloc
         }
     }
 
+    @Override
     public boolean canReceiveManaFromBursts() {
         return this.model.input();
     }
-
-    // --- serialisation, unaffected by Botania ---
 
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {

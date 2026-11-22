@@ -234,8 +234,7 @@ dependencies {
     compileOnly "curse.maven:thaumaturge-1628024:${thaumaturge_id}"
     compileOnly "curse.maven:framedblocks-441647:${framedblocks_id}"
 
-    // Botania has no 1.21.1 release yet
-    //compileOnly "vazkii.botania:Botania:${botania_version}"
+    compileOnly "curse.maven:botania-revived-1725641:${botania_revived_id}"
 
     // ========================
     // RUNTIME MOD-ADDONS
@@ -301,7 +300,7 @@ dependencies {
     runtimeOnly "curse.maven:ethecore-1531354:${ethecore_id}"
     runtimeOnly "hellfirepvp.observerlib:ObserverLib:${observerlib_version}"
 
-    //runtimeOnly "vazkii.botania:Botania:${botania_version}"
+    runtimeOnly "curse.maven:botania-revived-1725641:${botania_revived_id}"
 
     //runtimeOnly "curse.maven:thaumaturge-1628024:${thaumaturge_id}"
     runtimeOnly "curse.maven:framedblocks-441647:${framedblocks_id}"
