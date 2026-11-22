@@ -59,6 +59,8 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 - The game crashing when the structure preview showed a structure whose controller doesn't exist.
 - Macaw's Bridges blocks losing their direction in captured structures. Recapture structures that
   use them.
+- The Effect Studio showing blocks facing the wrong way, Macaw's Bridges without their rails, and
+  other blocks in their default look instead of how they're placed on the machine.
 
 ## [1.21.1-0.18.1] - 2026-11-16
 
