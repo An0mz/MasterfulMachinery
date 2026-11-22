@@ -1531,6 +1531,7 @@ public class EffectStudioScreen extends Screen {
         anchors.add(h.name(), pointsJson(points));
         dropPoint(h.name(), h.index());
         dropSeepPoint(h.name(), h.index());
+        dropSkipPoint(h.name(), h.index());
         if (h.name().equals(adding) && linkFrom >= 0) {
             if (linkFrom == h.index()) {
                 adding = null;
@@ -1612,9 +1613,108 @@ public class EffectStudioScreen extends Screen {
             entries.add("link");
             entries.add("unlink");
         }
+        JsonObject fx = id == null ? null : base(id);
+        if (fx != null && fx.has("layers")) {
+            JsonArray layers = fx.getAsJsonArray("layers");
+            for (int i = 0; i < layers.size(); i++) {
+                JsonObject layer = layers.get(i).getAsJsonObject();
+                if (!(layer.has("off") && layer.get("off").getAsBoolean()) && h.name().equals(mainAnchor(layer))) {
+                    entries.add("layer:" + i);
+                }
+            }
+        }
         entries.add("centre");
         entries.add("delete");
         return entries.toArray(new String[0]);
+    }
+
+    @Nullable
+    private static String mainAnchor(JsonObject layer) {
+        String type = layer.has("type") ? layer.get("type").getAsString() : "";
+        boolean halo = layer.has("mode") && "halo".equals(layer.get("mode").getAsString());
+        return switch (type) {
+            case "drip", "pool", "seep" -> layer.has("at") ? layer.get("at").getAsString() : "drips";
+            case "emitter" -> layer.has("at") ? layer.get("at").getAsString() : "emit";
+            case "glow" -> halo ? (layer.has("at") ? layer.get("at").getAsString() : "glow") : null;
+            case "stream" -> layer.has("from") ? layer.get("from").getAsString() : "drips";
+            case "beam" -> layer.has("from") ? layer.get("from").getAsString() : "from";
+            default -> null;
+        };
+    }
+
+    private static boolean skips(JsonObject layer, int index) {
+        if (!layer.has("skip")) {
+            return false;
+        }
+        JsonElement listed = layer.get("skip");
+        for (JsonElement e : listed.isJsonArray() ? listed.getAsJsonArray().asList() : List.of(listed)) {
+            if (e.isJsonPrimitive() && e.getAsInt() == index) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void toggleSkip(int layerIndex, int point) {
+        ResourceLocation id = selectedId();
+        JsonObject fx = id == null ? null : base(id);
+        if (fx == null || layerIndex >= fx.getAsJsonArray("layers").size()) {
+            return;
+        }
+        remember();
+        JsonObject layer = fx.getAsJsonArray("layers").get(layerIndex).getAsJsonObject();
+        var next = new JsonArray();
+        boolean was = skips(layer, point);
+        if (layer.has("skip")) {
+            JsonElement listed = layer.get("skip");
+            for (JsonElement e : listed.isJsonArray() ? listed.getAsJsonArray().asList() : List.of(listed)) {
+                if (!(e.isJsonPrimitive() && e.getAsInt() == point)) {
+                    next.add(e);
+                }
+            }
+        }
+        if (!was) {
+            next.add(point);
+        }
+        if (next.isEmpty()) {
+            layer.remove("skip");
+        } else {
+            layer.add("skip", next);
+        }
+        rescale(id);
+        rebuildWidgets();
+    }
+
+    private void dropSkipPoint(String anchor, int index) {
+        ResourceLocation id = selectedId();
+        JsonObject fx = id == null ? null : base(id);
+        if (fx == null || !fx.has("layers")) {
+            return;
+        }
+        boolean touched = false;
+        for (JsonElement element : fx.getAsJsonArray("layers")) {
+            JsonObject layer = element.getAsJsonObject();
+            if (!anchor.equals(mainAnchor(layer)) || !layer.has("skip")) {
+                continue;
+            }
+            JsonElement listed = layer.get("skip");
+            var next = new JsonArray();
+            for (JsonElement e : listed.isJsonArray() ? listed.getAsJsonArray().asList() : List.of(listed)) {
+                int v = e.getAsInt();
+                if (v != index) {
+                    next.add(v > index ? v - 1 : v);
+                }
+            }
+            if (next.isEmpty()) {
+                layer.remove("skip");
+            } else {
+                layer.add("skip", next);
+            }
+            touched = true;
+        }
+        if (touched) {
+            rescale(id);
+        }
     }
 
     @Nullable
@@ -1663,6 +1763,18 @@ public class EffectStudioScreen extends Screen {
     }
 
     private Component menuLabel(String entry, Handle h) {
+        if (entry.startsWith("layer:")) {
+            ResourceLocation id = selectedId();
+            JsonObject fx = id == null ? null : base(id);
+            int index = Integer.parseInt(entry.substring(6));
+            if (fx == null || index >= fx.getAsJsonArray("layers").size()) {
+                return Component.literal("?");
+            }
+            JsonObject layer = fx.getAsJsonArray("layers").get(index).getAsJsonObject();
+            String name = layer.has("name") ? layer.get("name").getAsString() : pretty(layer.has("type") ? layer.get("type").getAsString() : "?");
+            boolean skipped = skips(layer, h.index());
+            return Component.literal((skipped ? "✗ " : "✓ ") + name).withStyle(skipped ? ChatFormatting.GRAY : ChatFormatting.GREEN);
+        }
         if (entry.equals("add_to")) {
             String target = arcTargetAt(h);
             if (target != null && !target.equals("pillars")) {
@@ -2633,6 +2745,10 @@ public class EffectStudioScreen extends Screen {
             menu = null;
             int index = (int) ((mouseY - menuY - 1) / 14);
             if (button == 0 && mouseX >= menuX && mouseX < menuX + menuWidth(entries, target) && mouseY >= menuY && index >= 0 && index < entries.length) {
+                if (entries[index].startsWith("layer:")) {
+                    toggleSkip(Integer.parseInt(entries[index].substring(6)), target.index());
+                    return true;
+                }
                 switch (entries[index]) {
                     case "delete" -> deleteHandle(target);
                     case "unlink" -> unlink(target);

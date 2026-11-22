@@ -21,7 +21,10 @@ public final class DripLayer implements FxLayer {
     private final double dropSize;
     private final boolean hideWhenBlocked;
 
+    private final int[] skip;
+
     private DripLayer(JsonObject json) {
+        skip = FxSkip.parse(json);
         at = json.has("at") ? json.get("at").getAsString() : "drips";
         to = json.has("to") ? json.get("to").getAsString() : "floor";
         texture = FxTexture.required(json, "drip");
@@ -46,7 +49,7 @@ public final class DripLayer implements FxLayer {
     @Override
     @Nullable
     public State create(FxShared shared) {
-        FxColumn[] columns = shared.columns(at, to);
+        FxColumn[] columns = FxSkip.keep(shared.columns(at, to), skip);
         if (columns == null) {
             return null;
         }

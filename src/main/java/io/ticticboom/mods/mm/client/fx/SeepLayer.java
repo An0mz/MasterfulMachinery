@@ -36,7 +36,10 @@ public final class SeepLayer implements FxLayer {
     private final int[] pointMasks;
     private final int streams;
 
+    private final int[] skip;
+
     private SeepLayer(JsonObject json) {
+        skip = FxSkip.parse(json);
         at = json.has("at") ? json.get("at").getAsString() : "drips";
         top = json.has("top") ? json.get("top").getAsString() : "seep_top";
         texture = FxTexture.required(json, "seep");
@@ -144,7 +147,7 @@ public final class SeepLayer implements FxLayer {
     @Override
     @Nullable
     public State create(FxShared shared) {
-        FxColumn[] columns = shared.columns(at, null);
+        FxColumn[] columns = FxSkip.keep(shared.columns(at, null), skip);
         Double seepTop = shared.height(top);
         if (columns == null) {
             return null;
@@ -190,7 +193,7 @@ public final class SeepLayer implements FxLayer {
         }
         int[] chosen = new int[columns.length];
         for (int i = 0; i < columns.length; i++) {
-            int own = i < pointMasks.length ? pointMasks[i] : -1;
+            int own = columns[i].index < pointMasks.length ? pointMasks[columns[i].index] : -1;
             chosen[i] = rotatedMask(own >= 0 ? own : faceMask, shared.rotation);
         }
         return new Seeps(columns, faces, chosen, toWorld);

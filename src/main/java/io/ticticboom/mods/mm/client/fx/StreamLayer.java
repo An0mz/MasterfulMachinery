@@ -37,7 +37,10 @@ public final class StreamLayer implements FxLayer {
     private final boolean needsBlockAbove;
     private final boolean droplets;
 
+    private final int[] skip;
+
     private StreamLayer(JsonObject json) {
+        skip = FxSkip.parse(json);
         from = json.has("from") ? json.get("from").getAsString() : "drips";
         to = json.has("to") ? json.get("to").getAsString() : "floor";
         texture = FxTexture.required(json, "stream");
@@ -78,7 +81,7 @@ public final class StreamLayer implements FxLayer {
     @Override
     @Nullable
     public State create(FxShared shared) {
-        FxColumn[] columns = shared.columns(from, to);
+        FxColumn[] columns = FxSkip.keep(shared.columns(from, to), skip);
         if (columns == null) {
             return null;
         }

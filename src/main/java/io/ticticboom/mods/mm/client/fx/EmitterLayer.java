@@ -42,7 +42,10 @@ public final class EmitterLayer implements FxLayer {
     private final double sizeSpread;
     private final boolean easeOut;
 
+    private final int[] skip;
+
     private EmitterLayer(JsonObject json) {
+        skip = FxSkip.parse(json);
         texture = FxTexture.required(json, "emitter");
         at = json.has("at") ? json.get("at").getAsString() : "emit";
         rate = FxValue.parse(json, "rate", 10);
@@ -149,6 +152,9 @@ public final class EmitterLayer implements FxLayer {
     @Nullable
     public State create(FxShared shared) {
         double[] points = shared.points(at);
+        if (points != null) {
+            points = FxSkip.keep(points, skip);
+        }
         long[] cells = points == null ? shared.area(at) : null;
         if ((points == null || points.length < 3) && (cells == null || cells.length == 0)) {
             FxLog.warnOnce("Emitter layer: no point or area anchor named '{}', or it is empty", at);

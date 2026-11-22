@@ -32,7 +32,10 @@ public final class BeamLayer implements FxLayer {
     @Nullable
     private final int[] links;
 
+    private final int[] skip;
+
     private BeamLayer(JsonObject json) {
+        skip = FxSkip.parse(json);
         texture = FxTexture.required(json, "beam");
         from = json.has("from") ? json.get("from").getAsString() : "from";
         to = json.has("to") ? json.get("to").getAsString() : "to";
@@ -88,6 +91,10 @@ public final class BeamLayer implements FxLayer {
         return json.has(key) ? json.get(key).getAsDouble() : fallback;
     }
 
+    private boolean skipped(int fromIndex, int toIndex) {
+        return FxSkip.has(skip, fromIndex) || (from.equals(to) && FxSkip.has(skip, toIndex));
+    }
+
     @Override
     @Nullable
     public State create(FxShared shared) {
@@ -102,14 +109,14 @@ public final class BeamLayer implements FxLayer {
         if (links != null) {
             int valid = 0;
             for (int k = 0; k < links.length; k += 2) {
-                if (links[k] >= 0 && links[k] < n && links[k + 1] >= 0 && links[k + 1] < m) {
+                if (links[k] >= 0 && links[k] < n && links[k + 1] >= 0 && links[k + 1] < m && !skipped(links[k], links[k + 1])) {
                     valid++;
                 }
             }
             Beam[] beams = new Beam[valid];
             int i = 0;
             for (int k = 0; k < links.length; k += 2) {
-                if (links[k] < 0 || links[k] >= n || links[k + 1] < 0 || links[k + 1] >= m) {
+                if (links[k] < 0 || links[k] >= n || links[k + 1] < 0 || links[k + 1] >= m || skipped(links[k], links[k + 1])) {
                     continue;
                 }
                 int ia = links[k] * 3;
@@ -120,11 +127,21 @@ public final class BeamLayer implements FxLayer {
             return new Beams(shared, beams);
         }
         int count = Math.max(n, m);
-        Beam[] beams = new Beam[count];
+        int kept = 0;
         for (int i = 0; i < count; i++) {
+            if (!skipped(i % n, i % m)) {
+                kept++;
+            }
+        }
+        Beam[] beams = new Beam[kept];
+        int slot = 0;
+        for (int i = 0; i < count; i++) {
+            if (skipped(i % n, i % m)) {
+                continue;
+            }
             int ia = (i % n) * 3;
             int ib = (i % m) * 3;
-            beams[i] = new Beam(a[ia], a[ia + 1], a[ia + 2], b[ib], b[ib + 1], b[ib + 2], shared.seed() + i * 977L);
+            beams[slot++] = new Beam(a[ia], a[ia + 1], a[ia + 2], b[ib], b[ib + 1], b[ib + 2], shared.seed() + i * 977L);
         }
         return new Beams(shared, beams);
     }

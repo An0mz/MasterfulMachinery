@@ -29,7 +29,10 @@ public final class PoolLayer implements FxLayer {
     private final FxValue swirl;
     private final boolean hideWhenBlocked;
 
+    private final int[] skip;
+
     private PoolLayer(JsonObject json) {
+        skip = FxSkip.parse(json);
         at = json.has("at") ? json.get("at").getAsString() : "drips";
         to = json.has("to") ? json.get("to").getAsString() : "floor";
         texture = FxTexture.required(json, "pool");
@@ -60,7 +63,7 @@ public final class PoolLayer implements FxLayer {
     @Override
     @Nullable
     public State create(FxShared shared) {
-        FxColumn[] columns = shared.columns(at, to);
+        FxColumn[] columns = FxSkip.keep(shared.columns(at, to), skip);
         if (columns == null) {
             return null;
         }

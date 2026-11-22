@@ -43,7 +43,7 @@ final class FxSchema {
     }
 
     static {
-        LAYERS.replaceAll((type, keys) -> join(new String[]{"name", "", "off", "false"}, keys));
+        LAYERS.replaceAll((type, keys) -> join(new String[]{"name", "", "off", "false", "skip", ""}, keys));
     }
 
     private FxSchema() {
