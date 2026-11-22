@@ -624,6 +624,7 @@
   "gui.mm.effect_studio.point": "Spot %s",
   "gui.mm.effect_studio.arcs": "Arcs",
   "gui.mm.effect_studio.reroll": "Reroll",
+  "gui.mm.effect_studio.arrow_hint": "Drag the orange arrow to point particles (Alt: up/down, longer = faster)",
   "gui.mm.effect_studio.mode.both": "Both",
   "gui.mm.effect_studio.mode.idle": "Idle",
   "gui.mm.effect_studio.mode.working": "Working",

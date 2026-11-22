@@ -277,6 +277,22 @@ public class GuiStructureRenderer {
     }
 
     @Nullable
+    public double[] ray(double mouseX, double mouseY) {
+        GuiPos viewport = renderSetup.getViewportPos();
+        if (!rendered || viewport == null) {
+            return null;
+        }
+        float nx = (float) ((mouseX - viewport.x()) / viewport.w() * 2 - 1);
+        float ny = (float) (1 - (mouseY - viewport.y()) / viewport.h() * 2);
+        var inverse = new Matrix4f(lastMatrix).invert();
+        var near = inverse.transform(new Vector4f(nx, ny, -1, 1));
+        var far = inverse.transform(new Vector4f(nx, ny, 0.99f, 1));
+        var from = new Vec3(near.x / near.w, near.y / near.w, near.z / near.w);
+        var dir = new Vec3(far.x / far.w, far.y / far.w, far.z / far.w).subtract(from).normalize();
+        return new double[]{from.x, from.y, from.z, dir.x, dir.y, dir.z};
+    }
+
+    @Nullable
     public BlockHitResult pick(double mouseX, double mouseY) {
         GuiPos viewport = renderSetup.getViewportPos();
         if (!rendered || viewport == null) {

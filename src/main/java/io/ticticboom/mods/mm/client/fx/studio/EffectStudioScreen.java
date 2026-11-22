@@ -150,6 +150,11 @@ public class EffectStudioScreen extends Screen {
     private int linkFrom = -1;
     @Nullable
     private String pickingBlocks;
+    private static final double ARROW = 0.6;
+    private int arrowLayer = -1;
+    private boolean arrowMoved;
+    private double arrowTipY;
+    private double arrowLastMouseY;
     private int pickingFor = -1;
 
     private record Handle(String name, int index, double x, double y, double z, boolean height) {
@@ -740,6 +745,121 @@ public class EffectStudioScreen extends Screen {
         if (touched) {
             rescale(id);
         }
+    }
+
+    private List<double[]> arrows() {
+        var result = new ArrayList<double[]>();
+        ResourceLocation id = selectedId();
+        JsonObject fx = id == null ? null : base(id);
+        if (fx == null || !fx.has("layers") || session.tab != 2 || placing != null || adding != null || pickingBlocks != null) {
+            return result;
+        }
+        JsonObject anchors = selectedAnchors();
+        JsonArray layers = fx.getAsJsonArray("layers");
+        for (int i = 0; i < layers.size(); i++) {
+            JsonObject layer = layers.get(i).getAsJsonObject();
+            if (!"emitter".equals(layer.has("type") ? layer.get("type").getAsString() : "") || (layer.has("off") && layer.get("off").getAsBoolean())) {
+                continue;
+            }
+            String at = layer.has("at") ? layer.get("at").getAsString() : "emit";
+            List<double[]> points = pointsOf(anchors.get(at));
+            if (points.isEmpty()) {
+                continue;
+            }
+            double[] p = points.get(0);
+            double[] v = velocityOf(layer);
+            double len = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+            double[] tip = len < 1e-4 ? new double[]{p[0], p[1] + 0.3, p[2]} : new double[]{p[0] + v[0] * ARROW, p[1] + v[1] * ARROW, p[2] + v[2] * ARROW};
+            result.add(new double[]{i, p[0], p[1], p[2], tip[0], tip[1], tip[2]});
+        }
+        return result;
+    }
+
+    private static double[] velocityOf(JsonObject layer) {
+        if (layer.has("velocity") && layer.get("velocity").isJsonArray() && layer.getAsJsonArray("velocity").size() == 3) {
+            JsonArray v = layer.getAsJsonArray("velocity");
+            return new double[]{v.get(0).getAsDouble(), v.get(1).getAsDouble(), v.get(2).getAsDouble()};
+        }
+        return new double[]{0, 0, 0};
+    }
+
+    @Nullable
+    private double[] arrowAt(double mouseX, double mouseY) {
+        if (view == null || !viewport.contains((int) mouseX, (int) mouseY)) {
+            return null;
+        }
+        var origin = model.layout().getCharGrid().getControllerPos();
+        double[] best = null;
+        double bestDistance = 7 * 7;
+        for (double[] a : arrows()) {
+            double[] s = view.project(a[4] - origin.getX(), a[5] - origin.getY(), a[6] - origin.getZ());
+            if (s == null) {
+                continue;
+            }
+            double d = (s[0] - mouseX) * (s[0] - mouseX) + (s[1] - mouseY) * (s[1] - mouseY);
+            if (d < bestDistance) {
+                bestDistance = d;
+                best = a;
+            }
+        }
+        return best;
+    }
+
+    private void dragArrow(double mouseX, double mouseY) {
+        ResourceLocation id = selectedId();
+        double[] arrow = null;
+        for (double[] a : arrows()) {
+            if ((int) a[0] == arrowLayer) {
+                arrow = a;
+            }
+        }
+        if (id == null || arrow == null) {
+            arrowLayer = -1;
+            return;
+        }
+        if (!arrowMoved) {
+            if (Math.abs(mouseX - pressX) + Math.abs(mouseY - pressY) < 3) {
+                return;
+            }
+            remember();
+            arrowMoved = true;
+            arrowTipY = arrow[5];
+            arrowLastMouseY = mouseY;
+        }
+        var origin = model.layout().getCharGrid().getControllerPos();
+        double tx = arrow[4];
+        double ty = arrow[5];
+        double tz = arrow[6];
+        if (hasAltDown()) {
+            double[] s0 = view.project(tx - origin.getX(), arrowTipY - origin.getY(), tz - origin.getZ());
+            double[] s1 = view.project(tx - origin.getX(), arrowTipY + 1 - origin.getY(), tz - origin.getZ());
+            if (s0 == null || s1 == null || Math.abs(s1[1] - s0[1]) < 1e-3) {
+                return;
+            }
+            arrowTipY += (mouseY - arrowLastMouseY) / (s1[1] - s0[1]);
+            arrowLastMouseY = mouseY;
+            ty = arrowTipY;
+        } else {
+            arrowLastMouseY = mouseY;
+            double[] ray = view.ray(mouseX, mouseY);
+            double planeY = ty - origin.getY();
+            if (ray == null || Math.abs(ray[4]) < 1e-6) {
+                return;
+            }
+            double t = (planeY - ray[1]) / ray[4];
+            if (t <= 0) {
+                return;
+            }
+            tx = ray[0] + ray[3] * t + origin.getX();
+            tz = ray[2] + ray[5] * t + origin.getZ();
+        }
+        JsonObject layer = base(id).getAsJsonArray("layers").get(arrowLayer).getAsJsonObject();
+        var v = new JsonArray();
+        v.add(Math.round((tx - arrow[1]) / ARROW * 100) / 100.0);
+        v.add(Math.round((ty - arrow[2]) / ARROW * 100) / 100.0);
+        v.add(Math.round((tz - arrow[3]) / ARROW * 100) / 100.0);
+        layer.add("velocity", v);
+        rescale(id);
     }
 
     private void reroll(ResourceLocation id) {
@@ -2507,8 +2627,29 @@ public class EffectStudioScreen extends Screen {
         }
     }
 
+    private void renderArrows(PoseStack pose, MultiBufferSource buffers) {
+        List<double[]> arrows = arrows();
+        if (arrows.isEmpty()) {
+            return;
+        }
+        var origin = model.layout().getCharGrid().getControllerPos();
+        VertexConsumer lines = buffers.getBuffer(RenderType.lines());
+        for (double[] a : arrows) {
+            double x0 = a[1] - origin.getX();
+            double y0 = a[2] - origin.getY();
+            double z0 = a[3] - origin.getZ();
+            double x1 = a[4] - origin.getX();
+            double y1 = a[5] - origin.getY();
+            double z1 = a[6] - origin.getZ();
+            line(lines, pose, x0, y0, z0, x1, y1, z1, 0xFFFF9A30);
+            double size = (int) a[0] == arrowLayer ? 0.09 : 0.06;
+            LevelRenderer.renderLineBox(pose, lines, new AABB(x1 - size, y1 - size, z1 - size, x1 + size, y1 + size, z1 + size), 1f, 0.6f, 0.2f, 1f);
+        }
+    }
+
     private void renderEffects(PoseStack pose, MultiBufferSource buffers, Matrix4f modelView) {
         renderGhost(pose, buffers);
+        renderArrows(pose, buffers);
         renderPickedBlocks(pose, buffers);
         renderSpots(pose, buffers);
         var be = EffectStudio.machine(session);
@@ -2563,6 +2704,8 @@ public class EffectStudioScreen extends Screen {
             hint = Component.translatable("gui.mm.effect_studio.click.link", linkFrom + 1);
         } else if (adding != null) {
             hint = Component.translatable(underside ? "gui.mm.effect_studio.click.add_underside" : "gui.mm.effect_studio.click.add", adding);
+        } else if (session.tab == 2 && !arrows().isEmpty()) {
+            hint = Component.translatable("gui.mm.effect_studio.arrow_hint");
         } else if (selectedId() != null && !spots.isEmpty()) {
             hint = Component.translatable("gui.mm.effect_studio.drag_hint");
         } else {
@@ -2784,6 +2927,15 @@ public class EffectStudioScreen extends Screen {
             return true;
         }
         if (button == 0 && view != null) {
+            double[] arrow = arrowAt(mouseX, mouseY);
+            if (arrow != null) {
+                setFocused(null);
+                arrowLayer = (int) arrow[0];
+                arrowMoved = false;
+                return true;
+            }
+        }
+        if (button == 0 && view != null) {
             Handle h = handleAt(mouseX, mouseY);
             if (h != null) {
                 setFocused(null);
@@ -2844,6 +2996,10 @@ public class EffectStudioScreen extends Screen {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (arrowLayer >= 0 && button == 0) {
+            dragArrow(mouseX, mouseY);
+            return true;
+        }
         if (dragging && button == 0) {
             drag(mouseX, mouseY);
             return true;
@@ -2881,6 +3037,10 @@ public class EffectStudioScreen extends Screen {
         }
         if (coords != null && coords.isMouseOver(mouseX, mouseY)) {
             return super.mouseReleased(mouseX, mouseY, button);
+        }
+        if (arrowLayer >= 0 && button == 0) {
+            arrowLayer = -1;
+            return true;
         }
         if (dragging && button == 0) {
             dragging = false;
