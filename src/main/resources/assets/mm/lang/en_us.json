@@ -610,7 +610,7 @@
   "gui.mm.effect_studio.drag_hint": "Drag points to move them (Alt: height), right-click for more, click N/E/S/W to pick bleeding sides",
   "gui.mm.effect_studio.undo": "Undo (Ctrl+Z)",
   "gui.mm.effect_studio.redo": "Redo (Ctrl+Y)",
-  "gui.mm.effect_studio.menu.centre": "Centre on face",
+  "gui.mm.effect_studio.menu.centre": "Center on face",
   "gui.mm.effect_studio.menu.delete": "Delete point",
   "gui.mm.effect_studio.menu.link": "Add an arc from here",
   "gui.mm.effect_studio.menu.unlink": "Remove its arcs",
