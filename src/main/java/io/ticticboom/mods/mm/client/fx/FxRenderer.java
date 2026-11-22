@@ -85,6 +85,15 @@ public final class FxRenderer {
     }
 
     public static void render(MachineControllerBlockEntity be, float partialTick, PoseStack pose, MultiBufferSource buffers) {
+        long start = System.nanoTime();
+        try {
+            renderMachine(be, partialTick, pose, buffers);
+        } finally {
+            FxStats.nanos += System.nanoTime() - start;
+        }
+    }
+
+    private static void renderMachine(MachineControllerBlockEntity be, float partialTick, PoseStack pose, MultiBufferSource buffers) {
         List<EffectVisual> visuals = EffectStudio.effects(be);
         var level = be.getLevel();
         if (visuals == null || level == null || !enabled() || !be.getBlockState().hasProperty(ControllerState.PROPERTY)) {
@@ -125,6 +134,7 @@ public final class FxRenderer {
         ctx.cameraZ = camera.z - pos.getZ();
         boolean working = EffectStudio.working(be, be.getBlockState().getValue(ControllerState.PROPERTY) == ControllerState.WORKING);
         instance.colors(EffectStudio.active(be) ? List.of() : be.getEffectFluids());
+        FxStats.machine();
         instance.tick(ctx, working);
         instance.render(ctx);
         ctx.portColor = -1;

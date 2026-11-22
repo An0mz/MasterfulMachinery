@@ -338,6 +338,7 @@ public final class EmitterLayer implements FxLayer {
             if (count == 0) {
                 return;
             }
+            FxStats.particles += count;
             if (renderType == null) {
                 renderType = smooth ? FxRenderTypes.soft(texture, additive) : additive ? RenderType.eyes(texture) : RenderType.entityTranslucent(texture);
             }

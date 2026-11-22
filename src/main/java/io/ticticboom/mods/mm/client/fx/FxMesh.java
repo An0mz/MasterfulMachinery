@@ -52,6 +52,7 @@ public final class FxMesh {
 
     public static void vertex(VertexConsumer vc, PoseStack.Pose pose, double x, double y, double z, float u, float v,
                               int color, int light, double nx, double ny, double nz) {
+        FxStats.vertices++;
         vc.addVertex(pose, (float) x, (float) y, (float) z)
                 .setColor(color)
                 .setUv(u, v)
