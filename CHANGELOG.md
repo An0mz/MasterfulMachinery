@@ -57,6 +57,8 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 - KubeJS structures losing `portsAnywhere` when reloaded.
 - Port screens drawing their background twice.
 - The game crashing when the structure preview showed a structure whose controller doesn't exist.
+- Macaw's Bridges blocks losing their direction in captured structures. Recapture structures that
+  use them.
 
 ## [1.21.1-0.18.1] - 2026-11-16
 
