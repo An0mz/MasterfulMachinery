@@ -2990,7 +2990,14 @@ public class EffectStudioScreen extends Screen {
             double cz = Math.floor(p[2] - origin.getZ()) + 0.5;
             Set<String> own = pointFaces(seep, j);
             Set<String> chosen = own != null ? own : layerFaces;
+            int[][] steps = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+            var world = view.previewWorld();
             for (int i = 0; i < 4; i++) {
+                BlockPos beside = new BlockPos((int) Math.floor(cx) + steps[i][0], (int) Math.floor(cy), (int) Math.floor(cz) + steps[i][1]);
+                var state = world.getBlockState(beside);
+                if (!state.isAir() && !state.getCollisionShape(world, beside).isEmpty()) {
+                    continue;
+                }
                 double[] s = view.project(cx + offsets[i][0], cy, cz + offsets[i][1]);
                 if (s == null || !viewport.contains((int) s[0], (int) s[1])) {
                     continue;
