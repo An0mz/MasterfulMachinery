@@ -47,11 +47,13 @@ public class BotaniaManaPortBlock extends Block implements IPortBlock, EntityBlo
 
     @Nullable
     @Override
-    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level p_153212_, BlockState p_153213_, BlockEntityType<T> p_153214_) {
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
+        if (level.isClientSide()) {
+            return null;
+        }
         return (a, b, c, d) -> {
             if (d instanceof BotaniaManaPortBlockEntity bm) {
-                // tick() drove Botania mana-network registration and is stubbed out; see
-                // BotaniaManaPortBlockEntity for what to restore.
+                bm.tick();
             }
         };
     }
