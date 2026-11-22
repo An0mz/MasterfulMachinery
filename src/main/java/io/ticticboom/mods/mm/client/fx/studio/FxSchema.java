@@ -30,7 +30,8 @@ final class FxSchema {
         LAYERS.put("emitter", join(new String[]{"at", "emit", "blend", "translucent"}, COLOR, new String[]{
                 "rate", "10", "max", "128", "life", "1, 1.5", "velocity", "0, 0, 0", "velocity_spread", "0, 0, 0",
                 "box", "0, 0, 0", "gravity", "0", "drag", "0", "size", "0.2, 0.2", "alpha", "1, 0", "spin", "0, 0",
-                "frames", "1", "collide", "false"}));
+                "frames", "1", "collide", "false", "smooth", "true", "fade_in", "0", "turbulence", "0", "size_spread", "0",
+                "size_curve", "linear"}));
         LAYERS.put("beam", join(new String[]{"from", "from", "to", "to", "links", "", "blend", "additive",
                 "texture", "", "color", "#ffffff", "port_color", "false", "glow", "true"}, new String[]{
                 "width", "0.15", "alpha", "1", "segments", "16", "arc", "0", "jitter", "0", "jitter_rate", "12",

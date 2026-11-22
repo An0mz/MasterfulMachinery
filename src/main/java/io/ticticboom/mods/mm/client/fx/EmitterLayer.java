@@ -36,6 +36,11 @@ public final class EmitterLayer implements FxLayer {
     private final boolean glow;
     private final boolean additive;
     private final boolean collide;
+    private final boolean smooth;
+    private final double fadeIn;
+    private final double turbulence;
+    private final double sizeSpread;
+    private final boolean easeOut;
 
     private EmitterLayer(JsonObject json) {
         texture = FxTexture.required(json, "emitter");
@@ -73,6 +78,15 @@ public final class EmitterLayer implements FxLayer {
         }
         additive = blend.equals("additive");
         collide = json.has("collide") && json.get("collide").getAsBoolean();
+        smooth = frames == 1 && (!json.has("smooth") || json.get("smooth").getAsBoolean());
+        fadeIn = FxNoise.clamp(number(json, "fade_in", 0));
+        turbulence = Math.max(0, number(json, "turbulence", 0));
+        sizeSpread = FxNoise.clamp(number(json, "size_spread", 0));
+        String curve = json.has("size_curve") ? json.get("size_curve").getAsString() : "linear";
+        if (!curve.equals("linear") && !curve.equals("ease_out")) {
+            throw new IllegalArgumentException("emitter 'size_curve' must be linear or ease_out");
+        }
+        easeOut = curve.equals("ease_out");
     }
 
     public static EmitterLayer parse(JsonObject json) {
@@ -162,6 +176,8 @@ public final class EmitterLayer implements FxLayer {
         private final boolean[] stuck = new boolean[max];
         private final boolean[] free = new boolean[max];
         private final int[] lights = new int[max];
+        private final double[] scale = new double[max];
+        private final long[] noise = new long[max];
         private final double baseVx;
         private final double baseVz;
         private final double spreadVx;
@@ -197,7 +213,8 @@ public final class EmitterLayer implements FxLayer {
                     + Math.sqrt(velocitySpread[0] * velocitySpread[0] + velocitySpread[1] * velocitySpread[1] + velocitySpread[2] * velocitySpread[2]);
             double fallen = 0.5 * Math.abs(gravity) * lifeMax * lifeMax;
             double boxReach = Math.max(Math.abs(box[0]), Math.max(Math.abs(box[1]), Math.abs(box[2])));
-            return Math.min(64, speed * lifeMax + fallen + boxReach + Math.max(sizeStart, sizeEnd));
+            double drift = 0.5 * turbulence * lifeMax * lifeMax;
+            return Math.min(64, speed * lifeMax + fallen + drift + boxReach + Math.max(sizeStart, sizeEnd) * (1 + sizeSpread));
         }
 
         private double signed(double range) {
@@ -225,6 +242,8 @@ public final class EmitterLayer implements FxLayer {
             roll[i] = shared.random.nextDouble() * Math.PI * 2;
             spin[i] = spinMin + (spinMax - spinMin) * shared.random.nextDouble();
             stuck[i] = false;
+            scale[i] = 1 + signed(sizeSpread);
+            noise[i] = shared.random.nextLong();
             boolean inside = blocked(ctx, x[i], y[i], z[i]);
             free[i] = collide && inside;
             lights[i] = glow || additive ? LightTexture.FULL_BRIGHT : ctx.light(x[i], y[i] + (inside ? 1 : 0), z[i]);
@@ -245,6 +264,8 @@ public final class EmitterLayer implements FxLayer {
             stuck[i] = stuck[last];
             free[i] = free[last];
             lights[i] = lights[last];
+            scale[i] = scale[last];
+            noise[i] = noise[last];
         }
 
         private boolean blocked(FxContext ctx, double px, double py, double pz) {
@@ -277,6 +298,12 @@ public final class EmitterLayer implements FxLayer {
                     continue;
                 }
                 vy[i] -= gravity * dt;
+                if (turbulence > 0) {
+                    double t = age[i] * 0.9;
+                    vx[i] += (FxNoise.value(t, noise[i]) - 0.5) * 2 * turbulence * dt;
+                    vz[i] += (FxNoise.value(t, noise[i] + 17) - 0.5) * 2 * turbulence * dt;
+                    vy[i] += (FxNoise.value(t, noise[i] + 31) - 0.5) * turbulence * dt;
+                }
                 vx[i] *= damp;
                 vy[i] *= damp;
                 vz[i] *= damp;
@@ -306,7 +333,7 @@ public final class EmitterLayer implements FxLayer {
                 return;
             }
             if (renderType == null) {
-                renderType = additive ? RenderType.eyes(texture) : RenderType.entityTranslucent(texture);
+                renderType = smooth ? FxRenderTypes.soft(texture, additive) : additive ? RenderType.eyes(texture) : RenderType.entityTranslucent(texture);
             }
             VertexConsumer vc = ctx.buffers.getBuffer(renderType);
             float frameHeight = 1f / frames;
@@ -318,11 +345,15 @@ public final class EmitterLayer implements FxLayer {
             }
             for (int i = 0; i < count; i++) {
                 double f = Math.min(1, age[i] / life[i]);
-                double size = (sizeStart + (sizeEnd - sizeStart) * f) * 0.5;
+                double g = easeOut ? 1 - (1 - f) * (1 - f) : f;
+                double size = (sizeStart + (sizeEnd - sizeStart) * g) * 0.5 * scale[i];
                 if (size <= 0) {
                     continue;
                 }
                 double alpha = (alphaStart + (alphaEnd - alphaStart) * f) * ctx.fade;
+                if (fadeIn > 0 && f < fadeIn) {
+                    alpha *= f / fadeIn;
+                }
                 int alphaByte = (int) (255 * FxNoise.clamp(alpha));
                 if (alphaByte < 2) {
                     continue;

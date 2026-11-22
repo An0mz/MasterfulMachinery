@@ -5,46 +5,50 @@
       "at": "spot",
       "texture": "kubejs:textures/fx/soft.png",
       "rate": {
-        "idle": 0.6,
-        "working": 7
+        "idle": 1,
+        "working": 12
       },
       "life": [
-        2.5,
-        4
+        2,
+        3.5
       ],
       "box": [
-        0.3,
+        0.25,
         0,
-        0.3
+        0.25
       ],
       "velocity": [
         0,
-        1.6,
+        1.5,
         0
       ],
       "velocity_spread": [
-        0.3,
-        0.3,
-        0.3
+        0.2,
+        0.25,
+        0.2
       ],
-      "drag": 0.6,
+      "drag": 0.7,
+      "turbulence": 0.9,
       "size": [
-        0.3,
-        2.0
+        0.25,
+        1.7
       ],
+      "size_spread": 0.3,
+      "size_curve": "ease_out",
       "color": [
         "#ffffff",
         "#c8d0d8"
       ],
       "alpha": [
-        0.6,
+        0.55,
         0
       ],
+      "fade_in": 0.1,
       "spin": [
         -40,
         40
       ],
-      "max": 40,
+      "max": 72,
       "name": "Steam"
     },
     {
