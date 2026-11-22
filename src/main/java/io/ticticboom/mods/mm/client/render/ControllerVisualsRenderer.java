@@ -171,7 +171,7 @@ public class ControllerVisualsRenderer implements BlockEntityRenderer<MachineCon
 
     @Override
     public int getViewDistance() {
-        return 96;
+        return Math.max(96, io.ticticboom.mods.mm.client.fx.FxSettings.viewDistance() + 16);
     }
 
     @Override

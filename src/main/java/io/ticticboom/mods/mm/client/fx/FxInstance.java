@@ -115,13 +115,6 @@ public final class FxInstance {
         return null;
     }
 
-    double radius() {
-        double rx = relativeBounds.getXsize() / 2;
-        double ry = relativeBounds.getYsize() / 2;
-        double rz = relativeBounds.getZsize() / 2;
-        return Math.sqrt(rx * rx + ry * ry + rz * rz);
-    }
-
     public boolean matches(StructureModel structure, Rotation rotation, List<EffectVisual> visuals) {
         return this.structure == structure && this.visuals == visuals && this.rotation == rotation && this.generation == FxManager.generation();
     }

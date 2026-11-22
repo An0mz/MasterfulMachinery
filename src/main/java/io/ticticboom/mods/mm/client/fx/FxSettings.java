@@ -43,6 +43,10 @@ public final class FxSettings {
         }
     }
 
+    public static int viewDistance() {
+        return (int) Math.ceil(distance);
+    }
+
     static int lod(double distance) {
         int lod = distance < near ? 0 : distance < far ? 1 : 2;
         return Math.max(lod, minLod);

@@ -116,12 +116,13 @@ public final class FxRenderer {
         ctx.origin = pos;
         ctx.time = (level.getGameTime() + (double) partialTick) / 20.0;
         ctx.distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (ctx.distance > FxSettings.distance + instance.radius()) {
+        if (ctx.distance > FxSettings.distance) {
+            ctx.level = null;
             return;
         }
         ctx.lod = FxSettings.lod(ctx.distance);
         ctx.pose = pose.last();
-        ctx.buffers = FxBuffers.BUFFERS;
+        ctx.buffers = level == Minecraft.getInstance().level ? FxBuffers.BUFFERS : buffers;
         var left = cam.getLeftVector();
         var up = cam.getUpVector();
         var look = cam.getLookVector();

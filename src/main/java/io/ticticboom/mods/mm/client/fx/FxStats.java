@@ -50,13 +50,11 @@ public final class FxStats {
         }
     }
 
-    private static final java.util.Map<String, Long> LAYERS = new java.util.TreeMap<>();
+    private static final java.util.Map<Class<?>, long[]> LAYERS = new java.util.IdentityHashMap<>();
 
     static void layer(Object state, int vertices) {
         if (phase == 2 && vertices > 0) {
-            Class<?> type = state.getClass();
-            String name = type.getEnclosingClass() == null ? type.getSimpleName() : type.getEnclosingClass().getSimpleName() + "." + type.getSimpleName();
-            LAYERS.merge(name, (long) vertices, Long::sum);
+            LAYERS.computeIfAbsent(state.getClass(), k -> new long[1])[0] += vertices;
         }
     }
 
@@ -91,6 +89,9 @@ public final class FxStats {
 
     @SubscribeEvent
     public static void onDebugText(CustomizeGuiOverlayEvent.DebugText event) {
+        if (avgMachines < 0.05) {
+            return;
+        }
         event.getLeft().add(String.format("MM effects: %.2f ms, %d quads, %d particles, %d machines",
                 avgMs, Math.round(avgQuads), Math.round(avgParticles), Math.round(avgMachines)));
     }
@@ -150,7 +151,9 @@ public final class FxStats {
                             String.format("%.1f", benchMachines / benchFrames),
                             benchFrames);
                     for (var entry : LAYERS.entrySet()) {
-                        Ref.LOG.info("MM FX BENCH layer {}: {} quads/frame", entry.getKey(), Math.round(entry.getValue() / 4.0 / benchFrames));
+                        Class<?> type = entry.getKey();
+                        String name = type.getEnclosingClass() == null ? type.getSimpleName() : type.getEnclosingClass().getSimpleName() + "." + type.getSimpleName();
+                        Ref.LOG.info("MM FX BENCH layer {}: {} quads/frame", name, Math.round(entry.getValue()[0] / 4.0 / benchFrames));
                     }
                     var options = mc.options;
                     options.framerateLimit().set(savedLimit);

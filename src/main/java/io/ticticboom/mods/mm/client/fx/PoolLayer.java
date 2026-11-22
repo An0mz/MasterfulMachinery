@@ -146,7 +146,8 @@ public final class PoolLayer implements FxLayer {
                 double vo = 0.5 + 0.12 * Math.sin(ph);
                 double[] cos = FxTrig.cos(POINTS);
                 double[] sin = FxTrig.sin(POINTS);
-                for (int i = 0; i < POINTS; i++) {
+                int step = ctx.lod == 0 ? 1 : 2;
+                for (int i = 0; i < POINTS; i += step) {
                     double a = i * Math.PI * 2 / POINTS;
                     double shape = 1 + 0.16 * Math.sin(2 * a + ph + 0.21 * ctx.time) + 0.11 * Math.sin(3 * a + ph * 2.3 - 0.13 * ctx.time)
                             + 0.07 * Math.sin(5 * a + ph * 3.1 + 0.33 * ctx.time) + 0.12 * (FxNoise.value(i * 0.7 + ph * 5, 21) - 0.5);
@@ -161,7 +162,6 @@ public final class PoolLayer implements FxLayer {
                     }
                 }
                 int light = glow ? LightTexture.FULL_BRIGHT : c.lightAt(c.landing() + 0.5);
-                int step = ctx.lod == 0 ? 1 : 2;
                 for (int k = 0; k < RINGS.length - 1; k++) {
                     for (int i = 0; i < POINTS; i += step) {
                         int j = (i + step) % POINTS;

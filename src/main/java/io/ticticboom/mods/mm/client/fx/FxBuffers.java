@@ -35,7 +35,9 @@ public final class FxBuffers {
     public static void onStage(RenderLevelStageEvent event) {
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES && used) {
             used = false;
+            long start = System.nanoTime();
             SOURCE.endBatch();
+            FxStats.nanos += System.nanoTime() - start;
         }
     }
 }
