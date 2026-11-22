@@ -6,13 +6,14 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.ArrayList;
 import java.util.List;
 
-public record FxDefinition(ResourceLocation id, double rise, double fall, double hold, double viewDistance, List<FxLayer> layers) {
+public record FxDefinition(ResourceLocation id, double rise, double fall, double hold, double viewDistance, long seed, List<FxLayer> layers) {
 
     public static FxDefinition parse(ResourceLocation id, JsonObject json) {
         double rise = json.has("rise") ? json.get("rise").getAsDouble() : 2.4;
         double fall = json.has("fall") ? json.get("fall").getAsDouble() : 3.6;
         double hold = json.has("hold") ? json.get("hold").getAsDouble() : 1.25;
         double viewDistance = json.has("view_distance") ? json.get("view_distance").getAsDouble() : 96;
+        long seed = json.has("seed") ? json.get("seed").getAsLong() : 0;
         var layers = new ArrayList<FxLayer>();
         if (json.has("layers")) {
             for (var element : json.getAsJsonArray("layers")) {
@@ -35,6 +36,6 @@ public record FxDefinition(ResourceLocation id, double rise, double fall, double
                 }
             }
         }
-        return new FxDefinition(id, rise, fall, hold, viewDistance, List.copyOf(layers));
+        return new FxDefinition(id, rise, fall, hold, viewDistance, seed, List.copyOf(layers));
     }
 }

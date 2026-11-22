@@ -67,7 +67,7 @@ public final class FxInstance {
                 continue;
             }
             var anchors = visual.resolve(structure.layout(), rotation);
-            var shared = new FxShared(anchors, seed + i * 31L, rotation);
+            var shared = new FxShared(anchors, seed + i * 31L + definition.seed() * 0x2545F4914F6CDD1DL, rotation);
             var states = new ArrayList<FxLayer.State>();
             var slots = new FxLayer.State[definition.layers().size()];
             for (int l = 0; l < slots.length; l++) {

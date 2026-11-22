@@ -527,6 +527,10 @@ public class EffectStudioScreen extends Screen {
                 addRenderableWidget(new Slider(px, y, names[i], id, values, i));
                 y += 22;
             }
+            addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.reroll"), b -> reroll(id))
+                    .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.reroll_tip")))
+                    .bounds(px, y, PANEL, 18).build());
+            y += 22;
             colorsY = y;
             for (int i = 0; i < COLORS.length; i++) {
                 String color = COLORS[i];
@@ -719,6 +723,17 @@ public class EffectStudioScreen extends Screen {
         if (touched) {
             rescale(id);
         }
+    }
+
+    private void reroll(ResourceLocation id) {
+        JsonObject fx = base(id);
+        if (fx == null) {
+            return;
+        }
+        remember();
+        fx.addProperty("seed", java.util.concurrent.ThreadLocalRandom.current().nextInt(1, 1_000_000));
+        rescale(id);
+        rebuildWidgets();
     }
 
     private void smallButtonTip(int x, int y, int w, Component text, String tipKey, Runnable action) {

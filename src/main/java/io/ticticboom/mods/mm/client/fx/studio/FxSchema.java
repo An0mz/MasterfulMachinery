@@ -4,7 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 final class FxSchema {
-    static final String[] EFFECT = {"rise", "2.4", "fall", "3.6", "hold", "1.25", "view_distance", "96"};
+    static final String[] EFFECT = {"rise", "2.4", "fall", "3.6", "hold", "1.25", "view_distance", "96", "seed", "0"};
 
     private static final String[] COLOR = {"texture", "", "color", "#ffffff", "port_color", "false", "glow", "false"};
 
