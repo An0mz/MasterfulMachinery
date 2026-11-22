@@ -147,6 +147,9 @@ public class EffectStudioScreen extends Screen {
     @Nullable
     private Handle linkTarget;
     private int linkFrom = -1;
+    @Nullable
+    private String pickingBlocks;
+    private int pickingFor = -1;
 
     private record Handle(String name, int index, double x, double y, double z, boolean height) {
     }
@@ -189,6 +192,9 @@ public class EffectStudioScreen extends Screen {
             if (handle() == null) {
                 handleName = null;
             }
+        }
+        if (pickingBlocks != null && (selectedId() == null || session.selected != pickingFor || !glowAnchors(base(selectedId())).contains(pickingBlocks))) {
+            pickingBlocks = null;
         }
         if (!session.collapsed) {
             buildInspector();
@@ -752,6 +758,7 @@ public class EffectStudioScreen extends Screen {
                 if (!arcs) {
                     smallButton(right - 14, ry, 14, Component.literal("+"), "add", () -> {
                         adding = adding != null && adding.equals(spot) ? null : spot;
+                        pickingBlocks = null;
                         linkFrom = -1;
                         handleName = null;
                         placing = null;
@@ -813,12 +820,127 @@ public class EffectStudioScreen extends Screen {
                 }
             }
         }
+        for (String glow : glowAnchors(fx)) {
+            JsonElement anchorValue = anchors.get(glow);
+            boolean keyed = anchorValue != null && anchorValue.isJsonPrimitive() && anchorValue.getAsJsonPrimitive().isString();
+            boolean listed = anchorValue != null && anchorValue.isJsonObject() && anchorValue.getAsJsonObject().has("blocks");
+            if (!keyed && !listed) {
+                continue;
+            }
+            int rowIndex = rows.size();
+            rows.add(new Runnable[]{() -> {
+                int ry = rowY(rowIndex, top);
+                JsonElement value = anchors.get(glow);
+                String status = value.isJsonPrimitive()
+                        ? Component.translatable("gui.mm.effect_studio.blocks.all", value.getAsString()).getString()
+                        : Component.translatable("gui.mm.effect_studio.blocks.count", blockList(value).size()).getString();
+                rowLabels.add(new Object[]{px, ry + 3, font.plainSubstrByWidth(pretty(glow) + ": " + status, PANEL - 40), 0xFFFFE080});
+                boolean picking = glow.equals(pickingBlocks);
+                smallButtonTip(right - 36, ry, 36, Component.translatable(picking ? "gui.mm.effect_studio.blocks.done" : "gui.mm.effect_studio.blocks.pick"),
+                        "blocks.pick_tip", () -> {
+                            if (picking) {
+                                pickingBlocks = null;
+                            } else {
+                                startPickingBlocks(glow);
+                            }
+                            rebuildWidgets();
+                        });
+            }});
+        }
         int visible = Math.max(1, (height - 8 - top) / 16);
         spotScrollMax = Math.max(0, rows.size() - visible);
         spotScroll = Math.max(0, Math.min(spotScroll, spotScrollMax));
         for (int r = spotScroll; r < rows.size() && r < spotScroll + visible; r++) {
             rows.get(r)[0].run();
         }
+    }
+
+    private static Set<String> glowAnchors(@Nullable JsonObject fx) {
+        var result = new java.util.LinkedHashSet<String>();
+        if (fx == null || !fx.has("layers")) {
+            return result;
+        }
+        for (JsonElement element : fx.getAsJsonArray("layers")) {
+            JsonObject layer = element.getAsJsonObject();
+            boolean halo = layer.has("mode") && "halo".equals(layer.get("mode").getAsString());
+            if ("glow".equals(layer.has("type") ? layer.get("type").getAsString() : "") && !halo
+                    && !(layer.has("off") && layer.get("off").getAsBoolean())) {
+                result.add(layer.has("at") ? layer.get("at").getAsString() : "glow");
+            }
+        }
+        return result;
+    }
+
+    private static List<int[]> blockList(@Nullable JsonElement value) {
+        var result = new ArrayList<int[]>();
+        if (value == null || !value.isJsonObject() || !value.getAsJsonObject().has("blocks")) {
+            return result;
+        }
+        for (JsonElement entry : value.getAsJsonObject().getAsJsonArray("blocks")) {
+            JsonArray b = entry.getAsJsonArray();
+            result.add(new int[]{b.get(0).getAsInt(), b.get(1).getAsInt(), b.get(2).getAsInt()});
+        }
+        return result;
+    }
+
+    private static JsonObject blockJson(List<int[]> blocks) {
+        var list = new JsonArray();
+        for (int[] b : blocks) {
+            var array = new JsonArray();
+            array.add(b[0]);
+            array.add(b[1]);
+            array.add(b[2]);
+            list.add(array);
+        }
+        var holder = new JsonObject();
+        holder.add("blocks", list);
+        return holder;
+    }
+
+    private void startPickingBlocks(String name) {
+        JsonObject anchors = selectedAnchors();
+        JsonElement value = anchors.get(name);
+        if (value != null && value.isJsonPrimitive()) {
+            remember();
+            var origin = model.layout().getCharGrid().getControllerPos();
+            var blocks = new ArrayList<int[]>();
+            for (PositionedLayoutPiece piece : model.layout().getPositionedPieces()) {
+                if (value.getAsString().equals(piece.piece().valueId())) {
+                    blocks.add(new int[]{piece.pos().getX() + origin.getX(), piece.pos().getY() + origin.getY(), piece.pos().getZ() + origin.getZ()});
+                }
+            }
+            anchors.add(name, blockJson(blocks));
+            session.dirty = true;
+        }
+        pickingBlocks = name;
+        pickingFor = session.selected;
+        placing = null;
+        adding = null;
+        linkFrom = -1;
+        handleName = null;
+        steps.clear();
+    }
+
+    private void toggleBlock(BlockPos pos) {
+        if (pickingBlocks == null || selectedId() == null) {
+            pickingBlocks = null;
+            return;
+        }
+        JsonObject anchors = selectedAnchors();
+        if (!anchors.has(pickingBlocks) || !anchors.get(pickingBlocks).isJsonObject()) {
+            pickingBlocks = null;
+            return;
+        }
+        var origin = model.layout().getCharGrid().getControllerPos();
+        int[] cell = {pos.getX() + origin.getX(), pos.getY() + origin.getY(), pos.getZ() + origin.getZ()};
+        List<int[]> blocks = blockList(anchors.get(pickingBlocks));
+        remember();
+        if (!blocks.removeIf(b -> b[0] == cell[0] && b[1] == cell[1] && b[2] == cell[2])) {
+            blocks.add(cell);
+        }
+        anchors.add(pickingBlocks, blockJson(blocks));
+        session.dirty = true;
+        rebuildWidgets();
     }
 
     private int rowY(int row, int top) {
@@ -845,6 +967,7 @@ public class EffectStudioScreen extends Screen {
         }
         adding = null;
         linkFrom = -1;
+        pickingBlocks = null;
         placing = null;
         held = null;
         steps.clear();
@@ -1062,6 +1185,7 @@ public class EffectStudioScreen extends Screen {
     }
 
     private void startLinking(String name) {
+        pickingBlocks = null;
         int count = pointsOf(selectedAnchors().get(name)).size();
         adding = name;
         linkFrom = name.equals(handleName) && handleIndex < count ? handleIndex : count - 1;
@@ -1212,6 +1336,7 @@ public class EffectStudioScreen extends Screen {
         held = null;
         steps.clear();
         handleName = null;
+        pickingBlocks = null;
         spotScroll = 0;
         rebuildWidgets();
         setFocused(null);
@@ -1281,7 +1406,7 @@ public class EffectStudioScreen extends Screen {
 
     @Nullable
     private Handle handleAt(double mouseX, double mouseY) {
-        if (placing != null || adding != null) {
+        if (placing != null || adding != null || pickingBlocks != null) {
             return null;
         }
         return handleAt(mouseX, mouseY, null);
@@ -1544,6 +1669,7 @@ public class EffectStudioScreen extends Screen {
         placing = preset;
         placingStarts++;
         adding = null;
+        pickingBlocks = null;
         held = null;
         handleName = null;
         firstHit = null;
@@ -1637,6 +1763,13 @@ public class EffectStudioScreen extends Screen {
                     heights.add(value.getAsDouble() - origin.getY());
                 } else if (value.isJsonPrimitive() && value.getAsString().equals(key)) {
                     keyed = i;
+                } else if (value.isJsonObject() && hit != null) {
+                    BlockPos clicked = hit.getBlockPos();
+                    for (int[] b : blockList(value)) {
+                        if (b[0] - origin.getX() == clicked.getX() && b[1] - origin.getY() == clicked.getY() && b[2] - origin.getZ() == clicked.getZ()) {
+                            keyed = i;
+                        }
+                    }
                 } else if (value.isJsonArray()) {
                     JsonArray list = value.getAsJsonArray();
                     boolean single = list.size() == 3 && list.get(0).isJsonPrimitive();
@@ -2163,8 +2296,23 @@ public class EffectStudioScreen extends Screen {
         vc.addVertex(last, (float) x2, (float) y2, (float) z2).setColor(color).setNormal(last, nx, ny, nz);
     }
 
+    private void renderPickedBlocks(PoseStack pose, MultiBufferSource buffers) {
+        if (pickingBlocks == null || selectedId() == null) {
+            return;
+        }
+        var origin = model.layout().getCharGrid().getControllerPos();
+        VertexConsumer lines = buffers.getBuffer(RenderType.lines());
+        for (int[] b : blockList(selectedAnchors().get(pickingBlocks))) {
+            double x = b[0] - origin.getX();
+            double y = b[1] - origin.getY();
+            double z = b[2] - origin.getZ();
+            LevelRenderer.renderLineBox(pose, lines, new AABB(x - 0.02, y - 0.02, z - 0.02, x + 1.02, y + 1.02, z + 1.02), 1f, 0.85f, 0.3f, 1f);
+        }
+    }
+
     private void renderEffects(PoseStack pose, MultiBufferSource buffers, Matrix4f modelView) {
         renderGhost(pose, buffers);
+        renderPickedBlocks(pose, buffers);
         renderSpots(pose, buffers);
         var be = EffectStudio.machine(session);
         var visuals = be == null ? null : EffectStudio.effects(be);
@@ -2212,6 +2360,8 @@ public class EffectStudioScreen extends Screen {
         if (step != null) {
             String kind = step[0].equals(held) ? "held" : underside ? "underside" : step[1];
             hint = Component.translatable("gui.mm.effect_studio.click." + kind, presetLabel(placing), step[0]);
+        } else if (pickingBlocks != null) {
+            hint = Component.translatable("gui.mm.effect_studio.click.pick", pretty(pickingBlocks));
         } else if (adding != null && linking()) {
             hint = Component.translatable("gui.mm.effect_studio.click.link", linkFrom + 1);
         } else if (adding != null) {
@@ -2223,7 +2373,7 @@ public class EffectStudioScreen extends Screen {
         }
         boolean wrong = underside && hover != null && hover.getDirection() != Direction.DOWN;
         gfx.drawCenteredString(font, hint, viewport.x() + viewport.w() / 2, viewport.y() + 4,
-                wrong ? 0xFF5555 : step != null || adding != null ? 0xFFFF55 : 0xA0A0A0);
+                wrong ? 0xFF5555 : step != null || adding != null || pickingBlocks != null ? 0xFFFF55 : 0xA0A0A0);
         if (!spots.isEmpty() && view != null) {
             var origin = model.layout().getCharGrid().getControllerPos();
             JsonObject labelled = selectedAnchors();
@@ -2562,6 +2712,10 @@ public class EffectStudioScreen extends Screen {
                 if (hit != null) {
                     click(hit);
                 }
+            } else if (pickingBlocks != null) {
+                if (hit != null) {
+                    toggleBlock(hit.getBlockPos());
+                }
             } else if (adding != null) {
                 Handle target = linking() ? handleAt(mouseX, mouseY, adding) : null;
                 if (target != null) {
@@ -2636,6 +2790,11 @@ public class EffectStudioScreen extends Screen {
         }
         if (keyCode == GLFW.GLFW_KEY_TAB) {
             togglePanels();
+            return true;
+        }
+        if ((keyCode == 256 || keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) && pickingBlocks != null) {
+            pickingBlocks = null;
+            rebuildWidgets();
             return true;
         }
         if (keyCode == 256 && (placing != null || adding != null)) {

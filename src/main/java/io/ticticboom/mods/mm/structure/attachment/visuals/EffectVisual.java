@@ -19,9 +19,12 @@ import java.util.Map;
 
 @Getter
 public class EffectVisual {
-    public enum AnchorKind { POINTS, HEIGHT, AREA }
+    public enum AnchorKind { POINTS, HEIGHT, AREA, BLOCKS }
 
-    public record Anchor(AnchorKind kind, double[][] points, double height, @Nullable VisualRegion area) {
+    public record Anchor(AnchorKind kind, double[][] points, double height, @Nullable VisualRegion area, @Nullable int[][] blocks) {
+        Anchor(AnchorKind kind, double[][] points, double height, @Nullable VisualRegion area) {
+            this(kind, points, height, area, null);
+        }
     }
 
     public record Resolved(Map<String, double[]> points, Map<String, Double> heights, Map<String, long[]> areas, @Nullable AABB bounds) {
@@ -96,6 +99,22 @@ public class EffectVisual {
             }
             return new Anchor(AnchorKind.POINTS, points, 0, null);
         }
+        if (el.isJsonObject() && el.getAsJsonObject().has("blocks")) {
+            JsonElement list = el.getAsJsonObject().get("blocks");
+            if (!list.isJsonArray()) {
+                throw new IllegalArgumentException("effect anchor '" + name + "' blocks must be a list of [x, y, z]");
+            }
+            int[][] blocks = new int[list.getAsJsonArray().size()][];
+            for (int i = 0; i < blocks.length; i++) {
+                JsonElement entry = list.getAsJsonArray().get(i);
+                if (!entry.isJsonArray() || entry.getAsJsonArray().size() != 3) {
+                    throw new IllegalArgumentException("effect anchor '" + name + "' blocks must be a list of [x, y, z]");
+                }
+                JsonArray b = entry.getAsJsonArray();
+                blocks[i] = new int[]{b.get(0).getAsInt(), b.get(1).getAsInt(), b.get(2).getAsInt()};
+            }
+            return new Anchor(AnchorKind.BLOCKS, null, 0, null, blocks);
+        }
         if (el.isJsonObject() && el.getAsJsonObject().has("from")) {
             return new Anchor(AnchorKind.AREA, null, 0, VisualRegion.parse(el.getAsJsonObject()));
         }
@@ -158,6 +177,25 @@ public class EffectVisual {
                     heights.put(entry.getKey(), y);
                     minY = Math.min(minY, y);
                     maxY = Math.max(maxY, y);
+                }
+                case BLOCKS -> {
+                    long[] cells = new long[anchor.blocks().length];
+                    double[] center = new double[3];
+                    for (int i = 0; i < cells.length; i++) {
+                        int[] b = anchor.blocks()[i];
+                        rotatePoint(new double[]{b[0] + 0.5, b[1] + 0.5, b[2] + 0.5}, origin, rotation, center, 0);
+                        int x = (int) Math.floor(center[0]);
+                        int y = (int) Math.floor(center[1]);
+                        int z = (int) Math.floor(center[2]);
+                        cells[i] = BlockPos.asLong(x, y, z);
+                        minX = Math.min(minX, x);
+                        maxX = Math.max(maxX, x + 1);
+                        minY = Math.min(minY, y);
+                        maxY = Math.max(maxY, y + 1);
+                        minZ = Math.min(minZ, z);
+                        maxZ = Math.max(maxZ, z + 1);
+                    }
+                    areas.put(entry.getKey(), cells);
                 }
                 case AREA -> {
                     long[] cells = anchor.area().relativeCells(layout, rotation);
@@ -225,6 +263,19 @@ public class EffectVisual {
                         anchor.area().writeJson(box);
                         anchorJson.add(entry.getKey(), box);
                     }
+                }
+                case BLOCKS -> {
+                    var list = new JsonArray();
+                    for (int[] b : anchor.blocks()) {
+                        var array = new JsonArray();
+                        array.add(b[0]);
+                        array.add(b[1]);
+                        array.add(b[2]);
+                        list.add(array);
+                    }
+                    var holder = new JsonObject();
+                    holder.add("blocks", list);
+                    anchorJson.add(entry.getKey(), holder);
                 }
                 case POINTS -> {
                     var list = new JsonArray();
