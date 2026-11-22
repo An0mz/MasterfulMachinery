@@ -301,6 +301,8 @@ public final class MMConfigScreen extends Screen {
         if (option.kind() == MMConfigOptions.Kind.BOOLEAN) {
             String current = page == Page.SERVER ? serverValues.get(option.key()) : option.current();
             update(option, String.valueOf(!Boolean.parseBoolean(current)));
+        } else if (option.kind() == MMConfigOptions.Kind.CHOICE) {
+            update(option, option.next(option.current()));
         } else {
             editing = option;
             int row = options().indexOf(option);

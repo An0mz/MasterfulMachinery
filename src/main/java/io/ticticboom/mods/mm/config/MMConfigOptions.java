@@ -9,7 +9,7 @@ import java.util.Map;
 
 public final class MMConfigOptions {
     public enum Scope { SERVER, CLIENT }
-    public enum Kind { BOOLEAN, INTEGER, COLOR }
+    public enum Kind { BOOLEAN, INTEGER, COLOR, CHOICE }
 
     public record Option(String key, String label, Scope scope, Kind kind, int min, int max,
                          ModConfigSpec.ConfigValue<?> value) {
@@ -24,10 +24,26 @@ public final class MMConfigOptions {
                         yield parsed >= min && parsed <= max;
                     }
                     case COLOR -> ColorUtil.parse(text) != null;
+                    case CHOICE -> choice(text) != null;
                 };
             } catch (NumberFormatException e) {
                 return false;
             }
+        }
+
+        private Enum<?> choice(String text) {
+            if (!(value.get() instanceof Enum<?> current)) return null;
+            for (Enum<?> constant : current.getDeclaringClass().getEnumConstants()) {
+                if (constant.name().equalsIgnoreCase(text)) return constant;
+            }
+            return null;
+        }
+
+        public String next(String text) {
+            if (!(value.get() instanceof Enum<?> current)) return text;
+            Enum<?>[] all = current.getDeclaringClass().getEnumConstants();
+            Enum<?> now = choice(text);
+            return all[((now == null ? -1 : now.ordinal()) + 1) % all.length].name();
         }
 
         public boolean set(String text) {
@@ -45,6 +61,11 @@ public final class MMConfigOptions {
                         @SuppressWarnings("unchecked") ModConfigSpec.ConfigValue<String> color =
                                 (ModConfigSpec.ConfigValue<String>) value;
                         color.set(text.startsWith("#") ? text : "#" + text);
+                    }
+                    case CHOICE -> {
+                        @SuppressWarnings("unchecked") ModConfigSpec.ConfigValue<Object> choice =
+                                (ModConfigSpec.ConfigValue<Object>) value;
+                        choice.set(choice(text));
                     }
                 }
                 value.save();
@@ -87,7 +108,11 @@ public final class MMConfigOptions {
             bool("controller.workingEffects", "Working sounds and particles", Scope.CLIENT, C.workingEffects),
             bool("controller.machineEffects", "Machine effects", Scope.CLIENT, C.machineEffects),
             bool("controller.bigScreen", "Large controller screen", Scope.CLIENT, C.bigControllerScreen),
-            bool("ports.statusLight", "Port status light", Scope.CLIENT, C.portStatusLight)
+            bool("ports.statusLight", "Port status light", Scope.CLIENT, C.portStatusLight),
+            new Option("effects.quality", "Effect quality", Scope.CLIENT, Kind.CHOICE, 0, 0, C.effectQuality),
+            integer("effects.viewDistance", "Effect view distance", Scope.CLIENT, C.effectDistance, 8, 256),
+            integer("effects.particleAmount", "Effect particles (%)", Scope.CLIENT, C.effectParticles, 0, 200),
+            integer("effects.maxParticles", "Most effect particles", Scope.CLIENT, C.effectMaxParticles, 0, 20000)
     );
 
     private static final Map<String, Option> SERVER_BY_KEY = byKey(SERVER);

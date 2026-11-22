@@ -42,9 +42,9 @@ public class MMClientConfig {
         builder.pop();
 
         builder.push("effects");
-        effectQuality = builder.comment("Detail of machine effects. HIGH keeps full detail up close, MEDIUM simplifies sooner,",
-                        "LOW always draws the simple version. Lower is faster.")
-                .defineEnum("quality", EffectQuality.HIGH);
+        effectQuality = builder.comment("Detail of machine effects. HIGH keeps full detail within 24 blocks, MEDIUM within 12,",
+                        "LOW always draws the simple version. Lower is faster. A key binding can cycle this in game.")
+                .defineEnum("quality", EffectQuality.MEDIUM);
         effectDistance = builder.comment("How far away, in blocks, machine effects are drawn. Lower is faster.")
                 .defineInRange("viewDistance", 64, 8, 256);
         effectParticles = builder.comment("Amount of effect particles such as smoke, steam and sparks, in percent. Lower is faster.")
