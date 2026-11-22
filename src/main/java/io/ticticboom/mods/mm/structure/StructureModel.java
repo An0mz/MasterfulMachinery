@@ -103,11 +103,14 @@ public class StructureModel {
         var res = new ArrayList<GuiBlockRenderer>();
         for (ResourceLocation id : ids) {
             Block controllerBlock = MMControllerRegistry.getControllerBlock(id);
+            if (controllerBlock == null) {
+                continue;
+            }
             GuiBlockRenderer gbr = new GuiBlockRenderer(controllerBlock, List.of());
             gbr.setupAt(pos);
             res.add(gbr);
         }
-        return new PositionedCyclingBlockRenderer(res, pos);
+        return res.isEmpty() ? null : new PositionedCyclingBlockRenderer(res, pos);
     }
 
     public static StructureModel parse(JsonObject json, ResourceLocation structureId) {
@@ -287,7 +290,9 @@ public class StructureModel {
         var controllerList = new ArrayList<ItemStack>();
         for (ResourceLocation controller : controllerIds.getIds()) {
             Block controllerBlock = MMControllerRegistry.getControllerBlock(controller);
-            assert controllerBlock != null;
+            if (controllerBlock == null) {
+                continue;
+            }
             controllerList.add(controllerBlock.asItem().getDefaultInstance());
         }
         countedPartItems.add(new GuiCountedItemStack(1, controllerList, Component.translatable("gui.mm.structure.controller").withStyle(ChatFormatting.BOLD, ChatFormatting.GOLD), "C"));
