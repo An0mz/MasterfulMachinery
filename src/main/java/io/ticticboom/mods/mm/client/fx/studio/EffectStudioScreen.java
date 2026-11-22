@@ -1892,7 +1892,7 @@ public class EffectStudioScreen extends Screen {
         }
         JsonElement listed = layer.get("skip");
         for (JsonElement e : listed.isJsonArray() ? listed.getAsJsonArray().asList() : List.of(listed)) {
-            if (e.isJsonPrimitive() && e.getAsInt() == index) {
+            if (e.isJsonPrimitive() && e.getAsJsonPrimitive().isNumber() && e.getAsInt() == index) {
                 return true;
             }
         }
@@ -1912,7 +1912,7 @@ public class EffectStudioScreen extends Screen {
         if (layer.has("skip")) {
             JsonElement listed = layer.get("skip");
             for (JsonElement e : listed.isJsonArray() ? listed.getAsJsonArray().asList() : List.of(listed)) {
-                if (!(e.isJsonPrimitive() && e.getAsInt() == point)) {
+                if (e.isJsonPrimitive() && e.getAsJsonPrimitive().isNumber() && e.getAsInt() != point) {
                     next.add(e);
                 }
             }
@@ -1944,6 +1944,9 @@ public class EffectStudioScreen extends Screen {
             JsonElement listed = layer.get("skip");
             var next = new JsonArray();
             for (JsonElement e : listed.isJsonArray() ? listed.getAsJsonArray().asList() : List.of(listed)) {
+                if (!e.isJsonPrimitive() || !e.getAsJsonPrimitive().isNumber()) {
+                    continue;
+                }
                 int v = e.getAsInt();
                 if (v != index) {
                     next.add(v > index ? v - 1 : v);
@@ -2553,7 +2556,7 @@ public class EffectStudioScreen extends Screen {
                     double working = factor(values[6 + c]);
                     JsonElement raw = layer.get(key);
                     boolean numeric = raw.isJsonPrimitive() && raw.getAsJsonPrimitive().isNumber();
-                    if (splits(type, key) && (numeric || raw.isJsonObject()) && (idle != working || raw.isJsonObject())) {
+                    if (splits(type, key) && (numeric || raw.isJsonObject()) && (idle != 1 || working != 1 || raw.isJsonObject())) {
                         double rawIdle = raw.isJsonObject() ? (raw.getAsJsonObject().has("idle") ? raw.getAsJsonObject().get("idle").getAsDouble() : Double.NaN) : raw.getAsDouble();
                         double rawWorking = raw.isJsonObject() ? (raw.getAsJsonObject().has("working") ? raw.getAsJsonObject().get("working").getAsDouble() : Double.NaN) : raw.getAsDouble();
                         var split = new JsonObject();

@@ -121,7 +121,7 @@ public final class BeamLayer implements FxLayer {
                 }
                 int ia = links[k] * 3;
                 int ib = links[k + 1] * 3;
-                beams[i] = new Beam(a[ia], a[ia + 1], a[ia + 2], b[ib], b[ib + 1], b[ib + 2], shared.seed() + i * 977L);
+                beams[i] = new Beam(a[ia], a[ia + 1], a[ia + 2], b[ib], b[ib + 1], b[ib + 2], shared.seed() + (k / 2) * 977L);
                 i++;
             }
             return new Beams(shared, beams);

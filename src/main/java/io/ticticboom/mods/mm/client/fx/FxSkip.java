@@ -14,6 +14,9 @@ final class FxSkip {
             return NONE;
         }
         JsonElement value = json.get("skip");
+        if (value.isJsonNull()) {
+            return NONE;
+        }
         if (value.isJsonPrimitive() && value.getAsJsonPrimitive().isNumber()) {
             return new int[]{value.getAsInt()};
         }
@@ -37,7 +40,7 @@ final class FxSkip {
     }
 
     static FxColumn[] keep(FxColumn[] columns, int[] skip) {
-        if (skip.length == 0) {
+        if (columns == null || skip.length == 0) {
             return columns;
         }
         int count = 0;

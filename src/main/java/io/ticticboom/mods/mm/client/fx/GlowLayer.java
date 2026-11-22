@@ -94,10 +94,7 @@ public final class GlowLayer implements FxLayer {
     public State create(FxShared shared) {
         if (halo) {
             double[] points = shared.points(at);
-            if (points != null) {
-                points = FxSkip.keep(points, skip);
-            }
-            if (points == null || points.length < 3) {
+            if (points == null || points.length < 3 || FxSkip.keep(points, skip).length < 3) {
                 FxLog.warnOnce("Glow layer: halo mode needs a non-empty point anchor named '{}'", at);
                 return null;
             }
@@ -280,6 +277,9 @@ public final class GlowLayer implements FxLayer {
             }
             VertexConsumer vc = null;
             for (int p = 0; p + 2 < points.length; p += 3) {
+                if (skip.length > 0 && FxSkip.has(skip, p / 3)) {
+                    continue;
+                }
                 double phase = FxNoise.hash(p, seed) * Math.PI * 2;
                 int a = strength(ctx, phase, seed + p);
                 if (a < 2) {
