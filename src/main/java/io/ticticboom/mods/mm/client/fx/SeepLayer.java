@@ -33,6 +33,7 @@ public final class SeepLayer implements FxLayer {
     private final boolean stains;
     private final boolean dripPatch;
     private final int faceMask;
+    private final int[] pointMasks;
     private final int streams;
 
     private SeepLayer(JsonObject json) {
@@ -58,25 +59,37 @@ public final class SeepLayer implements FxLayer {
             throw new IllegalArgumentException("seep 'streams' must be a number from 1 to 4");
         }
         streams = Math.max(1, Math.min(4, json.has("streams") ? json.get("streams").getAsInt() : 1));
-        if (json.has("faces")) {
-            var listed = new JsonArray();
-            if (json.get("faces").isJsonArray()) {
-                listed = json.getAsJsonArray("faces");
-            } else {
-                listed.add(json.get("faces"));
+        faceMask = json.has("faces") ? maskOf(json.get("faces")) : -1;
+        if (json.has("point_faces")) {
+            if (!json.get("point_faces").isJsonArray()) {
+                throw new IllegalArgumentException("seep 'point_faces' must be a list with one entry per drip point");
             }
-            int mask = 0;
-            for (var element : listed) {
-                Direction dir = element.isJsonPrimitive() ? Direction.byName(element.getAsString().toLowerCase(java.util.Locale.ROOT)) : null;
-                if (dir == null || dir.getAxis() == Direction.Axis.Y) {
-                    throw new IllegalArgumentException("seep 'faces' must list north, east, south or west");
-                }
-                mask |= 1 << dir.get2DDataValue();
+            JsonArray list = json.getAsJsonArray("point_faces");
+            pointMasks = new int[list.size()];
+            for (int i = 0; i < list.size(); i++) {
+                pointMasks[i] = list.get(i).isJsonNull() ? -1 : maskOf(list.get(i));
             }
-            faceMask = mask;
         } else {
-            faceMask = -1;
+            pointMasks = new int[0];
         }
+    }
+
+    private static int maskOf(com.google.gson.JsonElement value) {
+        var listed = new JsonArray();
+        if (value.isJsonArray()) {
+            listed = value.getAsJsonArray();
+        } else {
+            listed.add(value);
+        }
+        int mask = 0;
+        for (var element : listed) {
+            Direction dir = element.isJsonPrimitive() ? Direction.byName(element.getAsString().toLowerCase(java.util.Locale.ROOT)) : null;
+            if (dir == null || dir.getAxis() == Direction.Axis.Y) {
+                throw new IllegalArgumentException("seep 'faces' must list north, east, south or west");
+            }
+            mask |= 1 << dir.get2DDataValue();
+        }
+        return mask;
     }
 
     private static Direction direction(int index) {
@@ -97,13 +110,13 @@ public final class SeepLayer implements FxLayer {
         return 0;
     }
 
-    private int rotatedMask(Rotation rotation) {
-        if (faceMask < 0) {
+    private static int rotatedMask(int faces, Rotation rotation) {
+        if (faces < 0) {
             return -1;
         }
         int mask = 0;
         for (Direction dir : Direction.Plane.HORIZONTAL) {
-            if ((faceMask & (1 << dir.get2DDataValue())) != 0) {
+            if ((faces & (1 << dir.get2DDataValue())) != 0) {
                 Direction turned = rotation.rotate(dir);
                 mask |= 1 << index(turned.getStepX(), turned.getStepZ());
             }
@@ -175,7 +188,12 @@ public final class SeepLayer implements FxLayer {
                 }
             }
         }
-        return new Seeps(columns, faces, rotatedMask(shared.rotation), toWorld);
+        int[] chosen = new int[columns.length];
+        for (int i = 0; i < columns.length; i++) {
+            int own = i < pointMasks.length ? pointMasks[i] : -1;
+            chosen[i] = rotatedMask(own >= 0 ? own : faceMask, shared.rotation);
+        }
+        return new Seeps(columns, faces, chosen, toWorld);
     }
 
     private int color(int tint, int index, double a) {
@@ -262,12 +280,12 @@ public final class SeepLayer implements FxLayer {
         private final FxColumn[] columns;
         private final Face[][] faces;
         private final int[] lastMask;
-        private final int chosen;
+        private final int[] chosen;
         private final int[] toWorld;
         private int tint = -1;
         private RenderType renderType;
 
-        Seeps(FxColumn[] columns, Face[][] faces, int chosen, int[] toWorld) {
+        Seeps(FxColumn[] columns, Face[][] faces, int[] chosen, int[] toWorld) {
             this.columns = columns;
             this.faces = faces;
             this.chosen = chosen;
@@ -306,12 +324,12 @@ public final class SeepLayer implements FxLayer {
                 }
                 if (mask != lastMask[i]) {
                     lastMask[i] = mask;
-                    pick(list, mask);
+                    pick(list, mask, chosen[i]);
                 }
             }
         }
 
-        private void pick(Face[] list, int mask) {
+        private void pick(Face[] list, int mask, int chosen) {
             if (chosen >= 0) {
                 for (int d = 0; d < list.length; d++) {
                     list[d].rivulet = list[d].exposed && (chosen & (1 << (d % 4))) != 0;
