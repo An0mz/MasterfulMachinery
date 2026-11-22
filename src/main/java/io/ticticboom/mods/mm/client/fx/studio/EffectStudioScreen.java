@@ -521,10 +521,26 @@ public class EffectStudioScreen extends Screen {
                 minecraft.setScreen(new EffectLayersScreen(session, this, id));
             }).bounds(px, y, PANEL, 18).build());
         } else {
-            double[] values = session.sliders.computeIfAbsent(id, k -> new double[]{0.5, 0.5, 0.5});
+            double[] values = sliderValues(id);
+            String[] modes = {"both", "idle", "working"};
+            int modeWidth = (PANEL - 4) / 3;
+            for (int m = 0; m < 3; m++) {
+                int mode = m;
+                Button modeButton = addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.mode." + modes[m]), b -> {
+                    session.sliderMode = mode;
+                    rebuildWidgets();
+                }).tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.mode." + modes[m] + "_tip")))
+                        .bounds(px + m * (modeWidth + 2), y, modeWidth, 14).build());
+                modeButton.active = session.sliderMode != m;
+            }
+            y += 18;
             String[] names = {"amount", "size", "speed"};
-            for (int i = 0; i < 3; i++) {
-                addRenderableWidget(new Slider(px, y, names[i], id, values, i));
+            int count = session.sliderMode == 0 ? 3 : 2;
+            for (int i = 0; i < count; i++) {
+                addRenderableWidget(new Slider(px, y, names[i], id, values, session.sliderMode * 3 + i));
+                y += 22;
+            }
+            if (count == 2) {
                 y += 22;
             }
             addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.reroll"), b -> reroll(id))
@@ -2140,23 +2156,67 @@ public class EffectStudioScreen extends Screen {
         rebuildWidgets();
     }
 
+    private double[] sliderValues(ResourceLocation id) {
+        double[] values = session.sliders.get(id);
+        if (values == null || values.length < 9) {
+            double[] next = {0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
+            if (values != null) {
+                System.arraycopy(values, 0, next, 0, Math.min(values.length, 9));
+            }
+            session.sliders.put(id, next);
+            values = next;
+        }
+        return values;
+    }
+
+    private static boolean splits(String type, String key) {
+        return switch (type) {
+            case "drip", "emitter" -> key.equals("rate");
+            case "glow" -> key.equals("size");
+            case "beam" -> key.equals("width");
+            default -> false;
+        };
+    }
+
     private boolean rescale(ResourceLocation id) {
         JsonObject base = base(id);
         if (base == null) {
             return false;
         }
-        double[] values = session.sliders.computeIfAbsent(id, k -> new double[]{0.5, 0.5, 0.5});
+        double[] values = sliderValues(id);
         JsonObject json = base.deepCopy();
         String color = session.colors.get(id);
         if (json.has("layers")) {
             for (JsonElement element : json.getAsJsonArray("layers")) {
                 JsonObject layer = element.getAsJsonObject();
-                for (String key : layer.keySet()) {
-                    double m = AMOUNT.contains(key) ? factor(values[0]) : SIZE.contains(key) ? factor(values[1]) : SPEED.contains(key) ? factor(values[2]) : 1;
+                String type = layer.has("type") ? layer.get("type").getAsString() : "";
+                for (String key : layer.keySet().toArray(new String[0])) {
+                    int c = AMOUNT.contains(key) ? 0 : SIZE.contains(key) ? 1 : SPEED.contains(key) ? 2 : -1;
+                    if (c < 0) {
+                        continue;
+                    }
+                    double m = factor(values[c]);
+                    double idle = factor(values[3 + c]);
+                    double working = factor(values[6 + c]);
+                    JsonElement raw = layer.get(key);
+                    boolean numeric = raw.isJsonPrimitive() && raw.getAsJsonPrimitive().isNumber();
+                    if (splits(type, key) && (numeric || raw.isJsonObject()) && (idle != working || raw.isJsonObject())) {
+                        double rawIdle = raw.isJsonObject() ? (raw.getAsJsonObject().has("idle") ? raw.getAsJsonObject().get("idle").getAsDouble() : Double.NaN) : raw.getAsDouble();
+                        double rawWorking = raw.isJsonObject() ? (raw.getAsJsonObject().has("working") ? raw.getAsJsonObject().get("working").getAsDouble() : Double.NaN) : raw.getAsDouble();
+                        var split = new JsonObject();
+                        if (!Double.isNaN(rawIdle)) {
+                            split.addProperty("idle", Math.round(rawIdle * m * idle * 10000) / 10000.0);
+                        }
+                        if (!Double.isNaN(rawWorking)) {
+                            split.addProperty("working", Math.round(rawWorking * m * working * 10000) / 10000.0);
+                        }
+                        layer.add(key, split);
+                        continue;
+                    }
                     if (m == 1) {
                         continue;
                     }
-                    JsonElement scaled = scale(layer.get(key), m);
+                    JsonElement scaled = scale(raw, m);
                     if (key.equals("max") && scaled.isJsonPrimitive()) {
                         scaled = new JsonPrimitive(Math.max(1, Math.round(scaled.getAsDouble())));
                     } else if (key.equals("chance") && scaled.isJsonPrimitive()) {
@@ -2859,7 +2919,8 @@ public class EffectStudioScreen extends Screen {
 
         @Override
         protected void updateMessage() {
-            setMessage(Component.translatable("gui.mm.effect_studio." + name, String.format("%.2fx", factor(value))));
+            String prefix = index >= 6 ? "gui.mm.effect_studio.working_" : index >= 3 ? "gui.mm.effect_studio.idle_" : "gui.mm.effect_studio.";
+            setMessage(Component.translatable(prefix + name, String.format("%.2fx", factor(value))));
         }
 
         @Override
