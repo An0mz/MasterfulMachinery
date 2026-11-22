@@ -181,7 +181,7 @@ public class EffectStudioScreen extends Screen {
         menu = null;
         if (view == null || model != be.getStructure()) {
             model = be.getStructure();
-            view = new GuiStructureRenderer(model);
+            view = GuiStructureRenderer.ofFormed(model, be.getLevel(), be.getBlockPos(), be.getFormedRotation());
             view.setOverlay(this::renderEffects);
             view.setStudio(true);
         }

@@ -18,6 +18,12 @@ import io.ticticboom.mods.mm.client.blueprint.state.BlueprintStructureViewState;
 import io.ticticboom.mods.mm.client.gui.util.GuiPos;
 import io.ticticboom.mods.mm.structure.StructureManager;
 import io.ticticboom.mods.mm.structure.StructureModel;
+import io.ticticboom.mods.mm.structure.layout.PositionedLayoutPiece;
+import io.ticticboom.mods.mm.controller.machine.register.ControllerState;
+import io.ticticboom.mods.mm.util.BlockStateRotation;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.state.BlockState;
 import lombok.Getter;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.BlockPos;
@@ -90,6 +96,31 @@ public class GuiStructureRenderer {
         this.viewTransform = viewTransform;
         this.partsFactory = partsFactory;
         parts = new ArrayList<>();
+    }
+
+    public static GuiStructureRenderer ofFormed(StructureModel model, BlockGetter level, BlockPos controller, Rotation rotation) {
+        return new GuiStructureRenderer(new AutoTransform(model), () -> {
+            model.layout().setup(model);
+            var positions = new ArrayList<BlockPos>();
+            positions.add(BlockPos.ZERO);
+            for (PositionedLayoutPiece piece : model.layout().getPositionedPieces()) {
+                positions.add(piece.pos());
+            }
+            List<PositionedCyclingBlockRenderer> list = new ArrayList<>(positions.size());
+            for (BlockPos pos : positions) {
+                BlockState state = level.getBlockState(controller.offset(pos.rotate(rotation)));
+                if (state.isAir()) {
+                    continue;
+                }
+                if (state.hasProperty(ControllerState.PROPERTY)) {
+                    state = state.setValue(ControllerState.PROPERTY, ControllerState.UNFORMED);
+                }
+                GuiBlockRenderer renderer = new GuiBlockRenderer(BlockStateRotation.unrotate(state, rotation));
+                renderer.setupAt(pos);
+                list.add(new PositionedCyclingBlockRenderer(List.of(renderer), pos));
+            }
+            return list;
+        });
     }
 
     public static GuiStructureRenderer ofBlocks(List<BuildableStructure.Placement> blocks) {
