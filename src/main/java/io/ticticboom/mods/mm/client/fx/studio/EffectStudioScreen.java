@@ -471,18 +471,19 @@ public class EffectStudioScreen extends Screen {
                 saving = true;
                 savingFor = session.selected;
                 rebuildWidgets();
-            }).bounds(px, 40, PANEL - 76, 18).build());
+            }).bounds(px, 40, PANEL - 48, 18).build());
             addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.duplicate"), b -> duplicate(id))
                     .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.duplicate_tip")))
-                    .bounds(px + PANEL - 74, 40, 22, 18).build());
-            addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.remove"), b -> {
+                    .bounds(px + PANEL - 46, 40, 22, 18).build());
+            addRenderableWidget(Button.builder(Component.literal("\u2715"), b -> {
                 remember();
                 session.edited.remove(id);
                 session.effects.remove(session.selected);
                 session.selected = -1;
                 session.dirty = true;
                 rebuildWidgets();
-            }).bounds(px + PANEL - 50, 40, 50, 18).build());
+            }).tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.remove_tip")))
+                    .bounds(px + PANEL - 22, 40, 22, 18).build());
         }
         String[] tabs = {"spots", "layers", "look"};
         int tabWidth = (PANEL - 4) / 3;
@@ -752,9 +753,12 @@ public class EffectStudioScreen extends Screen {
 
     private List<double[]> arrows() {
         var result = new ArrayList<double[]>();
+        if (session.tab != 2 || placing != null || adding != null || pickingBlocks != null) {
+            return result;
+        }
         ResourceLocation id = selectedId();
         JsonObject fx = id == null ? null : base(id);
-        if (fx == null || !fx.has("layers") || session.tab != 2 || placing != null || adding != null || pickingBlocks != null) {
+        if (fx == null || !fx.has("layers")) {
             return result;
         }
         JsonObject anchors = selectedAnchors();
@@ -856,11 +860,20 @@ public class EffectStudioScreen extends Screen {
             tx = ray[0] + ray[3] * t + origin.getX();
             tz = ray[2] + ray[5] * t + origin.getZ();
         }
+        double dx = tx - arrow[1];
+        double dy = ty - arrow[2];
+        double dz = tz - arrow[3];
+        double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (length > 6) {
+            dx *= 6 / length;
+            dy *= 6 / length;
+            dz *= 6 / length;
+        }
         JsonObject layer = base(id).getAsJsonArray("layers").get(arrowLayer).getAsJsonObject();
         var v = new JsonArray();
-        v.add(Math.round((tx - arrow[1]) / ARROW * 100) / 100.0);
-        v.add(Math.round((ty - arrow[2]) / ARROW * 100) / 100.0);
-        v.add(Math.round((tz - arrow[3]) / ARROW * 100) / 100.0);
+        v.add(Math.round(dx / ARROW * 100) / 100.0);
+        v.add(Math.round(dy / ARROW * 100) / 100.0);
+        v.add(Math.round(dz / ARROW * 100) / 100.0);
         layer.add("velocity", v);
         rescale(id);
     }
@@ -1692,20 +1705,39 @@ public class EffectStudioScreen extends Screen {
         return id;
     }
 
+    private boolean copyDefinition(ResourceLocation id, ResourceLocation copy, JsonObject json) {
+        if (json.has("name")) {
+            json.addProperty("name", json.get("name").getAsString() + " copy");
+        }
+        session.originals.put(copy, json);
+        double[] sliders = session.sliders.get(id);
+        if (sliders != null) {
+            session.sliders.put(copy, sliders.clone());
+        }
+        if (session.colors.containsKey(id)) {
+            session.colors.put(copy, session.colors.get(id));
+        }
+        if (!rescale(copy)) {
+            session.originals.remove(copy);
+            session.sliders.remove(copy);
+            session.colors.remove(copy);
+            return false;
+        }
+        return true;
+    }
+
     private void duplicate(ResourceLocation id) {
-        JsonObject current = session.edited.getOrDefault(id, FxManager.source(id));
+        JsonObject current = base(id);
         if (current == null) {
             return;
         }
-        JsonObject json = current.deepCopy();
+        remember();
         ResourceLocation copy = newEffectId();
-        try {
-            FxManager.preview(copy, json);
-        } catch (Exception e) {
+        if (!copyDefinition(id, copy, current.deepCopy())) {
+            session.undo.remove(session.undo.size() - 1);
+            updateHistoryButtons();
             return;
         }
-        remember();
-        session.edited.put(copy, json);
         JsonObject effect = session.effects.get(session.selected).deepCopy();
         effect.addProperty("fx", copy.toString());
         session.effects.add(effect);
@@ -1722,7 +1754,7 @@ public class EffectStudioScreen extends Screen {
         if (id == null || h.height() || points.size() <= 1 || h.index() >= points.size()) {
             return;
         }
-        JsonObject current = session.edited.getOrDefault(id, FxManager.source(id));
+        JsonObject current = base(id);
         if (current == null) {
             return;
         }
@@ -1730,6 +1762,10 @@ public class EffectStudioScreen extends Screen {
         for (JsonElement element : json.getAsJsonArray("layers")) {
             JsonObject layer = element.getAsJsonObject();
             String type = layer.has("type") ? layer.get("type").getAsString() : "";
+            if (!usesAnchor(layer, h.name())) {
+                layer.addProperty("off", true);
+                continue;
+            }
             if (h.name().equals(mainAnchor(layer))) {
                 boolean skipped = skips(layer, h.index());
                 layer.remove("skip");
@@ -1755,14 +1791,13 @@ public class EffectStudioScreen extends Screen {
                 layer.add("links", new JsonArray());
             }
         }
+        remember();
         ResourceLocation copy = newEffectId();
-        try {
-            FxManager.preview(copy, json);
-        } catch (Exception e) {
+        if (!copyDefinition(id, copy, json)) {
+            session.undo.remove(session.undo.size() - 1);
+            updateHistoryButtons();
             return;
         }
-        remember();
-        session.edited.put(copy, json);
         JsonObject effect = session.effects.get(session.selected).deepCopy();
         effect.addProperty("fx", copy.toString());
         JsonObject copyAnchors = effect.getAsJsonObject("anchors");
@@ -1785,6 +1820,15 @@ public class EffectStudioScreen extends Screen {
         handleName = null;
         rebuildWidgets();
         setFocused(null);
+    }
+
+    private static boolean usesAnchor(JsonObject layer, String anchor) {
+        for (String key : new String[]{"at", "from", "to", "top"}) {
+            if (layer.has(key) && layer.get(key).isJsonPrimitive() && anchor.equals(layer.get(key).getAsString())) {
+                return true;
+            }
+        }
+        return anchor.equals(mainAnchor(layer));
     }
 
     private void centreHandle(Handle h) {
@@ -1864,8 +1908,14 @@ public class EffectStudioScreen extends Screen {
                 }
             }
         }
-        if (pointsOf(selectedAnchors().get(h.name())).size() > 1) {
-            entries.add("split");
+        if (fx != null && pointsOf(selectedAnchors().get(h.name())).size() > 1) {
+            boolean used = false;
+            for (JsonElement element : fx.getAsJsonArray("layers")) {
+                used |= h.name().equals(mainAnchor(element.getAsJsonObject()));
+            }
+            if (used) {
+                entries.add("split");
+            }
         }
         entries.add("centre");
         entries.add("delete");
@@ -3043,6 +3093,16 @@ public class EffectStudioScreen extends Screen {
         }
         if (button == 0 && view != null) {
             double[] arrow = arrowAt(mouseX, mouseY);
+            Handle near = arrow == null ? null : handleAt(mouseX, mouseY);
+            if (arrow != null && near != null) {
+                var origin = model.layout().getCharGrid().getControllerPos();
+                double[] sa = view.project(arrow[4] - origin.getX(), arrow[5] - origin.getY(), arrow[6] - origin.getZ());
+                double[] sh = view.project(near.x() - origin.getX(), near.y() - origin.getY(), near.z() - origin.getZ());
+                if (sa != null && sh != null && (sh[0] - mouseX) * (sh[0] - mouseX) + (sh[1] - mouseY) * (sh[1] - mouseY)
+                        < (sa[0] - mouseX) * (sa[0] - mouseX) + (sa[1] - mouseY) * (sa[1] - mouseY)) {
+                    arrow = null;
+                }
+            }
             if (arrow != null) {
                 setFocused(null);
                 arrowLayer = (int) arrow[0];

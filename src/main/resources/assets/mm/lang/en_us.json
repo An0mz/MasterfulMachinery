@@ -602,6 +602,7 @@
   "gui.mm.effect_studio.save_preset": "Save preset",
   "gui.mm.effect_studio.duplicate": "\u29C9",
   "gui.mm.effect_studio.duplicate_tip": "Duplicate this effect with all its spots",
+  "gui.mm.effect_studio.remove_tip": "Remove this effect from the machine",
   "gui.mm.effect_studio.menu.split": "Make this its own effect",
   "gui.mm.effect_studio.preset_name": "Preset name",
   "gui.mm.effect_studio.preset_save": "Save",
