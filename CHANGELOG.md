@@ -61,6 +61,8 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   use them.
 - The Effect Studio showing blocks facing the wrong way, Macaw's Bridges without their rails, and
   other blocks in their default look instead of how they're placed on the machine.
+- Effect Studio presets such as Bleeding Block showing missing textures. The textures now come with
+  the mod.
 
 ## [1.21.1-0.18.1] - 2026-11-16
 
