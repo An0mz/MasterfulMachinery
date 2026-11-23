@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -156,8 +157,25 @@ public class EffectStudioScreen extends Screen {
     private double arrowTipY;
     private double arrowLastMouseY;
     private int pickingFor = -1;
+    private final Set<Pick> group = new LinkedHashSet<>();
+    private boolean marqueeArmed;
+    private boolean marquee;
+    private double marqueeX;
+    private double marqueeY;
+    private boolean facePicking;
+    private final List<Face> centreFaces = new ArrayList<>();
+    @Nullable
+    private Button centreButton;
+    @Nullable
+    private Button facesButton;
 
     private record Handle(String name, int index, double x, double y, double z, boolean height) {
+    }
+
+    private record Pick(String name, int index) {
+    }
+
+    private record Face(BlockPos pos, Direction dir) {
     }
 
     public EffectStudioScreen(EffectStudio.Session session) {
@@ -196,8 +214,14 @@ public class EffectStudioScreen extends Screen {
                 adding = null;
             }
             if (handle() == null) {
-                handleName = null;
+                deselect();
+            } else {
+                group.removeIf(pick -> findHandle(pick.name(), pick.index()) == null);
             }
+        }
+        if (facePicking && (placing != null || adding != null || pickingBlocks != null || selectedId() == null || handle() == null || handle().height() || !group.isEmpty())) {
+            facePicking = false;
+            centreFaces.clear();
         }
         if (pickingBlocks != null && (selectedId() == null || session.selected != pickingFor || !glowAnchors(base(selectedId())).contains(pickingBlocks))) {
             pickingBlocks = null;
@@ -231,6 +255,13 @@ public class EffectStudioScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal(session.collapsed ? "\u21D4" : "\u21D5"), b -> togglePanels())
                 .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.hide_panels")))
                 .bounds(viewport.x() + 342, by, 20, 20).build());
+        centreButton = addWidget(Button.builder(Component.translatable("gui.mm.effect_studio.centre"), b -> centreSelected())
+                .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.centre_tip")))
+                .bounds(viewport.x() + 158, viewport.y() + viewport.h() - 21, 54, 18).build());
+        facesButton = addWidget(Button.builder(Component.empty(), b -> facesPressed())
+                .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.faces_tip")))
+                .bounds(viewport.x() + 216, viewport.y() + viewport.h() - 21, 84, 18).build());
+        updateCentreButtons();
         Handle selectedHandle = handle();
         if (selectedHandle != null) {
             coords = new EditBox(font, viewport.x() + 4, viewport.y() + viewport.h() - 20, 150, 16, Component.empty());
@@ -753,7 +784,7 @@ public class EffectStudioScreen extends Screen {
 
     private List<double[]> arrows() {
         var result = new ArrayList<double[]>();
-        if (session.tab != 2 || placing != null || adding != null || pickingBlocks != null) {
+        if (session.tab != 2 || placing != null || adding != null || pickingBlocks != null || facePicking) {
             return result;
         }
         ResourceLocation id = selectedId();
@@ -928,7 +959,7 @@ public class EffectStudioScreen extends Screen {
                         adding = adding != null && adding.equals(spot) ? null : spot;
                         pickingBlocks = null;
                         linkFrom = -1;
-                        handleName = null;
+                        deselect();
                         placing = null;
                         steps.clear();
                         rebuildWidgets();
@@ -947,7 +978,7 @@ public class EffectStudioScreen extends Screen {
                             neighbours.append(neighbours.isEmpty() ? "" : ", ").append(other + 1);
                         }
                     }
-                    boolean selected = spot.equals(handleName) && index == handleIndex;
+                    boolean selected = isSelected(spot, index);
                     boolean from = spot.equals(adding) && index == linkFrom;
                     String text = (selected ? "> " : "") + Component.translatable("gui.mm.effect_studio.point", index + 1).getString()
                             + (arcs ? " \u2192 " + (neighbours.isEmpty() ? "-" : neighbours) : "");
@@ -956,8 +987,7 @@ public class EffectStudioScreen extends Screen {
                             .withStyle(from ? ChatFormatting.YELLOW : ChatFormatting.WHITE), null, () -> pickRow(spot, index));
                     if (arcs) {
                         smallButton(right - 30, ry, 14, Component.literal("+"), "link", () -> {
-                            handleName = spot;
-                            handleIndex = index;
+                            selectOnly(spot, index);
                             startLinking(spot);
                             rebuildWidgets();
                         });
@@ -1085,7 +1115,7 @@ public class EffectStudioScreen extends Screen {
         placing = null;
         adding = null;
         linkFrom = -1;
-        handleName = null;
+        deselect();
         steps.clear();
     }
 
@@ -1133,14 +1163,19 @@ public class EffectStudioScreen extends Screen {
             }
             return;
         }
+        Handle row = findHandle(name, index);
+        if (hasControlDown() && handleName != null && row != null && adding == null && placing == null && pickingBlocks == null) {
+            toggleSelect(row);
+            rebuildWidgets();
+            return;
+        }
         adding = null;
         linkFrom = -1;
         pickingBlocks = null;
         placing = null;
         held = null;
         steps.clear();
-        handleName = name;
-        handleIndex = index;
+        selectOnly(name, index);
         rebuildWidgets();
     }
 
@@ -1357,7 +1392,7 @@ public class EffectStudioScreen extends Screen {
         int count = pointsOf(selectedAnchors().get(name)).size();
         adding = name;
         linkFrom = name.equals(handleName) && handleIndex < count ? handleIndex : count - 1;
-        handleName = null;
+        deselect();
         placing = null;
         steps.clear();
     }
@@ -1503,7 +1538,7 @@ public class EffectStudioScreen extends Screen {
         adding = null;
         held = null;
         steps.clear();
-        handleName = null;
+        deselect();
         pickingBlocks = null;
         spotScroll = 0;
         rebuildWidgets();
@@ -1575,7 +1610,7 @@ public class EffectStudioScreen extends Screen {
 
     @Nullable
     private Handle handleAt(double mouseX, double mouseY) {
-        if (placing != null || adding != null || pickingBlocks != null) {
+        if (placing != null || adding != null || pickingBlocks != null || facePicking) {
             return null;
         }
         return handleAt(mouseX, mouseY, null);
@@ -1672,7 +1707,41 @@ public class EffectStudioScreen extends Screen {
         }
         remember();
         removePoint(h);
-        handleName = null;
+        deselect();
+        rebuildWidgets();
+        setFocused(null);
+    }
+
+    private void deleteSelected() {
+        List<Handle> targets = selectedPoints();
+        if (targets.size() < 2) {
+            Handle h = handle();
+            if (h != null) {
+                deleteHandle(h);
+            }
+            return;
+        }
+        targets.sort((a, b) -> Integer.compare(b.index(), a.index()));
+        var left = new HashMap<String, Integer>();
+        var removable = new ArrayList<Handle>();
+        for (Handle h : targets) {
+            int remaining = left.computeIfAbsent(h.name(), n -> pointsOf(selectedAnchors().get(n)).size());
+            if (remaining > 1) {
+                removable.add(h);
+                left.put(h.name(), remaining - 1);
+            }
+        }
+        if (removable.size() < targets.size()) {
+            minecraft.player.displayClientMessage(Component.translatable("gui.mm.effect_studio.kept_one"), true);
+        }
+        if (removable.isEmpty()) {
+            return;
+        }
+        remember();
+        for (Handle h : removable) {
+            removePoint(h);
+        }
+        deselect();
         rebuildWidgets();
         setFocused(null);
     }
@@ -1743,7 +1812,7 @@ public class EffectStudioScreen extends Screen {
         session.effects.add(effect);
         session.selected = session.effects.size() - 1;
         session.dirty = true;
-        handleName = null;
+        deselect();
         rebuildWidgets();
     }
 
@@ -1817,7 +1886,7 @@ public class EffectStudioScreen extends Screen {
         session.effects.add(effect);
         session.selected = session.effects.size() - 1;
         session.dirty = true;
-        handleName = null;
+        deselect();
         rebuildWidgets();
         setFocused(null);
     }
@@ -1831,19 +1900,204 @@ public class EffectStudioScreen extends Screen {
         return anchor.equals(mainAnchor(layer));
     }
 
-    private void centreHandle(Handle h) {
+    private static boolean inside(@Nullable Button button, double mouseX, double mouseY) {
+        return button != null && button.visible && mouseX >= button.getX() && mouseX < button.getX() + button.getWidth()
+                && mouseY >= button.getY() && mouseY < button.getY() + button.getHeight();
+    }
+
+    private boolean overOverlay(double mouseX, double mouseY) {
+        return coords != null && coords.isMouseOver(mouseX, mouseY) || inside(centreButton, mouseX, mouseY) || inside(facesButton, mouseX, mouseY);
+    }
+
+    private void deselect() {
+        handleName = null;
+        group.clear();
+        updateCentreButtons();
+    }
+
+    private void selectOnly(String name, int index) {
+        handleName = name;
+        handleIndex = index;
+        group.clear();
+        updateCentreButtons();
+    }
+
+    private boolean isSelected(String name, int index) {
+        return name.equals(handleName) && index == handleIndex || !group.isEmpty() && group.contains(new Pick(name, index));
+    }
+
+    private void toggleSelect(Handle h) {
         if (h.height()) {
             return;
         }
-        remember();
-        double[] p = {h.x(), h.y(), h.z()};
-        Direction face = faceOf(p);
-        double x = face.getAxis() == Direction.Axis.X ? h.x() : Math.floor(h.x()) + 0.5;
-        double y = face.getAxis() == Direction.Axis.Y ? h.y() : Math.floor(h.y()) + 0.5;
-        double z = face.getAxis() == Direction.Axis.Z ? h.z() : Math.floor(h.z()) + 0.5;
-        setHandle(h, x, y, z);
+        Handle primary = handle();
+        if (handleName == null || primary == null || primary.height()) {
+            selectOnly(h.name(), h.index());
+            return;
+        }
+        if (h.name().equals(handleName) && h.index() == handleIndex) {
+            if (group.isEmpty()) {
+                deselect();
+                return;
+            }
+            Pick next = group.iterator().next();
+            group.remove(next);
+            handleName = next.name();
+            handleIndex = next.index();
+            return;
+        }
+        Pick pick = new Pick(h.name(), h.index());
+        if (!group.remove(pick)) {
+            group.add(pick);
+        }
+    }
+
+    private List<Handle> selectedPoints() {
+        var result = new ArrayList<Handle>();
+        if (handleName == null) {
+            return result;
+        }
+        for (Handle h : handles()) {
+            if (!h.height() && isSelected(h.name(), h.index())) {
+                result.add(h);
+            }
+        }
+        return result;
+    }
+
+    private void selectBox(double x0, double y0, double x1, double y1, boolean add) {
+        double minX = Math.min(x0, x1);
+        double maxX = Math.max(x0, x1);
+        double minY = Math.min(y0, y1);
+        double maxY = Math.max(y0, y1);
+        var origin = model.layout().getCharGrid().getControllerPos();
+        var inside = new ArrayList<Handle>();
+        for (Handle h : handles()) {
+            if (h.height()) {
+                continue;
+            }
+            double[] s = view.project(h.x() - origin.getX(), h.y() - origin.getY(), h.z() - origin.getZ());
+            if (s != null && s[0] >= minX && s[0] <= maxX && s[1] >= minY && s[1] <= maxY) {
+                inside.add(h);
+            }
+        }
+        if (!add) {
+            deselect();
+        }
+        Handle primary = handleName == null ? null : handle();
+        boolean needPrimary = primary == null || primary.height();
+        for (Handle h : inside) {
+            if (needPrimary) {
+                selectOnly(h.name(), h.index());
+                needPrimary = false;
+            } else if (!isSelected(h.name(), h.index())) {
+                group.add(new Pick(h.name(), h.index()));
+            }
+        }
         rebuildWidgets();
         setFocused(null);
+    }
+
+    private void centreSelected() {
+        List<Handle> targets = selectedPoints();
+        if (targets.isEmpty() || facePicking) {
+            return;
+        }
+        remember();
+        for (Handle h : targets) {
+            Direction face = faceOf(new double[]{h.x(), h.y(), h.z()});
+            double x = face.getAxis() == Direction.Axis.X ? h.x() : Math.floor(h.x()) + 0.5;
+            double y = face.getAxis() == Direction.Axis.Y ? h.y() : Math.floor(h.y()) + 0.5;
+            double z = face.getAxis() == Direction.Axis.Z ? h.z() : Math.floor(h.z()) + 0.5;
+            setHandle(h, x, y, z);
+        }
+        rebuildWidgets();
+        setFocused(null);
+    }
+
+    private void facesPressed() {
+        if (facePicking) {
+            applyFaces();
+            return;
+        }
+        Handle h = handle();
+        if (h == null || h.height() || !group.isEmpty() || placing != null || adding != null || pickingBlocks != null) {
+            return;
+        }
+        menu = null;
+        facePicking = true;
+        centreFaces.clear();
+        updateCentreButtons();
+    }
+
+    private void toggleFace(BlockHitResult hit) {
+        Face face = new Face(hit.getBlockPos(), hit.getDirection());
+        if (!centreFaces.remove(face)) {
+            centreFaces.add(face);
+        }
+        updateCentreButtons();
+    }
+
+    private void cancelFaces() {
+        facePicking = false;
+        centreFaces.clear();
+        updateCentreButtons();
+    }
+
+    @Nullable
+    private double[] facesCentre() {
+        if (centreFaces.isEmpty()) {
+            return null;
+        }
+        double x = 0;
+        double y = 0;
+        double z = 0;
+        for (Face face : centreFaces) {
+            x += face.pos().getX() + 0.5 + face.dir().getStepX() * 0.5;
+            y += face.pos().getY() + 0.5 + face.dir().getStepY() * 0.5;
+            z += face.pos().getZ() + 0.5 + face.dir().getStepZ() * 0.5;
+        }
+        int n = centreFaces.size();
+        return new double[]{x / n, y / n, z / n};
+    }
+
+    private void applyFaces() {
+        Handle h = handle();
+        double[] middle = facesCentre();
+        if (h == null || middle == null) {
+            return;
+        }
+        var origin = model.layout().getCharGrid().getControllerPos();
+        remember();
+        setHandle(h, round(middle[0] + origin.getX()), round(middle[1] + origin.getY()), round(middle[2] + origin.getZ()));
+        facePicking = false;
+        centreFaces.clear();
+        rebuildWidgets();
+        setFocused(null);
+    }
+
+    private static double round(double value) {
+        return Math.round(value * 1000) / 1000.0;
+    }
+
+    private void updateCentreButtons() {
+        boolean any = !selectedPoints().isEmpty();
+        if (centreButton != null) {
+            centreButton.visible = any || facePicking;
+            centreButton.active = !facePicking && any;
+        }
+        if (facesButton != null) {
+            Handle h = handle();
+            boolean single = h != null && !h.height() && group.isEmpty();
+            facesButton.visible = facePicking || single;
+            if (facePicking) {
+                facesButton.setMessage(Component.translatable("gui.mm.effect_studio.faces_apply", centreFaces.size()));
+                facesButton.active = !centreFaces.isEmpty();
+            } else {
+                facesButton.setMessage(Component.translatable("gui.mm.effect_studio.faces"));
+                facesButton.active = single;
+            }
+        }
     }
 
     private void applyCoords() {
@@ -1888,6 +2142,9 @@ public class EffectStudioScreen extends Screen {
         if (h.height()) {
             return new String[0];
         }
+        if (!group.isEmpty()) {
+            return new String[]{"centre", "delete"};
+        }
         ResourceLocation id = selectedId();
         var entries = new ArrayList<String>();
         String target = id == null ? null : arcTargetAt(h);
@@ -1917,6 +2174,7 @@ public class EffectStudioScreen extends Screen {
                 entries.add("split");
             }
         }
+        entries.add("faces");
         entries.add("centre");
         entries.add("delete");
         return entries.toArray(new String[0]);
@@ -2079,6 +2337,12 @@ public class EffectStudioScreen extends Screen {
             }
             return Component.translatable("gui.mm.effect_studio.menu.add_pillar");
         }
+        if (entry.equals("centre") && !group.isEmpty()) {
+            return Component.translatable("gui.mm.effect_studio.menu.centre_many", group.size() + 1);
+        }
+        if (entry.equals("delete") && !group.isEmpty()) {
+            return Component.translatable("gui.mm.effect_studio.menu.delete_many", group.size() + 1);
+        }
         return Component.translatable("gui.mm.effect_studio.menu." + entry);
     }
 
@@ -2109,9 +2373,12 @@ public class EffectStudioScreen extends Screen {
         placing = preset;
         placingStarts++;
         adding = null;
+        facePicking = false;
+        centreFaces.clear();
+        updateCentreButtons();
         pickingBlocks = null;
         held = null;
-        handleName = null;
+        deselect();
         firstHit = null;
         steps.clear();
         undersides.clear();
@@ -2250,6 +2517,9 @@ public class EffectStudioScreen extends Screen {
             best = keyed;
         }
         if (best >= 0) {
+            if (best != session.selected) {
+                deselect();
+            }
             session.selected = best;
             rebuildWidgets();
         }
@@ -2747,6 +3017,39 @@ public class EffectStudioScreen extends Screen {
         }
     }
 
+    private static void faceOutline(PoseStack pose, VertexConsumer lines, Face face, float r, float g, float b) {
+        double[] min = {face.pos().getX(), face.pos().getY(), face.pos().getZ()};
+        double[] max = {min[0] + 1, min[1] + 1, min[2] + 1};
+        int axis = face.dir().getAxis().ordinal();
+        if (face.dir().getAxisDirection() == Direction.AxisDirection.POSITIVE) {
+            min[axis] = max[axis] - 0.01;
+        } else {
+            max[axis] = min[axis] + 0.01;
+        }
+        LevelRenderer.renderLineBox(pose, lines, new AABB(min[0], min[1], min[2], max[0], max[1], max[2]), r, g, b, 1f);
+    }
+
+    private void renderFaces(PoseStack pose, MultiBufferSource buffers) {
+        if (!facePicking) {
+            return;
+        }
+        VertexConsumer lines = buffers.getBuffer(RenderType.lines());
+        for (Face face : centreFaces) {
+            faceOutline(pose, lines, face, 0.25f, 1f, 0.9f);
+        }
+        if (hover != null) {
+            faceOutline(pose, lines, new Face(hover.getBlockPos(), hover.getDirection()), 1f, 1f, 0.33f);
+        }
+        double[] middle = facesCentre();
+        Handle h = handle();
+        if (middle == null || h == null) {
+            return;
+        }
+        LevelRenderer.renderLineBox(pose, lines, new AABB(middle[0] - 0.08, middle[1] - 0.08, middle[2] - 0.08, middle[0] + 0.08, middle[1] + 0.08, middle[2] + 0.08), 1f, 1f, 1f, 1f);
+        var origin = model.layout().getCharGrid().getControllerPos();
+        line(lines, pose, h.x() - origin.getX(), h.y() - origin.getY(), h.z() - origin.getZ(), middle[0], middle[1], middle[2], 0xFFFFFF55);
+    }
+
     private void renderSpots(PoseStack pose, MultiBufferSource buffers) {
         if (spots.isEmpty() || session.selected < 0 || session.selected >= session.effects.size()) {
             return;
@@ -2765,7 +3068,7 @@ public class EffectStudioScreen extends Screen {
                 double x = p[0] - origin.getX();
                 double y = p[1] - origin.getY();
                 double z = p[2] - origin.getZ();
-                boolean selected = spots.get(i).equals(handleName) && j == handleIndex;
+                boolean selected = isSelected(spots.get(i), j);
                 boolean hot = hovered != null && hovered.name().equals(spots.get(i)) && hovered.index() == j;
                 double size = selected || hot ? 0.09 : spots.get(i).equals(adding) ? 0.07 : 0.05;
                 LevelRenderer.renderLineBox(pose, lines, new AABB(x - size, y - size, z - size, x + size, y + size, z + size),
@@ -2799,7 +3102,7 @@ public class EffectStudioScreen extends Screen {
             if (!h.height()) {
                 continue;
             }
-            boolean selected = h.name().equals(handleName) && h.index() == handleIndex;
+            boolean selected = isSelected(h.name(), h.index());
             boolean hot = hovered != null && hovered.name().equals(h.name()) && hovered.height() && hovered.index() == h.index();
             double x = h.x() - origin.getX();
             double y = h.y() - origin.getY();
@@ -2866,6 +3169,7 @@ public class EffectStudioScreen extends Screen {
         renderPickedBlocks(pose, buffers);
         renderSpots(pose, buffers);
         renderPending(pose, buffers);
+        renderFaces(pose, buffers);
         var be = EffectStudio.machine(session);
         var visuals = be == null ? null : EffectStudio.effects(be);
         if (visuals == null || model == null) {
@@ -2888,7 +3192,7 @@ public class EffectStudioScreen extends Screen {
         }
         this.partialTick = partialTick;
         move();
-        hover = (placing != null || adding != null) && viewport.contains(mouseX, mouseY) ? view.pick(mouseX, mouseY) : null;
+        hover = (placing != null || adding != null || facePicking) && viewport.contains(mouseX, mouseY) ? view.pick(mouseX, mouseY) : null;
         hovered = dragging ? handle() : menu != null ? null : handleAt(mouseX, mouseY);
         linkTarget = linking() ? handleAt(mouseX, mouseY, adding) : null;
         if (linkTarget != null && linkTarget.index() == linkFrom) {
@@ -2914,6 +3218,8 @@ public class EffectStudioScreen extends Screen {
             hint = Component.translatable("gui.mm.effect_studio.click." + kind, presetLabel(placing), step[0]);
         } else if (pickingBlocks != null) {
             hint = Component.translatable("gui.mm.effect_studio.click.pick", pretty(pickingBlocks));
+        } else if (facePicking) {
+            hint = Component.translatable("gui.mm.effect_studio.click.faces", centreFaces.size());
         } else if (adding != null && linking()) {
             hint = Component.translatable("gui.mm.effect_studio.click.link", linkFrom + 1);
         } else if (adding != null) {
@@ -2927,7 +3233,15 @@ public class EffectStudioScreen extends Screen {
         }
         boolean wrong = underside && hover != null && hover.getDirection() != Direction.DOWN;
         gfx.drawCenteredString(font, hint, viewport.x() + viewport.w() / 2, viewport.y() + 4,
-                wrong ? 0xFF5555 : step != null || adding != null || pickingBlocks != null ? 0xFFFF55 : 0xA0A0A0);
+                wrong ? 0xFF5555 : step != null || adding != null || pickingBlocks != null || facePicking ? 0xFFFF55 : 0xA0A0A0);
+        if (marquee) {
+            int bx0 = (int) Math.min(pressX, marqueeX);
+            int by0 = (int) Math.min(pressY, marqueeY);
+            int bx1 = (int) Math.max(pressX, marqueeX);
+            int by1 = (int) Math.max(pressY, marqueeY);
+            gfx.fill(bx0, by0, bx1, by1, 0x3340C0FF);
+            gfx.renderOutline(bx0, by0, bx1 - bx0, by1 - by0, 0xFF40C0FF);
+        }
         if (!spots.isEmpty() && view != null) {
             var origin = model.layout().getCharGrid().getControllerPos();
             JsonObject labelled = selectedAnchors();
@@ -2997,8 +3311,17 @@ public class EffectStudioScreen extends Screen {
         Handle selectedHandle = handle();
         if (coords != null && selectedHandle != null) {
             String label = selectedHandle.index() < 0 ? pretty(selectedHandle.name()) : pretty(selectedHandle.name()) + " #" + (selectedHandle.index() + 1);
+            if (!group.isEmpty()) {
+                label += "  " + Component.translatable("gui.mm.effect_studio.selected_more", group.size()).getString();
+            }
             gfx.drawString(font, label, coords.getX(), coords.getY() - 10, 0xFFFFFF);
             coords.render(gfx, mouseX, mouseY, partialTick);
+        }
+        if (centreButton != null) {
+            centreButton.render(gfx, mouseX, mouseY, partialTick);
+        }
+        if (facesButton != null) {
+            facesButton.render(gfx, mouseX, mouseY, partialTick);
         }
         if (dropdown) {
             int px = width - PANEL - 6;
@@ -3035,7 +3358,7 @@ public class EffectStudioScreen extends Screen {
     private void drawSeepSides(GuiGraphics gfx) {
         sideHits.clear();
         ResourceLocation id = selectedId();
-        JsonObject seep = id == null || view == null || placing != null || adding != null ? null : firstSeep(base(id));
+        JsonObject seep = id == null || view == null || placing != null || adding != null || facePicking ? null : firstSeep(base(id));
         if (seep == null) {
             return;
         }
@@ -3085,6 +3408,8 @@ public class EffectStudioScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         pressX = mouseX;
         pressY = mouseY;
+        marqueeArmed = false;
+        marquee = false;
         deleteArmed = confirmDelete;
         if (confirmDelete != null) {
             confirmDelete = null;
@@ -3103,15 +3428,19 @@ public class EffectStudioScreen extends Screen {
                 session.selected = dropScroll + r;
                 adding = null;
                 linkFrom = -1;
-                handleName = null;
+                deselect();
                 saving = false;
                 spotScroll = 0;
                 rebuildWidgets();
             }
             return true;
         }
-        if (coords != null && coords.isMouseOver(mouseX, mouseY)) {
-            return super.mouseClicked(mouseX, mouseY, button);
+        if (menu == null && overOverlay(mouseX, mouseY)) {
+            boolean pressed = super.mouseClicked(mouseX, mouseY, button);
+            if (getFocused() instanceof Button) {
+                setFocused(null);
+            }
+            return pressed;
         }
         if (button == 0 && menu == null && selectedId() != null && handleAt(mouseX, mouseY) == null) {
             Object[] best = null;
@@ -3143,25 +3472,25 @@ public class EffectStudioScreen extends Screen {
                 }
                 switch (entries[index]) {
                     case "split" -> splitSpot(target);
-                    case "delete" -> deleteHandle(target);
+                    case "delete" -> deleteSelected();
                     case "unlink" -> unlink(target);
                     case "add_to" -> {
                         String into = arcTargetAt(target);
                         if (into != null) {
                             adding = into;
                             linkFrom = -1;
-                            handleName = null;
+                            deselect();
                             placing = null;
                             steps.clear();
                             rebuildWidgets();
                         }
                     }
                     case "link" -> {
-                        handleName = target.name();
-                        handleIndex = target.index();
+                        selectOnly(target.name(), target.index());
                         startLinking(target.name());
                     }
-                    default -> centreHandle(target);
+                    case "faces" -> facesPressed();
+                    default -> centreSelected();
                 }
             }
             return true;
@@ -3189,9 +3518,14 @@ public class EffectStudioScreen extends Screen {
             Handle h = handleAt(mouseX, mouseY);
             if (h != null) {
                 setFocused(null);
-                if (!(h.name().equals(handleName) && h.index() == handleIndex)) {
-                    handleName = h.name();
-                    handleIndex = h.index();
+                if (hasControlDown()) {
+                    toggleSelect(h);
+                    rebuildWidgets();
+                    swallowRelease = true;
+                    return true;
+                }
+                if (!(h.name().equals(handleName) && h.index() == handleIndex) || !group.isEmpty()) {
+                    selectOnly(h.name(), h.index());
                     rebuildWidgets();
                 }
                 dragging = true;
@@ -3199,6 +3533,8 @@ public class EffectStudioScreen extends Screen {
                 return true;
             }
         }
+        marqueeArmed = button == 0 && view != null && viewport.contains((int) mouseX, (int) mouseY) && selectedId() != null && menu == null
+                && placing == null && adding == null && pickingBlocks == null && !facePicking && !handles().isEmpty();
         int startsBefore = placingStarts;
         boolean handled = super.mouseClicked(mouseX, mouseY, button);
         dragFromLibrary = button == 0 && !session.collapsed && mouseX < PANEL + 8 && placing != null && placingStarts != startsBefore;
@@ -3254,6 +3590,16 @@ public class EffectStudioScreen extends Screen {
             drag(mouseX, mouseY);
             return true;
         }
+        if (marqueeArmed && button == 0) {
+            marqueeX = mouseX;
+            marqueeY = mouseY;
+            if (!marquee && Math.abs(mouseX - pressX) + Math.abs(mouseY - pressY) >= 4) {
+                marquee = true;
+            }
+            if (marquee) {
+                return true;
+            }
+        }
         return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
 
@@ -3285,13 +3631,28 @@ public class EffectStudioScreen extends Screen {
                 }
             }
         }
-        if (coords != null && coords.isMouseOver(mouseX, mouseY)) {
+        if (marquee && button == 0) {
+            marquee = false;
+            marqueeArmed = false;
+            selectBox(pressX, pressY, mouseX, mouseY, hasControlDown());
+            return true;
+        }
+        if (overOverlay(mouseX, mouseY)) {
+            arrowLayer = -1;
+            marqueeArmed = false;
+            if (dragging) {
+                dragging = false;
+                if (dragMoved) {
+                    rebuildWidgets();
+                }
+            }
             return super.mouseReleased(mouseX, mouseY, button);
         }
         if (arrowLayer >= 0 && button == 0) {
             arrowLayer = -1;
             return true;
         }
+        marqueeArmed = false;
         if (dragging && button == 0) {
             dragging = false;
             if (dragMoved) {
@@ -3302,8 +3663,9 @@ public class EffectStudioScreen extends Screen {
         if (button == 1 && view != null && Math.abs(mouseX - pressX) + Math.abs(mouseY - pressY) < 4) {
             Handle h = handleAt(mouseX, mouseY);
             if (h != null && menuEntries(h).length > 0) {
-                handleName = h.name();
-                handleIndex = h.index();
+                if (!isSelected(h.name(), h.index())) {
+                    selectOnly(h.name(), h.index());
+                }
                 rebuildWidgets();
                 menu = h;
                 menuX = (int) mouseX;
@@ -3312,8 +3674,8 @@ public class EffectStudioScreen extends Screen {
             }
         }
         if (button == 0 && view != null && placing == null && adding == null && viewport.contains((int) mouseX, (int) mouseY)
-                && Math.abs(mouseX - pressX) + Math.abs(mouseY - pressY) < 4 && handleName != null) {
-            handleName = null;
+                && !facePicking && !hasControlDown() && Math.abs(mouseX - pressX) + Math.abs(mouseY - pressY) < 4 && handleName != null) {
+            deselect();
             rebuildWidgets();
         }
         if (button == 0 && view != null && viewport.contains((int) mouseX, (int) mouseY)
@@ -3327,6 +3689,10 @@ public class EffectStudioScreen extends Screen {
                 if (hit != null) {
                     toggleBlock(hit.getBlockPos());
                 }
+            } else if (facePicking) {
+                if (hit != null) {
+                    toggleFace(hit);
+                }
             } else if (adding != null) {
                 Handle target = linking() ? handleAt(mouseX, mouseY, adding) : null;
                 if (target != null) {
@@ -3334,7 +3700,7 @@ public class EffectStudioScreen extends Screen {
                 } else if (hit != null) {
                     addPoint(hit);
                 }
-            } else {
+            } else if (!hasControlDown()) {
                 selectAt(mouseX, mouseY, hit);
             }
         }
@@ -3392,8 +3758,8 @@ public class EffectStudioScreen extends Screen {
             redo();
             return true;
         }
-        if (!typing && (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE) && handle() != null) {
-            deleteHandle(handle());
+        if (!typing && !facePicking && (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE) && handle() != null) {
+            deleteSelected();
             return true;
         }
         if (typing) {
@@ -3401,6 +3767,14 @@ public class EffectStudioScreen extends Screen {
         }
         if (keyCode == GLFW.GLFW_KEY_TAB) {
             togglePanels();
+            return true;
+        }
+        if (facePicking && keyCode == 256) {
+            cancelFaces();
+            return true;
+        }
+        if (facePicking && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
+            applyFaces();
             return true;
         }
         if ((keyCode == 256 || keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) && pickingBlocks != null) {
