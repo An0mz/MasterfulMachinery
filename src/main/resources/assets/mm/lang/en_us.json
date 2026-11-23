@@ -553,6 +553,7 @@
   "gui.mm.effect_studio.title": "Effect Studio",
   "gui.mm.effect_studio.no_permission": "The Effect Studio needs operator access.",
   "gui.mm.effect_studio.not_formed": "Form the machine first.",
+  "gui.mm.effect_studio.no_machine": "That block is not part of a formed machine.",
 
   "gui.mm.effect_studio.remove": "Remove",
   "gui.mm.effect_studio.save": "Save",

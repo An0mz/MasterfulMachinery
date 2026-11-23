@@ -16,6 +16,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -37,6 +39,8 @@ import java.util.TreeMap;
 
 @EventBusSubscriber(modid = Ref.ID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.GAME)
 public final class EffectStudio {
+    private static final int SEARCH_CHUNKS = 6;
+
     @Nullable
     static Session session;
 
@@ -121,9 +125,46 @@ public final class EffectStudio {
         }
         event.setCanceled(true);
         event.setCancellationResult(InteractionResult.SUCCESS);
-        if (event.getHand() == InteractionHand.MAIN_HAND && event.getLevel().getBlockEntity(event.getPos()) instanceof MachineControllerBlockEntity be) {
-            open(be);
+        if (event.getHand() != InteractionHand.MAIN_HAND) {
+            return;
         }
+        MachineControllerBlockEntity be = controllerAt(event.getLevel(), event.getPos());
+        if (be != null) {
+            open(be);
+        } else {
+            Minecraft.getInstance().player.displayClientMessage(Component.translatable("gui.mm.effect_studio.no_machine"), true);
+        }
+    }
+
+    @Nullable
+    private static MachineControllerBlockEntity controllerAt(Level level, BlockPos pos) {
+        if (level.getBlockEntity(pos) instanceof MachineControllerBlockEntity be) {
+            return be;
+        }
+        MachineControllerBlockEntity best = null;
+        double bestDistance = Double.MAX_VALUE;
+        int chunkX = pos.getX() >> 4;
+        int chunkZ = pos.getZ() >> 4;
+        for (int x = chunkX - SEARCH_CHUNKS; x <= chunkX + SEARCH_CHUNKS; x++) {
+            for (int z = chunkZ - SEARCH_CHUNKS; z <= chunkZ + SEARCH_CHUNKS; z++) {
+                if (!level.hasChunk(x, z)) {
+                    continue;
+                }
+                for (BlockEntity entity : level.getChunk(x, z).getBlockEntities().values()) {
+                    if (!(entity instanceof MachineControllerBlockEntity controller) || !controller.isFormed() || controller.getStructure() == null
+                            || controller.getFormedRotation() == null
+                            || !controller.getStructure().layout().contains(controller.getBlockPos(), controller.getFormedRotation(), pos)) {
+                        continue;
+                    }
+                    double distance = controller.getBlockPos().distSqr(pos);
+                    if (distance < bestDistance) {
+                        bestDistance = distance;
+                        best = controller;
+                    }
+                }
+            }
+        }
+        return best;
     }
 
     private static void open(MachineControllerBlockEntity be) {
