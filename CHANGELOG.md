@@ -14,7 +14,7 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   `assets/<namespace>/mm_fx/<name>.json` in a resource pack or `kubejs/assets` (its textures come from
   your pack), then attach it to a structure with `.effect({ fx: 'mypack:kiln_fire', anchors: { ... } })`
   in KubeJS or a `data/<namespace>/mm/structure_effects/<name>.json` file.
-- **Effect Studio.** Hold the Effect Wand and right-click a formed controller (operators only) to build
+- **Effect Studio.** Hold the Effect Wand and right-click any block of a formed machine (operators only) to build
   effects on the real machine. Drag a preset or part from the library onto the machine, drag its
   points into place, connect arcs between points, pick which blocks glow and which sides of a block
   bleed, and turn a layer off for a single spot. The Look tab sets amount, size and speed (separately
