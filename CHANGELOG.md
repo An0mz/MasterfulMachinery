@@ -23,7 +23,8 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   for idle and working), colour and particle direction, and Reroll gives a new random look. The
   Advanced tab names every setting in plain words with a hover explanation, and uses sliders, colour
   swatches and a texture picker; an Expert switch shows the raw settings. Layers are added from a list
-  of plain choices. Save your
+  of plain choices. On the Layers tab, click a fluid port of the machine to make an effect use its fluid's
+  colour and look, and preview it with water or lava. Save your
   own presets to reuse them on other machines. Opening another machine asks first if the current one
   has unsaved changes. Save writes the effect files into `kubejs/`; on a
   dedicated server, copy the saved `kubejs/data/<namespace>/mm/structure_effects` files to the server.
