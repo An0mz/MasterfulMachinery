@@ -2698,6 +2698,55 @@ public class EffectStudioScreen extends Screen {
         return preview == null || session.selected < 0 ? null : preview.problem(session.selected, layer);
     }
 
+    private void renderPending(PoseStack pose, MultiBufferSource buffers) {
+        if (placing == null || steps.isEmpty()) {
+            return;
+        }
+        var origin = model.layout().getCharGrid().getControllerPos();
+        Set<String> linked = linkedOf(preset(placing));
+        VertexConsumer lines = buffers.getBuffer(RenderType.lines());
+        int index = 0;
+        for (String[] step : steps) {
+            if (step[1].equals("auto")) {
+                continue;
+            }
+            int color = SPOT_COLORS[index++ % SPOT_COLORS.length];
+            if (!pending.has(step[0])) {
+                continue;
+            }
+            float r = ((color >> 16) & 0xFF) / 255f;
+            float g = ((color >> 8) & 0xFF) / 255f;
+            float b = (color & 0xFF) / 255f;
+            if (step[1].equals("area")) {
+                String key = pending.get(step[0]).getAsString();
+                for (PositionedLayoutPiece piece : model.layout().getPositionedPieces()) {
+                    if (key.equals(piece.piece().valueId())) {
+                        BlockPos p = piece.pos();
+                        LevelRenderer.renderLineBox(pose, lines, new AABB(p.getX() - 0.02, p.getY() - 0.02, p.getZ() - 0.02, p.getX() + 1.02, p.getY() + 1.02, p.getZ() + 1.02),
+                                r, g, b, 1f);
+                    }
+                }
+                continue;
+            }
+            List<double[]> points = pointsOf(pending.get(step[0]));
+            for (int j = 0; j < points.size(); j++) {
+                double x = points.get(j)[0] - origin.getX();
+                double y = points.get(j)[1] - origin.getY();
+                double z = points.get(j)[2] - origin.getZ();
+                LevelRenderer.renderLineBox(pose, lines, new AABB(x - 0.08, y - 0.08, z - 0.08, x + 0.08, y + 0.08, z + 0.08), r, g, b, 1f);
+                if (linked.contains(step[0]) && j > 0) {
+                    double[] a = points.get(j - 1);
+                    line(lines, pose, a[0] - origin.getX(), a[1] - origin.getY(), a[2] - origin.getZ(), x, y, z, 0xFF9FD8FF);
+                }
+            }
+            if (!points.isEmpty() && step[0].equals(held) && linked.contains(step[0]) && hover != null) {
+                double[] a = points.get(points.size() - 1);
+                Vec3 end = snap(hover);
+                line(lines, pose, a[0] - origin.getX(), a[1] - origin.getY(), a[2] - origin.getZ(), end.x, end.y, end.z, 0xFFFFFF55);
+            }
+        }
+    }
+
     private void renderSpots(PoseStack pose, MultiBufferSource buffers) {
         if (spots.isEmpty() || session.selected < 0 || session.selected >= session.effects.size()) {
             return;
@@ -2816,6 +2865,7 @@ public class EffectStudioScreen extends Screen {
         renderArrows(pose, buffers);
         renderPickedBlocks(pose, buffers);
         renderSpots(pose, buffers);
+        renderPending(pose, buffers);
         var be = EffectStudio.machine(session);
         var visuals = be == null ? null : EffectStudio.effects(be);
         if (visuals == null || model == null) {
@@ -2891,6 +2941,24 @@ public class EffectStudioScreen extends Screen {
                     double[] s = view.project(p[0] - origin.getX(), p[1] - origin.getY(), p[2] - origin.getZ());
                     if (s != null && viewport.contains((int) s[0], (int) s[1])) {
                         gfx.drawString(font, String.valueOf(j + 1), (int) s[0] + 5, (int) s[1] - 10, SPOT_COLORS[i % SPOT_COLORS.length]);
+                    }
+                }
+            }
+        }
+        if (placing != null && view != null) {
+            var origin = model.layout().getCharGrid().getControllerPos();
+            int index = 0;
+            for (String[] stepped : steps) {
+                if (stepped[1].equals("auto")) {
+                    continue;
+                }
+                int color = SPOT_COLORS[index++ % SPOT_COLORS.length];
+                List<double[]> points = pointsOf(pending.get(stepped[0]));
+                for (int j = 0; j < points.size(); j++) {
+                    double[] p = points.get(j);
+                    double[] s = view.project(p[0] - origin.getX(), p[1] - origin.getY(), p[2] - origin.getZ());
+                    if (s != null && viewport.contains((int) s[0], (int) s[1])) {
+                        gfx.drawString(font, points.size() > 1 ? pretty(stepped[0]) + " " + (j + 1) : pretty(stepped[0]), (int) s[0] + 5, (int) s[1] - 10, color);
                     }
                 }
             }
