@@ -20,7 +20,10 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   points into place, select several points with Ctrl-click or a drag box to move, center or delete them
   together, center a point between several block faces, connect arcs between points, pick
   which blocks glow and which sides of a block bleed, and turn a layer off for a single spot. The Look tab sets amount, size and speed (separately
-  for idle and working), colour and particle direction, and Reroll gives a new random look. Save your
+  for idle and working), colour and particle direction, and Reroll gives a new random look. The
+  Advanced tab names every setting in plain words with a hover explanation, and uses sliders, colour
+  swatches and a texture picker; an Expert switch shows the raw settings. Layers are added from a list
+  of plain choices. Save your
   own presets to reuse them on other machines. Opening another machine asks first if the current one
   has unsaved changes. Save writes the effect files into `kubejs/`; on a
   dedicated server, copy the saved `kubejs/data/<namespace>/mm/structure_effects` files to the server.
