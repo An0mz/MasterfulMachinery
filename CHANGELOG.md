@@ -20,7 +20,8 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   together, center a point between several block faces, connect arcs between points, pick
   which blocks glow and which sides of a block bleed, and turn a layer off for a single spot. The Look tab sets amount, size and speed (separately
   for idle and working), colour and particle direction, and Reroll gives a new random look. Save your
-  own presets to reuse them on other machines. Save writes the effect files into `kubejs/`; on a
+  own presets to reuse them on other machines. Opening another machine asks first if the current one
+  has unsaved changes. Save writes the effect files into `kubejs/`; on a
   dedicated server, copy the saved `kubejs/data/<namespace>/mm/structure_effects` files to the server.
 - **Effect settings.** Under `[effects]` in the client config, or on the Client page of the mod's
   config screen: `quality` (Low, Medium or High, Medium by default), `viewDistance`, `particleAmount`
