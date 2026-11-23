@@ -11,7 +11,10 @@ import io.ticticboom.mods.mm.client.fx.FxManager;
 import io.ticticboom.mods.mm.client.fx.FxRenderer;
 import io.ticticboom.mods.mm.client.gui.util.GuiPos;
 import io.ticticboom.mods.mm.client.structure.GuiStructureRenderer;
+import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
 import io.ticticboom.mods.mm.structure.StructureModel;
+import io.ticticboom.mods.mm.structure.attachment.visuals.EffectVisual;
+import io.ticticboom.mods.mm.structure.attachment.visuals.VisualsStructureAttachment;
 import io.ticticboom.mods.mm.structure.layout.PositionedLayoutPiece;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -28,10 +31,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.Shapes;
+import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -166,6 +171,12 @@ public class EffectStudioScreen extends Screen {
     private double marqueeX;
     private double marqueeY;
     private boolean facePicking;
+    private boolean pickingPort;
+    private List<FluidStack> fluidCache = List.of();
+    @Nullable
+    private List<EffectVisual> fluidFor;
+    private int fluidMode = -1;
+    private long fluidAt;
     private final List<Face> centreFaces = new ArrayList<>();
     @Nullable
     private Button centreButton;
@@ -225,6 +236,9 @@ public class EffectStudioScreen extends Screen {
         if (facePicking && (placing != null || adding != null || pickingBlocks != null || selectedId() == null || handle() == null || handle().height() || !group.isEmpty())) {
             facePicking = false;
             centreFaces.clear();
+        }
+        if (pickingPort && (placing != null || adding != null || pickingBlocks != null || facePicking || selectedId() == null || session.tab != 1)) {
+            pickingPort = false;
         }
         if (pickingBlocks != null && (selectedId() == null || session.selected != pickingFor || !glowAnchors(base(selectedId())).contains(pickingBlocks))) {
             pickingBlocks = null;
@@ -560,6 +574,7 @@ public class EffectStudioScreen extends Screen {
                 session.colors.remove(id);
                 minecraft.setScreen(new EffectLayersScreen(session, this, id));
             }).bounds(px, y, PANEL, 18).build());
+            buildFluid(px, y + 24, id);
         } else {
             double[] values = sliderValues(id);
             String[] modes = {"both", "idle", "working"};
@@ -627,6 +642,215 @@ public class EffectStudioScreen extends Screen {
                             () -> setSeep(id, "streams", new JsonPrimitive(streams + 1)));
                 }
             }
+        }
+    }
+
+    private static final Set<String> LIQUID_COLOUR = Set.of("stream", "drip", "drops", "pool", "ripple", "seep", "emitter", "beam", "glow");
+    private static final Set<String> LIQUID_LOOK = Set.of("stream", "drip", "drops", "pool", "ripple");
+
+    private int buildFluid(int px, int y, ResourceLocation id) {
+        rowLabels.add(new Object[]{px, y, Component.translatable("gui.mm.effect_studio.fluid.title").getString(), 0xFFFFFFFF});
+        y += 12;
+        String port = effectPort();
+        if (pickingPort) {
+            addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.fluid.picking"), b -> {
+                pickingPort = false;
+                rebuildWidgets();
+            }).bounds(px, y, PANEL, 16).build());
+        } else if (port == null) {
+            addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.fluid.pick"), b -> {
+                pickingPort = true;
+                rebuildWidgets();
+            }).tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.fluid.pick_tip"))).bounds(px, y, PANEL, 16).build());
+        } else {
+            addRenderableWidget(Button.builder(Component.literal(font.plainSubstrByWidth(portLabel(port), PANEL - 28)), b -> {
+                pickingPort = true;
+                rebuildWidgets();
+            }).tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.fluid.change_tip"))).bounds(px, y, PANEL - 22, 16).build());
+            addRenderableWidget(Button.builder(Component.literal("✕"), b -> setPort(null))
+                    .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.fluid.clear_tip"))).bounds(px + PANEL - 20, y, 20, 16).build());
+        }
+        y += 18;
+        if (port != null) {
+            FluidStack held = heldFluid(port);
+            rowLabels.add(new Object[]{px, y, held.isEmpty() ? Component.translatable("gui.mm.effect_studio.fluid.holding_none").getString()
+                    : Component.translatable("gui.mm.effect_studio.fluid.holding", held.getHoverName().getString()).getString(), 0xFFA0A0A0});
+            y += 12;
+        }
+        String[] keys = {"port_color", "port_texture"};
+        for (int k = 0; k < keys.length; k++) {
+            String key = keys[k];
+            int state = liquidState(id, key);
+            String name = key.equals("port_color") ? "colour" : "look";
+            String value = state == 2 ? "on" : state == 1 ? "some" : "off";
+            Button toggle = addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.fluid." + name,
+                            Component.translatable("gui.mm.effect_studio.fluid." + value)), b -> setLiquid(id, key, state != 2))
+                    .tooltip(Tooltip.create(Component.translatable(port == null ? "gui.mm.effect_studio.fluid.need_port" : "gui.mm.effect_studio.fluid." + name + "_tip")))
+                    .bounds(px + k * (PANEL / 2 + 1), y, PANEL / 2 - 1, 16).build());
+            toggle.active = port != null && state >= 0;
+        }
+        y += 18;
+        String[] modes = {"machine", "water", "lava"};
+        Button preview = addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.fluid.preview",
+                        Component.translatable("gui.mm.effect_studio.fluid.preview_" + modes[session.previewFluid % modes.length])), b -> {
+                    session.previewFluid = (session.previewFluid + 1) % modes.length;
+                    rebuildWidgets();
+                })
+                .tooltip(Tooltip.create(Component.translatable(port == null ? "gui.mm.effect_studio.fluid.need_port" : "gui.mm.effect_studio.fluid.preview_tip")))
+                .bounds(px, y, PANEL, 16).build());
+        preview.active = port != null;
+        return y + 18;
+    }
+
+    @Nullable
+    private String effectPort() {
+        if (session.selected < 0 || session.selected >= session.effects.size()) {
+            return null;
+        }
+        JsonObject effect = session.effects.get(session.selected);
+        return effect.has("port") && effect.get("port").isJsonPrimitive() ? effect.get("port").getAsString() : null;
+    }
+
+    private String portLabel(String key) {
+        for (PositionedLayoutPiece piece : model.layout().getPositionedPieces()) {
+            if (key.equals(piece.piece().valueId())) {
+                var blocks = piece.piece().piece().createBlocksSupplier().get();
+                if (!blocks.isEmpty()) {
+                    return key + ": " + blocks.get(0).getName().getString();
+                }
+            }
+        }
+        return key;
+    }
+
+    private FluidStack heldFluid(String port) {
+        var be = EffectStudio.machine(session);
+        if (be == null || be.getLevel() == null || be.getFormedRotation() == null) {
+            return FluidStack.EMPTY;
+        }
+        return VisualsStructureAttachment.firstFluid(be.getLevel(), be.getBlockPos(), model.layout(), be.getFormedRotation(), port);
+    }
+
+    private void setPort(@Nullable String key) {
+        if (session.selected < 0 || session.selected >= session.effects.size()) {
+            return;
+        }
+        remember();
+        JsonObject effect = session.effects.get(session.selected);
+        if (key == null) {
+            effect.remove("port");
+        } else {
+            effect.addProperty("port", key);
+        }
+        session.dirty = true;
+        pickingPort = false;
+        rebuildWidgets();
+    }
+
+    private void choosePort(BlockHitResult hit) {
+        String key = keyAt(hit.getBlockPos());
+        var be = EffectStudio.machine(session);
+        if (key == null || be == null || be.getFormedRotation() == null
+                || !VisualsStructureAttachment.isFluidPort(be.getLevel(), be.getBlockPos(), model.layout(), be.getFormedRotation(), key)) {
+            minecraft.player.displayClientMessage(Component.translatable("gui.mm.effect_studio.fluid.not_port"), true);
+            return;
+        }
+        setPort(key);
+    }
+
+    private int liquidState(ResourceLocation id, String key) {
+        JsonObject fx = base(id);
+        if (fx == null || !fx.has("layers")) {
+            return -1;
+        }
+        Set<String> types = key.equals("port_color") ? LIQUID_COLOUR : LIQUID_LOOK;
+        int total = 0;
+        int on = 0;
+        for (JsonElement element : fx.getAsJsonArray("layers")) {
+            JsonObject layer = element.getAsJsonObject();
+            if (!types.contains(layer.has("type") ? layer.get("type").getAsString() : "")) {
+                continue;
+            }
+            total++;
+            if (layer.has(key) && layer.get(key).isJsonPrimitive() && layer.get(key).getAsBoolean()) {
+                on++;
+            }
+        }
+        return total == 0 ? -1 : on == 0 ? 0 : on == total ? 2 : 1;
+    }
+
+    private void setLiquid(ResourceLocation id, String key, boolean on) {
+        JsonObject fx = base(id);
+        if (fx == null || !fx.has("layers")) {
+            return;
+        }
+        remember();
+        Set<String> types = key.equals("port_color") ? LIQUID_COLOUR : LIQUID_LOOK;
+        for (JsonElement element : fx.getAsJsonArray("layers")) {
+            JsonObject layer = element.getAsJsonObject();
+            if (!types.contains(layer.has("type") ? layer.get("type").getAsString() : "")) {
+                continue;
+            }
+            if (on) {
+                layer.addProperty(key, true);
+            } else {
+                layer.remove(key);
+            }
+        }
+        rescale(id);
+        rebuildWidgets();
+    }
+
+    private List<FluidStack> previewFluids(List<EffectVisual> visuals, MachineControllerBlockEntity be) {
+        long now = System.currentTimeMillis();
+        int mode = session.previewFluid;
+        if (visuals == fluidFor && mode == fluidMode && (mode != 0 || now - fluidAt < 1000)) {
+            return fluidCache;
+        }
+        fluidFor = visuals;
+        fluidMode = mode;
+        fluidAt = now;
+        var next = new ArrayList<FluidStack>(visuals.size());
+        boolean any = false;
+        for (EffectVisual visual : visuals) {
+            FluidStack fluid = FluidStack.EMPTY;
+            if (visual.getPort() != null) {
+                fluid = mode == 1 ? new FluidStack(Fluids.WATER, 1) : mode == 2 ? new FluidStack(Fluids.LAVA, 1)
+                        : be.getLevel() == null || be.getFormedRotation() == null ? FluidStack.EMPTY
+                        : VisualsStructureAttachment.firstFluid(be.getLevel(), be.getBlockPos(), model.layout(), be.getFormedRotation(), visual.getPort());
+                fluid = fluid.isEmpty() ? FluidStack.EMPTY : fluid.copyWithAmount(1);
+            }
+            any |= !fluid.isEmpty();
+            next.add(fluid);
+        }
+        List<FluidStack> result = any ? next : List.of();
+        if (!VisualsStructureAttachment.sameFluids(result, fluidCache)) {
+            fluidCache = result;
+        }
+        return fluidCache;
+    }
+
+    private void renderPort(PoseStack pose, MultiBufferSource buffers) {
+        if (session.tab != 1 || selectedId() == null) {
+            return;
+        }
+        String port = effectPort();
+        VertexConsumer lines = null;
+        if (port != null) {
+            lines = buffers.getBuffer(RenderType.lines());
+            for (PositionedLayoutPiece piece : model.layout().getPositionedPieces()) {
+                if (port.equals(piece.piece().valueId())) {
+                    BlockPos p = piece.pos();
+                    LevelRenderer.renderLineBox(pose, lines, new AABB(p.getX() - 0.02, p.getY() - 0.02, p.getZ() - 0.02, p.getX() + 1.02, p.getY() + 1.02, p.getZ() + 1.02),
+                            0.25f, 0.8f, 1f, 1f);
+                }
+            }
+        }
+        if (pickingPort && hover != null) {
+            lines = lines == null ? buffers.getBuffer(RenderType.lines()) : lines;
+            BlockPos p = hover.getBlockPos();
+            LevelRenderer.renderLineBox(pose, lines, new AABB(p.getX() - 0.02, p.getY() - 0.02, p.getZ() - 0.02, p.getX() + 1.02, p.getY() + 1.02, p.getZ() + 1.02),
+                    1f, 1f, 0.33f, 1f);
         }
     }
 
@@ -783,7 +1007,7 @@ public class EffectStudioScreen extends Screen {
 
     private List<double[]> arrows() {
         var result = new ArrayList<double[]>();
-        if (session.tab != 2 || placing != null || adding != null || pickingBlocks != null || facePicking) {
+        if (session.tab != 2 || placing != null || adding != null || pickingBlocks != null || facePicking || pickingPort) {
             return result;
         }
         ResourceLocation id = selectedId();
@@ -1611,7 +1835,7 @@ public class EffectStudioScreen extends Screen {
 
     @Nullable
     private Handle handleAt(double mouseX, double mouseY) {
-        if (placing != null || adding != null || pickingBlocks != null || facePicking) {
+        if (placing != null || adding != null || pickingBlocks != null || facePicking || pickingPort) {
             return null;
         }
         return handleAt(mouseX, mouseY, null);
@@ -2058,6 +2282,7 @@ public class EffectStudioScreen extends Screen {
             return;
         }
         menu = null;
+        pickingPort = false;
         facePicking = true;
         centreFaces.clear();
         updateCentreButtons();
@@ -2406,6 +2631,7 @@ public class EffectStudioScreen extends Screen {
         placing = preset;
         placingStarts++;
         adding = null;
+        pickingPort = false;
         facePicking = false;
         centreFaces.clear();
         updateCentreButtons();
@@ -3203,6 +3429,7 @@ public class EffectStudioScreen extends Screen {
         renderSpots(pose, buffers);
         renderPending(pose, buffers);
         renderFaces(pose, buffers);
+        renderPort(pose, buffers);
         var be = EffectStudio.machine(session);
         var visuals = be == null ? null : EffectStudio.effects(be);
         if (visuals == null || model == null) {
@@ -3214,7 +3441,7 @@ public class EffectStudioScreen extends Screen {
         Vector3f look = inverse.transformDirection(new Vector3f(0, 0, -1)).normalize();
         Vector3f up = inverse.transformDirection(new Vector3f(0, 1, 0)).normalize();
         Vector3f left = inverse.transformDirection(new Vector3f(-1, 0, 0)).normalize();
-        FxRenderer.renderPreview(preview, view.previewWorld(), pose, buffers, camera, left, up, look, !session.idle, partialTick);
+        FxRenderer.renderPreview(preview, view.previewWorld(), pose, buffers, camera, left, up, look, !session.idle, previewFluids(visuals, be), partialTick);
     }
 
     @Override
@@ -3225,7 +3452,7 @@ public class EffectStudioScreen extends Screen {
         }
         this.partialTick = partialTick;
         move();
-        hover = (placing != null || adding != null || facePicking) && viewport.contains(mouseX, mouseY) ? view.pick(mouseX, mouseY) : null;
+        hover = (placing != null || adding != null || facePicking || pickingPort) && viewport.contains(mouseX, mouseY) ? view.pick(mouseX, mouseY) : null;
         hovered = dragging ? handle() : menu != null ? null : handleAt(mouseX, mouseY);
         linkTarget = linking() ? handleAt(mouseX, mouseY, adding) : null;
         if (linkTarget != null && linkTarget.index() == linkFrom) {
@@ -3253,6 +3480,8 @@ public class EffectStudioScreen extends Screen {
             hint = Component.translatable("gui.mm.effect_studio.click.pick", pretty(pickingBlocks));
         } else if (facePicking) {
             hint = Component.translatable("gui.mm.effect_studio.click.faces", centreFaces.size());
+        } else if (pickingPort) {
+            hint = Component.translatable("gui.mm.effect_studio.click.port");
         } else if (adding != null && linking()) {
             hint = Component.translatable("gui.mm.effect_studio.click.link", linkFrom + 1);
         } else if (adding != null) {
@@ -3266,7 +3495,7 @@ public class EffectStudioScreen extends Screen {
         }
         boolean wrong = underside && hover != null && hover.getDirection() != Direction.DOWN;
         gfx.drawCenteredString(font, hint, viewport.x() + viewport.w() / 2, viewport.y() + 4,
-                wrong ? 0xFF5555 : step != null || adding != null || pickingBlocks != null || facePicking ? 0xFFFF55 : 0xA0A0A0);
+                wrong ? 0xFF5555 : step != null || adding != null || pickingBlocks != null || facePicking || pickingPort ? 0xFFFF55 : 0xA0A0A0);
         if (marquee) {
             int bx0 = (int) Math.min(pressX, marqueeX);
             int by0 = (int) Math.min(pressY, marqueeY);
@@ -3391,7 +3620,7 @@ public class EffectStudioScreen extends Screen {
     private void drawSeepSides(GuiGraphics gfx) {
         sideHits.clear();
         ResourceLocation id = selectedId();
-        JsonObject seep = id == null || view == null || placing != null || adding != null || facePicking ? null : firstSeep(base(id));
+        JsonObject seep = id == null || view == null || placing != null || adding != null || facePicking || pickingPort ? null : firstSeep(base(id));
         if (seep == null) {
             return;
         }
@@ -3578,7 +3807,7 @@ public class EffectStudioScreen extends Screen {
             }
         }
         marqueeArmed = button == 0 && view != null && viewport.contains((int) mouseX, (int) mouseY) && selectedId() != null && menu == null
-                && placing == null && adding == null && pickingBlocks == null && !facePicking && !handles().isEmpty();
+                && placing == null && adding == null && pickingBlocks == null && !facePicking && !pickingPort && !handles().isEmpty();
         int startsBefore = placingStarts;
         boolean handled = super.mouseClicked(mouseX, mouseY, button);
         dragFromLibrary = button == 0 && !session.collapsed && mouseX < PANEL + 8 && placing != null && placingStarts != startsBefore;
@@ -3723,7 +3952,7 @@ public class EffectStudioScreen extends Screen {
             }
         }
         if (button == 0 && view != null && placing == null && adding == null && viewport.contains((int) mouseX, (int) mouseY)
-                && !facePicking && !hasControlDown() && Math.abs(mouseX - pressX) + Math.abs(mouseY - pressY) < 4 && handleName != null) {
+                && !facePicking && !pickingPort && !hasControlDown() && Math.abs(mouseX - pressX) + Math.abs(mouseY - pressY) < 4 && handleName != null) {
             deselect();
             rebuildWidgets();
         }
@@ -3741,6 +3970,10 @@ public class EffectStudioScreen extends Screen {
             } else if (facePicking) {
                 if (hit != null) {
                     toggleFace(hit);
+                }
+            } else if (pickingPort) {
+                if (hit != null) {
+                    choosePort(hit);
                 }
             } else if (adding != null) {
                 Handle target = linking() ? handleAt(mouseX, mouseY, adding) : null;
@@ -3807,7 +4040,7 @@ public class EffectStudioScreen extends Screen {
             redo();
             return true;
         }
-        if (!typing && !facePicking && (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE) && handle() != null) {
+        if (!typing && !facePicking && !pickingPort && (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE) && handle() != null) {
             deleteSelected();
             return true;
         }
@@ -3816,6 +4049,11 @@ public class EffectStudioScreen extends Screen {
         }
         if (keyCode == GLFW.GLFW_KEY_TAB) {
             togglePanels();
+            return true;
+        }
+        if (pickingPort && keyCode == 256) {
+            pickingPort = false;
+            rebuildWidgets();
             return true;
         }
         if (facePicking && keyCode == 256) {

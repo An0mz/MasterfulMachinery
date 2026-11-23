@@ -114,7 +114,20 @@ public class VisualsStructureAttachment extends StructureAttachment {
         return result;
     }
 
-    private static FluidStack firstFluid(Level level, BlockPos controllerPos, StructureLayout layout, Rotation rotation, @Nullable String key) {
+    public static boolean isFluidPort(Level level, BlockPos controllerPos, StructureLayout layout, Rotation rotation, @Nullable String key) {
+        if (key == null) {
+            return false;
+        }
+        for (PositionedLayoutPiece piece : layout.getRotatedPositionedPieces().get(rotation)) {
+            if (key.equals(piece.piece().valueId()) && level.getBlockEntity(piece.findAbsolutePos(controllerPos)) instanceof IPortBlockEntity port
+                    && port.getStorage() instanceof FluidPortStorage) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static FluidStack firstFluid(Level level, BlockPos controllerPos, StructureLayout layout, Rotation rotation, @Nullable String key) {
         if (key == null) {
             return FluidStack.EMPTY;
         }

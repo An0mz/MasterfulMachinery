@@ -65,6 +65,7 @@ public final class EffectStudio {
         boolean open;
         boolean dirty = true;
         boolean unsaved;
+        int previewFluid;
         @Nullable
         List<EffectVisual> base;
         @Nullable

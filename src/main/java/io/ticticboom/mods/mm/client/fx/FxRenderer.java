@@ -13,6 +13,7 @@ import io.ticticboom.mods.mm.structure.StructureModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.Rotation;
+import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
@@ -50,7 +51,8 @@ public final class FxRenderer {
     }
 
     public static void renderPreview(FxInstance instance, BlockAndTintGetter level, PoseStack pose, MultiBufferSource buffers,
-                                     Vector3f camera, Vector3f left, Vector3f up, Vector3f look, boolean working, float partialTick) {
+                                     Vector3f camera, Vector3f left, Vector3f up, Vector3f look, boolean working, List<FluidStack> fluids,
+                                     float partialTick) {
         var mc = Minecraft.getInstance();
         if (mc.level == null || instance.effects.isEmpty()) {
             return;
@@ -76,6 +78,7 @@ public final class FxRenderer {
         ctx.cameraX = camera.x();
         ctx.cameraY = camera.y();
         ctx.cameraZ = camera.z();
+        instance.colors(fluids);
         instance.tick(ctx, working);
         instance.render(ctx);
         ctx.level = null;
