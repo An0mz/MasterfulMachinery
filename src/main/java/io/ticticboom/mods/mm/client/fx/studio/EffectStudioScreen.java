@@ -235,26 +235,22 @@ public class EffectStudioScreen extends Screen {
             session.idle = !session.idle;
             b.setMessage(Component.translatable(session.idle ? "gui.mm.effect_studio.idle" : "gui.mm.effect_studio.working"));
         }).bounds(viewport.x(), by, 90, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable(session.fast ? "gui.mm.effect_studio.fast_on" : "gui.mm.effect_studio.fast_off"), b -> {
-            session.fast = !session.fast;
-            b.setMessage(Component.translatable(session.fast ? "gui.mm.effect_studio.fast_on" : "gui.mm.effect_studio.fast_off"));
-        }).bounds(viewport.x() + 94, by, 70, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.save"), b -> {
             boolean ok = EffectStudio.save(session);
             minecraft.player.displayClientMessage(Component.translatable(ok ? "gui.mm.effect_studio.saved" : "gui.mm.effect_studio.save_failed"), true);
-        }).bounds(viewport.x() + 168, by, 60, 20).build());
+        }).bounds(viewport.x() + 94, by, 60, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.mm.effect_studio.close"), b -> onClose())
-                .bounds(viewport.x() + 232, by, 60, 20).build());
+                .bounds(viewport.x() + 158, by, 60, 20).build());
         undoButton = addRenderableWidget(Button.builder(Component.literal("\u21B6"), b -> undo())
                 .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.undo")))
-                .bounds(viewport.x() + 296, by, 20, 20).build());
+                .bounds(viewport.x() + 222, by, 20, 20).build());
         redoButton = addRenderableWidget(Button.builder(Component.literal("\u21B7"), b -> redo())
                 .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.redo")))
-                .bounds(viewport.x() + 318, by, 20, 20).build());
+                .bounds(viewport.x() + 244, by, 20, 20).build());
         updateHistoryButtons();
         addRenderableWidget(Button.builder(Component.literal(session.collapsed ? "\u21D4" : "\u21D5"), b -> togglePanels())
                 .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.hide_panels")))
-                .bounds(viewport.x() + 342, by, 20, 20).build());
+                .bounds(viewport.x() + 268, by, 20, 20).build());
         centreButton = addWidget(Button.builder(Component.translatable("gui.mm.effect_studio.centre"), b -> centreSelected())
                 .tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.centre_tip")))
                 .bounds(viewport.x() + 158, viewport.y() + viewport.h() - 21, 54, 18).build());
@@ -3181,7 +3177,7 @@ public class EffectStudioScreen extends Screen {
         Vector3f look = inverse.transformDirection(new Vector3f(0, 0, -1)).normalize();
         Vector3f up = inverse.transformDirection(new Vector3f(0, 1, 0)).normalize();
         Vector3f left = inverse.transformDirection(new Vector3f(-1, 0, 0)).normalize();
-        FxRenderer.renderPreview(preview, view.previewWorld(), pose, buffers, camera, left, up, look, !session.idle, session.fast ? 4 : 1, partialTick);
+        FxRenderer.renderPreview(preview, view.previewWorld(), pose, buffers, camera, left, up, look, !session.idle, partialTick);
     }
 
     @Override

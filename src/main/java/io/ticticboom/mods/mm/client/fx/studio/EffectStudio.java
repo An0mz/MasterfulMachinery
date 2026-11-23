@@ -57,7 +57,6 @@ public final class EffectStudio {
         final List<JsonObject> effects;
         int selected = -1;
         boolean idle;
-        boolean fast;
         int tab;
         int sliderMode;
         boolean collapsed;

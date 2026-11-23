@@ -50,7 +50,7 @@ public final class FxRenderer {
     }
 
     public static void renderPreview(FxInstance instance, BlockAndTintGetter level, PoseStack pose, MultiBufferSource buffers,
-                                     Vector3f camera, Vector3f left, Vector3f up, Vector3f look, boolean working, double boost, float partialTick) {
+                                     Vector3f camera, Vector3f left, Vector3f up, Vector3f look, boolean working, float partialTick) {
         var mc = Minecraft.getInstance();
         if (mc.level == null || instance.effects.isEmpty()) {
             return;
@@ -59,7 +59,6 @@ public final class FxRenderer {
         ctx.level = level;
         ctx.origin = BlockPos.ZERO;
         ctx.fullBright = true;
-        ctx.boost = boost;
         ctx.lod = 0;
         ctx.time = (mc.level.getGameTime() + (double) partialTick) / 20.0;
         ctx.distance = 8;
@@ -79,7 +78,6 @@ public final class FxRenderer {
         ctx.cameraZ = camera.z();
         instance.tick(ctx, working);
         instance.render(ctx);
-        ctx.boost = 1;
         ctx.level = null;
         ctx.buffers = null;
         ctx.pose = null;

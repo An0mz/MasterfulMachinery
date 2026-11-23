@@ -578,8 +578,6 @@
   "gui.mm.effect_studio.advanced": "Advanced",
   "gui.mm.effect_studio.working": "Showing: Working",
   "gui.mm.effect_studio.idle": "Showing: Idle",
-  "gui.mm.effect_studio.fast_on": "Fast: On",
-  "gui.mm.effect_studio.fast_off": "Fast: Off",
   "gui.mm.effect_studio.click.underside": "%s: click the underside of a block for '%s', Ctrl-click to add several (Esc to cancel)",
   "gui.mm.effect_studio.click.held": "%s: Ctrl-click more points for '%s', click the last one or press Enter",
   "gui.mm.effect_studio.click.add": "Click to add a point to '%s', Ctrl-click to keep adding (Esc to stop)",

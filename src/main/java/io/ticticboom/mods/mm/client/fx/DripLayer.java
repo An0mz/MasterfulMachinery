@@ -87,7 +87,7 @@ public final class DripLayer implements FxLayer {
         @Override
         public void update(FxContext ctx) {
             double ws = ctx.intensity.now();
-            double scale = rate.at(ws) * ctx.boost;
+            double scale = rate.at(ws);
             for (FxColumn c : columns) {
                 if (!c.blockAbove) {
                     continue;
