@@ -3,6 +3,7 @@ package io.ticticboom.mods.mm.client.fx;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import org.jetbrains.annotations.Nullable;
 
 public final class FxMesh {
     private FxMesh() {
@@ -62,9 +63,9 @@ public final class FxMesh {
     }
 
     public static void lathe(VertexConsumer vc, PoseStack.Pose pose, double x, double y, double z, double[] radius, double[] dy, int count,
-                             int sides, int color, int light, double uSeed, double vSeed) {
+                             int sides, int color, int light, double uSeed, double vSeed, @Nullable FxFluidSprite sprite) {
         float u0b = (float) frac(uSeed) * 0.75f;
-        float v0b = (float) frac(vSeed * 0.37);
+        float v0b = (float) frac(vSeed * 0.37) * (sprite != null ? 0.85f : 1f);
         double[] cos = FxTrig.cos(sides);
         double[] sin = FxTrig.sin(sides);
         for (int k = 0; k < count - 1; k++) {
@@ -83,6 +84,12 @@ public final class FxMesh {
                 float u1 = u0b + (s + 1) * 0.25f / sides;
                 float v0 = v0b + k * 0.03f;
                 float v1 = v0b + (k + 1) * 0.03f;
+                if (sprite != null) {
+                    u0 = sprite.u(u0);
+                    u1 = sprite.u(u1);
+                    v0 = sprite.v(v0);
+                    v1 = sprite.v(v1);
+                }
                 quad(vc, pose, x + c0 * r0, y0, z + s0 * r0, u0, v0, x + c0 * r1, y1, z + s0 * r1, u0, v1,
                         x + c1 * r1, y1, z + s1 * r1, u1, v1, x + c1 * r0, y0, z + s1 * r0, u1, v0,
                         color, light, nx / nl, ny / nl, nz / nl);

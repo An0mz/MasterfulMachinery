@@ -20,6 +20,10 @@ public final class FxPortColor {
         AVERAGES.clear();
     }
 
+    public static int tint(FluidStack fluid) {
+        return fluid.isEmpty() ? 0xFFFFFF : IClientFluidTypeExtensions.of(fluid.getFluid()).getTintColor(fluid) & 0xFFFFFF;
+    }
+
     public static int of(FluidStack fluid) {
         if (fluid.isEmpty()) {
             return -1;

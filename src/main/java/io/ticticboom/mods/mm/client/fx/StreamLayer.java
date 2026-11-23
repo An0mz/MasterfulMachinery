@@ -11,12 +11,14 @@ public final class StreamLayer implements FxLayer {
     private static final int MAX_SEGMENTS = 44;
     private static final int MAX_FALL = 64;
     private static final double BREAK_MIN_INTENSITY = 0.3;
+    private static final double FLUID_TILES_PER_BLOCK = 0.5;
 
     private final String from;
     private final String to;
     private final ResourceLocation texture;
     private final int color;
     private final boolean portColor;
+    private final boolean portTexture;
     private final boolean glow;
     private final FxValue alpha;
     private final double radius;
@@ -46,6 +48,7 @@ public final class StreamLayer implements FxLayer {
         texture = FxTexture.required(json, "stream");
         color = FxColor.parse(json, "color", 0xFFFFFF);
         portColor = FxColor.port(json);
+        portTexture = FxColor.portTexture(json);
         glow = json.has("glow") && json.get("glow").getAsBoolean();
         alpha = FxValue.parse(json, "alpha", 0.925);
         radius = number(json, "radius", 0.085);
@@ -231,7 +234,9 @@ public final class StreamLayer implements FxLayer {
         @Override
         public void render(FxContext ctx) {
             VertexConsumer vc = null;
-            int tint = FxColor.pick(portColor, color, ctx);
+            FxFluidSprite sprite = portTexture ? ctx.portFlowing : null;
+            int tint = FxColor.pick(portColor, color, ctx, sprite);
+            double fluidScroll = ctx.time * textureSpeed;
             int segments = ctx.lod == 0 ? 44 : ctx.lod == 1 ? 28 : 18;
             int sides = ctx.lod == 0 ? 6 : 4;
             int a = (int) (255 * FxNoise.clamp(alpha.at(ctx.intensity.now())) * ctx.fade);
@@ -277,10 +282,14 @@ public final class StreamLayer implements FxLayer {
                     continue;
                 }
                 if (vc == null) {
-                    if (renderType == null) {
-                        renderType = RenderType.entityTranslucentCull(texture);
+                    if (sprite != null) {
+                        vc = ctx.buffers.getBuffer(FxFluidSprite.renderType(true));
+                    } else {
+                        if (renderType == null) {
+                            renderType = RenderType.entityTranslucentCull(texture);
+                        }
+                        vc = ctx.buffers.getBuffer(renderType);
                     }
-                    vc = ctx.buffers.getBuffer(renderType);
                 }
                 double uOff = (c.index * 4 % 12) / 16.0;
                 for (int k = 0; k < segments; k++) {
@@ -290,18 +299,27 @@ public final class StreamLayer implements FxLayer {
                         continue;
                     }
                     int light = glow ? LightTexture.FULL_BRIGHT : c.lightAt((track.py[k] + track.py[k + 1]) * 0.5);
+                    float va = (float) track.pv[k];
+                    float vb = (float) track.pv[k + 1];
+                    if (sprite != null) {
+                        double sa = track.depth[k] * FLUID_TILES_PER_BLOCK - fluidScroll;
+                        double sb = track.depth[k + 1] * FLUID_TILES_PER_BLOCK - fluidScroll;
+                        double wrap = Math.floor(Math.min(sa, sb));
+                        va = sprite.v(sa - wrap);
+                        vb = sprite.v(sb - wrap);
+                    }
                     for (int s = 0; s < sides; s++) {
                         double c0 = cos[s], s0 = sin[s], c1 = cos[s + 1], s1 = sin[s + 1];
-                        float u0 = (float) (uOff + s * textureWidth / sides);
-                        float u1 = (float) (uOff + (s + 1) * textureWidth / sides);
+                        float u0 = sprite == null ? (float) (uOff + s * textureWidth / sides) : sprite.u((double) s / sides);
+                        float u1 = sprite == null ? (float) (uOff + (s + 1) * textureWidth / sides) : sprite.u((double) (s + 1) / sides);
                         double nx = (c0 + c1) * 0.5;
                         double nz = (s0 + s1) * 0.5;
                         int col = sideColor[s];
                         FxMesh.quad(vc, ctx.pose,
-                                track.px[k] + c0 * r0, track.py[k], track.pz[k] + s0 * r0, u0, (float) track.pv[k],
-                                track.px[k + 1] + c0 * r1, track.py[k + 1], track.pz[k + 1] + s0 * r1, u0, (float) track.pv[k + 1],
-                                track.px[k + 1] + c1 * r1, track.py[k + 1], track.pz[k + 1] + s1 * r1, u1, (float) track.pv[k + 1],
-                                track.px[k] + c1 * r0, track.py[k], track.pz[k] + s1 * r0, u1, (float) track.pv[k],
+                                track.px[k] + c0 * r0, track.py[k], track.pz[k] + s0 * r0, u0, va,
+                                track.px[k + 1] + c0 * r1, track.py[k + 1], track.pz[k + 1] + s0 * r1, u0, vb,
+                                track.px[k + 1] + c1 * r1, track.py[k + 1], track.pz[k + 1] + s1 * r1, u1, vb,
+                                track.px[k] + c1 * r0, track.py[k], track.pz[k] + s1 * r0, u1, va,
                                 col, light, nx, 0, nz);
                     }
                 }

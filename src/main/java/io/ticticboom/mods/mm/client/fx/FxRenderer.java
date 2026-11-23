@@ -142,6 +142,8 @@ public final class FxRenderer {
         instance.tick(ctx, working);
         instance.render(ctx);
         ctx.portColor = -1;
+        ctx.portStill = null;
+        ctx.portFlowing = null;
         ctx.level = null;
         ctx.buffers = null;
         ctx.pose = null;

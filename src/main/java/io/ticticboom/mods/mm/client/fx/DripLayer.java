@@ -14,6 +14,7 @@ public final class DripLayer implements FxLayer {
     private final ResourceLocation texture;
     private final int color;
     private final boolean portColor;
+    private final boolean portTexture;
     private final boolean glow;
     private final double alpha;
     private final FxValue rate;
@@ -30,6 +31,7 @@ public final class DripLayer implements FxLayer {
         texture = FxTexture.required(json, "drip");
         color = FxColor.parse(json, "color", 0xFFFFFF);
         portColor = FxColor.port(json);
+        portTexture = FxColor.portTexture(json);
         glow = json.has("glow") && json.get("glow").getAsBoolean();
         alpha = number(json, "alpha", 0.96);
         rate = FxValue.parse(json, "rate", 1.0);
@@ -112,7 +114,8 @@ public final class DripLayer implements FxLayer {
             }
             VertexConsumer vc = null;
             int sides = ctx.lod == 0 ? 6 : 4;
-            int col = FxColor.argb((int) (255 * alpha * ctx.fade), FxColor.pick(portColor, color, ctx), 1.0);
+            FxFluidSprite sprite = portTexture ? ctx.portFlowing : null;
+            int col = FxColor.argb((int) (255 * alpha * ctx.fade), FxColor.pick(portColor, color, ctx, sprite), 1.0);
             for (FxColumn c : columns) {
                 if (!visible(c)) {
                     continue;
@@ -132,13 +135,17 @@ public final class DripLayer implements FxLayer {
                 radius[4] = 0;
                 dy[4] = -rb * 2.0 - neck;
                 if (vc == null) {
-                    if (renderType == null) {
-                        renderType = RenderType.entityTranslucentCull(texture);
+                    if (sprite != null) {
+                        vc = ctx.buffers.getBuffer(FxFluidSprite.renderType(true));
+                    } else {
+                        if (renderType == null) {
+                            renderType = RenderType.entityTranslucentCull(texture);
+                        }
+                        vc = ctx.buffers.getBuffer(renderType);
                     }
-                    vc = ctx.buffers.getBuffer(renderType);
                 }
                 FxMesh.lathe(vc, ctx.pose, c.x, c.top - 0.002, c.z, radius, dy, 5, sides, col, glow ? LightTexture.FULL_BRIGHT : c.lightAt(c.top - 0.5),
-                        c.index * 0.25, ctx.time * 0.05);
+                        c.index * 0.25, ctx.time * 0.05, sprite);
             }
         }
     }

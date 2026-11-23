@@ -12,6 +12,7 @@ public final class RippleLayer implements FxLayer {
     private final ResourceLocation texture;
     private final int color;
     private final boolean portColor;
+    private final boolean portTexture;
     private final boolean glow;
     private final double alpha;
     private final double life;
@@ -23,6 +24,7 @@ public final class RippleLayer implements FxLayer {
         texture = FxTexture.required(json, "ripple");
         color = FxColor.parse(json, "color", 0xFFFFFF);
         portColor = FxColor.port(json);
+        portTexture = FxColor.portTexture(json);
         glow = json.has("glow") && json.get("glow").getAsBoolean();
         alpha = number(json, "alpha", 1.0);
         life = Math.max(0.05, number(json, "life", 0.55));
@@ -103,6 +105,11 @@ public final class RippleLayer implements FxLayer {
                 return;
             }
             VertexConsumer vc = null;
+            FxFluidSprite sprite = portTexture ? ctx.portStill : null;
+            float ua = sprite == null ? 0.1f : sprite.u(0.4);
+            float ub = sprite == null ? 0.12f : sprite.u(0.45);
+            float va = sprite == null ? 0.1f : sprite.v(0.4);
+            float vb = sprite == null ? 0.12f : sprite.v(0.45);
             for (int i = 0; i < count; i++) {
                 FxColumn c = column[i];
                 double age = ctx.time - t0[i];
@@ -117,22 +124,26 @@ public final class RippleLayer implements FxLayer {
                     continue;
                 }
                 if (vc == null) {
-                    if (renderType == null) {
-                        renderType = RenderType.entityTranslucent(texture);
+                    if (sprite != null) {
+                        vc = ctx.buffers.getBuffer(FxFluidSprite.renderType(false));
+                    } else {
+                        if (renderType == null) {
+                            renderType = RenderType.entityTranslucent(texture);
+                        }
+                        vc = ctx.buffers.getBuffer(renderType);
                     }
-                    vc = ctx.buffers.getBuffer(renderType);
                 }
-                int col = FxColor.argb(a, FxColor.pick(portColor, color, ctx), 1.25);
+                int col = FxColor.argb(a, FxColor.pick(portColor, color, ctx, sprite), 1.25);
                 int light = glow ? LightTexture.FULL_BRIGHT : c.lightAt(c.landing() + 0.5);
                 double y = c.landing() + 0.017;
                 double ri = Math.max(0, rr - width);
                 double[] cos = FxTrig.cos(SIDES);
                 double[] sin = FxTrig.sin(SIDES);
                 for (int s = 0; s < SIDES; s++) {
-                    FxMesh.vertex(vc, ctx.pose, x[i] + cos[s] * ri, y, z[i] + sin[s] * ri, 0.1f, 0.1f, col, light, 0, 1, 0);
-                    FxMesh.vertex(vc, ctx.pose, x[i] + cos[s] * rr, y, z[i] + sin[s] * rr, 0.12f, 0.1f, col, light, 0, 1, 0);
-                    FxMesh.vertex(vc, ctx.pose, x[i] + cos[s + 1] * rr, y, z[i] + sin[s + 1] * rr, 0.12f, 0.12f, col, light, 0, 1, 0);
-                    FxMesh.vertex(vc, ctx.pose, x[i] + cos[s + 1] * ri, y, z[i] + sin[s + 1] * ri, 0.1f, 0.12f, col, light, 0, 1, 0);
+                    FxMesh.vertex(vc, ctx.pose, x[i] + cos[s] * ri, y, z[i] + sin[s] * ri, ua, va, col, light, 0, 1, 0);
+                    FxMesh.vertex(vc, ctx.pose, x[i] + cos[s] * rr, y, z[i] + sin[s] * rr, ub, va, col, light, 0, 1, 0);
+                    FxMesh.vertex(vc, ctx.pose, x[i] + cos[s + 1] * rr, y, z[i] + sin[s + 1] * rr, ub, vb, col, light, 0, 1, 0);
+                    FxMesh.vertex(vc, ctx.pose, x[i] + cos[s + 1] * ri, y, z[i] + sin[s + 1] * ri, ua, vb, col, light, 0, 1, 0);
                 }
             }
         }

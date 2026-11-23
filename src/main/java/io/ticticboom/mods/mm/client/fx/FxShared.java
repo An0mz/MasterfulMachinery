@@ -22,6 +22,11 @@ public final class FxShared {
 
     public final Rotation rotation;
     public int portColor = -1;
+    public int portTint = 0xFFFFFF;
+    @Nullable
+    public FxFluidSprite portStill;
+    @Nullable
+    public FxFluidSprite portFlowing;
 
     FxShared(EffectVisual.Resolved anchors, long seed, Rotation rotation) {
         this.anchors = anchors;

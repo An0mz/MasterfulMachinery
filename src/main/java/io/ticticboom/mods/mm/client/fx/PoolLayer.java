@@ -20,6 +20,7 @@ public final class PoolLayer implements FxLayer {
     private final ResourceLocation texture;
     private final int color;
     private final boolean portColor;
+    private final boolean portTexture;
     private final boolean glow;
     private final double alpha;
     private final double size;
@@ -38,6 +39,7 @@ public final class PoolLayer implements FxLayer {
         texture = FxTexture.required(json, "pool");
         color = FxColor.parse(json, "color", 0xFFFFFF);
         portColor = FxColor.port(json);
+        portTexture = FxColor.portTexture(json);
         glow = json.has("glow") && json.get("glow").getAsBoolean();
         alpha = number(json, "alpha", 1.0);
         size = number(json, "size", 0.21);
@@ -121,17 +123,22 @@ public final class PoolLayer implements FxLayer {
         @Override
         public void render(FxContext ctx) {
             VertexConsumer vc = null;
-            int tint = FxColor.pick(portColor, color, ctx);
+            FxFluidSprite sprite = portTexture ? ctx.portStill : null;
+            int tint = FxColor.pick(portColor, color, ctx, sprite);
             double ws = ctx.intensity.now();
             for (FxColumn c : columns) {
                 if (!visible(c)) {
                     continue;
                 }
                 if (vc == null) {
-                    if (renderType == null) {
-                        renderType = RenderType.entityTranslucent(texture);
+                    if (sprite != null) {
+                        vc = ctx.buffers.getBuffer(FxFluidSprite.renderType(false));
+                    } else {
+                        if (renderType == null) {
+                            renderType = RenderType.entityTranslucent(texture);
+                        }
+                        vc = ctx.buffers.getBuffer(renderType);
                     }
-                    vc = ctx.buffers.getBuffer(renderType);
                 }
                 double p = c.pool;
                 double r = base + size * Math.sqrt(p);
@@ -157,8 +164,10 @@ public final class PoolLayer implements FxLayer {
                         zs[k][i] = c.z + sin[i] * rr;
                         double ta = a + turn * (1.15 - RINGS[k]);
                         double tr = rr * 0.5;
-                        us[k][i] = (float) (uo + Math.cos(ta) * tr);
-                        vs[k][i] = (float) (vo + Math.sin(ta) * tr);
+                        double pu = uo + Math.cos(ta) * tr;
+                        double pv = vo + Math.sin(ta) * tr;
+                        us[k][i] = sprite == null ? (float) pu : sprite.u(pu);
+                        vs[k][i] = sprite == null ? (float) pv : sprite.v(pv);
                     }
                 }
                 int light = glow ? LightTexture.FULL_BRIGHT : c.lightAt(c.landing() + 0.5);

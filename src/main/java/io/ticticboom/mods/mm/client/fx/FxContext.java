@@ -9,6 +9,7 @@ import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jetbrains.annotations.Nullable;
 
 public final class FxContext {
     public BlockAndTintGetter level;
@@ -20,6 +21,11 @@ public final class FxContext {
     public float fade;
     public double distance;
     public int portColor = -1;
+    public int portTint = 0xFFFFFF;
+    @Nullable
+    public FxFluidSprite portStill;
+    @Nullable
+    public FxFluidSprite portFlowing;
     public int lod;
     public float leftX;
     public float leftY;

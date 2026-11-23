@@ -10,6 +10,7 @@ public final class DropsLayer implements FxLayer {
     private final ResourceLocation texture;
     private final int color;
     private final boolean portColor;
+    private final boolean portTexture;
     private final boolean glow;
     private final double alpha;
     private final double gravity;
@@ -21,6 +22,7 @@ public final class DropsLayer implements FxLayer {
         texture = FxTexture.required(json, "drops");
         color = FxColor.parse(json, "color", 0xFFFFFF);
         portColor = FxColor.port(json);
+        portTexture = FxColor.portTexture(json);
         glow = json.has("glow") && json.get("glow").getAsBoolean();
         alpha = number(json, "alpha", 0.96);
         gravity = number(json, "gravity", 9.81);
@@ -141,11 +143,12 @@ public final class DropsLayer implements FxLayer {
             if (count == 0) {
                 return;
             }
+            FxFluidSprite sprite = portTexture ? ctx.portFlowing : null;
             if (renderType == null) {
                 renderType = RenderType.entityTranslucentCull(texture);
             }
-            VertexConsumer vc = ctx.buffers.getBuffer(renderType);
-            int col = FxColor.argb((int) (255 * alpha * ctx.fade), FxColor.pick(portColor, color, ctx), 1.0);
+            VertexConsumer vc = ctx.buffers.getBuffer(sprite != null ? FxFluidSprite.renderType(true) : renderType);
+            int col = FxColor.argb((int) (255 * alpha * ctx.fade), FxColor.pick(portColor, color, ctx, sprite), 1.0);
             for (int i = 0; i < count; i++) {
                 double a = age(i, ctx.time);
                 double x = x0[i] + vx[i] * a;
@@ -167,7 +170,7 @@ public final class DropsLayer implements FxLayer {
                 dy[3] = -h * 0.5;
                 radius[4] = 0;
                 dy[4] = -h * 0.75;
-                FxMesh.lathe(vc, ctx.pose, x, y, z, radius, dy, 5, 5, col, glow ? LightTexture.FULL_BRIGHT : column[i].lightAt(y), size[i] * 37 % 1, t0[i]);
+                FxMesh.lathe(vc, ctx.pose, x, y, z, radius, dy, 5, 5, col, glow ? LightTexture.FULL_BRIGHT : column[i].lightAt(y), size[i] * 37 % 1, t0[i], sprite);
             }
         }
     }

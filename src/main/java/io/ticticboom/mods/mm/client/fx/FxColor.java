@@ -1,6 +1,7 @@
 package io.ticticboom.mods.mm.client.fx;
 
 import com.google.gson.JsonObject;
+import org.jetbrains.annotations.Nullable;
 
 public final class FxColor {
     private FxColor() {
@@ -24,8 +25,16 @@ public final class FxColor {
         return json.has("port_color") && json.get("port_color").getAsBoolean();
     }
 
+    public static boolean portTexture(JsonObject json) {
+        return json.has("port_texture") && json.get("port_texture").getAsBoolean();
+    }
+
     public static int pick(boolean port, int own, FxContext ctx) {
         return port && ctx.portColor >= 0 ? ctx.portColor : own;
+    }
+
+    public static int pick(boolean port, int own, FxContext ctx, @Nullable FxFluidSprite sprite) {
+        return sprite != null ? ctx.portTint : pick(port, own, ctx);
     }
 
     public static double luminance(int rgb) {

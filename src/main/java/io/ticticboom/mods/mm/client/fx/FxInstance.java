@@ -126,7 +126,12 @@ public final class FxInstance {
         fluids = next;
         for (int i = 0; i < effects.size(); i++) {
             Effect effect = effects.get(i);
-            effect.shared().portColor = effect.visual() < next.size() ? FxPortColor.of(next.get(effect.visual())) : -1;
+            FxShared shared = effect.shared();
+            FluidStack fluid = effect.visual() < next.size() ? next.get(effect.visual()) : FluidStack.EMPTY;
+            shared.portColor = fluid.isEmpty() ? -1 : FxPortColor.of(fluid);
+            shared.portTint = FxPortColor.tint(fluid);
+            shared.portStill = fluid.isEmpty() ? null : FxFluidSprite.still(fluid);
+            shared.portFlowing = fluid.isEmpty() ? null : FxFluidSprite.flowing(fluid);
         }
     }
 
@@ -195,6 +200,9 @@ public final class FxInstance {
             ctx.fade = (float) Math.min(1.0, (view - ctx.distance) / Math.max(1e-3, view - fadeStart));
             ctx.intensity = effect.intensity();
             ctx.portColor = effect.shared().portColor;
+            ctx.portTint = effect.shared().portTint;
+            ctx.portStill = effect.shared().portStill;
+            ctx.portFlowing = effect.shared().portFlowing;
             var states = effect.states();
             for (int s = 0; s < states.size(); s++) {
                 int before = FxStats.vertices;
