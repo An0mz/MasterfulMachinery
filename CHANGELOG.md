@@ -10,7 +10,8 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 - **Machine effects.** A structure can show animated effects on the formed machine: liquid streams,
   drips, falling drops, pools and ripples, blood seeping down the sides of blocks, particles such as
   smoke, steam and sparks, beams and arcs, and glowing faces and halos. Effects follow the machine's
-  idle and working state and can take their colour from a port's fluid. Put an effect file at
+  idle and working state and can take their colour from a port's fluid, or its texture with
+  `"port_texture": true` on a stream, drip, drops, pool or ripple layer. Put an effect file at
   `assets/<namespace>/mm_fx/<name>.json` in a resource pack or `kubejs/assets` (its textures come from
   your pack), then attach it to a structure with `.effect({ fx: 'mypack:kiln_fire', anchors: { ... } })`
   in KubeJS or a `data/<namespace>/mm/structure_effects/<name>.json` file.
