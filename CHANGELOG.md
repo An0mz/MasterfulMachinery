@@ -16,8 +16,8 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
   in KubeJS or a `data/<namespace>/mm/structure_effects/<name>.json` file.
 - **Effect Studio.** Hold the Effect Wand and right-click any block of a formed machine (operators only) to build
   effects on the real machine. Drag a preset or part from the library onto the machine, drag its
-  points into place, select several points with Ctrl-click or a drag box and center them on their
-  blocks together, center a point between several block faces, connect arcs between points, pick
+  points into place, select several points with Ctrl-click or a drag box to move, center or delete them
+  together, center a point between several block faces, connect arcs between points, pick
   which blocks glow and which sides of a block bleed, and turn a layer off for a single spot. The Look tab sets amount, size and speed (separately
   for idle and working), colour and particle direction, and Reroll gives a new random look. Save your
   own presets to reuse them on other machines. Save writes the effect files into `kubejs/`; on a
