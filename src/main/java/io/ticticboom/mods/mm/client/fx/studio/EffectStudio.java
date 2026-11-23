@@ -6,11 +6,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.ticticboom.mods.mm.client.fx.FxDefinition;
+import io.ticticboom.mods.mm.client.fx.FxManager;
 import io.ticticboom.mods.mm.Ref;
 import io.ticticboom.mods.mm.controller.machine.register.MachineControllerBlockEntity;
 import io.ticticboom.mods.mm.setup.MMRegisters;
 import io.ticticboom.mods.mm.structure.attachment.visuals.EffectVisual;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -62,6 +64,7 @@ public final class EffectStudio {
         boolean collapsed;
         boolean open;
         boolean dirty = true;
+        boolean unsaved;
         @Nullable
         List<EffectVisual> base;
         @Nullable
@@ -177,7 +180,20 @@ public final class EffectStudio {
             return;
         }
         ResourceLocation id = be.getStructure().id();
-        if (session == null || !session.controller.equals(be.getBlockPos()) || !session.structure.equals(id)) {
+        boolean same = session != null && session.controller.equals(be.getBlockPos()) && session.structure.equals(id);
+        if (!same && session != null && session.unsaved) {
+            mc.setScreen(new ConfirmScreen(yes -> {
+                if (yes && !be.isRemoved()) {
+                    FxManager.reload(mc.getResourceManager());
+                    session = new Session(be.getBlockPos(), id, bound(be));
+                    mc.setScreen(new EffectStudioScreen(session));
+                } else {
+                    mc.setScreen(null);
+                }
+            }, Component.translatable("gui.mm.effect_studio.switch_title"), Component.translatable("gui.mm.effect_studio.switch_message")));
+            return;
+        }
+        if (!same) {
             session = new Session(be.getBlockPos(), id, bound(be));
         }
         mc.setScreen(new EffectStudioScreen(session));
@@ -314,6 +330,7 @@ public final class EffectStudio {
             Ref.LOG.error("Effect Studio: could not write {}", path, e);
             return false;
         }
+        s.unsaved = false;
         Minecraft.getInstance().player.connection.sendCommand("reload");
         return true;
     }

@@ -1485,6 +1485,7 @@ public class EffectStudioScreen extends Screen {
     }
 
     private void remember() {
+        session.unsaved = true;
         session.undo.add(snapshot());
         if (session.undo.size() > 100) {
             session.undo.remove(0);
@@ -1526,6 +1527,7 @@ public class EffectStudioScreen extends Screen {
         session.colors.clear();
         session.colors.putAll(snapshot.colors());
         session.selected = snapshot.selected();
+        session.unsaved = true;
         for (var entry : session.edited.entrySet()) {
             try {
                 FxManager.preview(entry.getKey(), entry.getValue());
@@ -3884,6 +3886,14 @@ public class EffectStudioScreen extends Screen {
         public void onClick(double mouseX, double mouseY) {
             remember();
             super.onClick(mouseX, mouseY);
+        }
+
+        @Override
+        public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+            if (keyCode == GLFW.GLFW_KEY_LEFT || keyCode == GLFW.GLFW_KEY_RIGHT) {
+                remember();
+            }
+            return super.keyPressed(keyCode, scanCode, modifiers);
         }
 
         @Override
