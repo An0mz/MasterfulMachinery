@@ -158,6 +158,9 @@ public class EffectStudioScreen extends Screen {
     private double arrowLastMouseY;
     private int pickingFor = -1;
     private final Set<Pick> group = new LinkedHashSet<>();
+    private final List<Handle> dragStart = new ArrayList<>();
+    @Nullable
+    private Handle collapseTo;
     private boolean marqueeArmed;
     private boolean marquee;
     private double marqueeX;
@@ -1638,11 +1641,17 @@ public class EffectStudioScreen extends Screen {
     }
 
     private void setHandle(Handle h, double x, double y, double z) {
+        if (writeHandle(h, x, y, z)) {
+            changed(h.name());
+        }
+    }
+
+    private boolean writeHandle(Handle h, double x, double y, double z) {
         JsonObject anchors = selectedAnchors();
         if (h.height() && anchors.has(h.name()) && anchors.get(h.name()).isJsonArray()) {
             List<double[]> points = pointsOf(anchors.get(h.name()));
             if (h.index() < 0 || h.index() >= points.size()) {
-                return;
+                return false;
             }
             points.get(h.index())[1] = Math.round(y * 16) / 16.0;
             anchors.add(h.name(), pointsJson(points));
@@ -1651,12 +1660,12 @@ public class EffectStudioScreen extends Screen {
         } else {
             List<double[]> points = pointsOf(anchors.get(h.name()));
             if (h.index() < 0 || h.index() >= points.size()) {
-                return;
+                return false;
             }
             points.set(h.index(), new double[]{x, y, z});
             anchors.add(h.name(), pointsJson(points));
         }
-        changed(h.name());
+        return true;
     }
 
     private void drag(double mouseX, double mouseY) {
@@ -1671,6 +1680,9 @@ public class EffectStudioScreen extends Screen {
             }
             remember();
             dragMoved = true;
+            collapseTo = null;
+            dragStart.clear();
+            dragStart.addAll(selectedPoints());
             dragY = h.y();
             lastMouseY = mouseY;
         }
@@ -1683,7 +1695,7 @@ public class EffectStudioScreen extends Screen {
             }
             dragY += (mouseY - lastMouseY) / (s1[1] - s0[1]);
             lastMouseY = mouseY;
-            setHandle(h, h.x(), Math.round(dragY * 16) / 16.0, h.z());
+            moveSelection(h, h.x(), Math.round(dragY * 16) / 16.0, h.z());
             return;
         }
         lastMouseY = mouseY;
@@ -1693,7 +1705,30 @@ public class EffectStudioScreen extends Screen {
         }
         Vec3 at = snap(hit);
         dragY = at.y + origin.getY();
-        setHandle(h, at.x + origin.getX(), at.y + origin.getY(), at.z + origin.getZ());
+        moveSelection(h, at.x + origin.getX(), at.y + origin.getY(), at.z + origin.getZ());
+    }
+
+    private void moveSelection(Handle primary, double x, double y, double z) {
+        Handle base = null;
+        for (Handle start : dragStart) {
+            if (start.name().equals(primary.name()) && start.index() == primary.index()) {
+                base = start;
+            }
+        }
+        if (base == null || dragStart.size() < 2 || primary.height()) {
+            setHandle(primary, x, y, z);
+            return;
+        }
+        double dx = x - base.x();
+        double dy = y - base.y();
+        double dz = z - base.z();
+        var moved = new LinkedHashSet<String>();
+        for (Handle start : dragStart) {
+            if (writeHandle(start, start.x() + dx, start.y() + dy, start.z() + dz)) {
+                moved.add(start.name());
+            }
+        }
+        moved.forEach(this::changed);
     }
 
     private void deleteHandle(Handle h) {
@@ -3520,12 +3555,23 @@ public class EffectStudioScreen extends Screen {
                     swallowRelease = true;
                     return true;
                 }
-                if (!(h.name().equals(handleName) && h.index() == handleIndex) || !group.isEmpty()) {
+                collapseTo = null;
+                if (!isSelected(h.name(), h.index())) {
                     selectOnly(h.name(), h.index());
                     rebuildWidgets();
+                } else if (!group.isEmpty()) {
+                    collapseTo = h;
+                    if (!(h.name().equals(handleName) && h.index() == handleIndex)) {
+                        group.remove(new Pick(h.name(), h.index()));
+                        group.add(new Pick(handleName, handleIndex));
+                        handleName = h.name();
+                        handleIndex = h.index();
+                        rebuildWidgets();
+                    }
                 }
                 dragging = true;
                 dragMoved = false;
+                dragStart.clear();
                 return true;
             }
         }
@@ -3636,6 +3682,7 @@ public class EffectStudioScreen extends Screen {
         if (overOverlay(mouseX, mouseY)) {
             arrowLayer = -1;
             marqueeArmed = false;
+            collapseTo = null;
             if (dragging) {
                 dragging = false;
                 if (dragMoved) {
@@ -3653,7 +3700,11 @@ public class EffectStudioScreen extends Screen {
             dragging = false;
             if (dragMoved) {
                 rebuildWidgets();
+            } else if (collapseTo != null && isSelected(collapseTo.name(), collapseTo.index())) {
+                selectOnly(collapseTo.name(), collapseTo.index());
+                rebuildWidgets();
             }
+            collapseTo = null;
             return true;
         }
         if (button == 1 && view != null && Math.abs(mouseX - pressX) + Math.abs(mouseY - pressY) < 4) {
