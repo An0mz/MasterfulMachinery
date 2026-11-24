@@ -7,6 +7,7 @@ import com.google.gson.JsonPrimitive;
 import com.mojang.blaze3d.platform.NativeImage;
 import io.ticticboom.mods.mm.client.fx.FxManager;
 import net.minecraft.ChatFormatting;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
@@ -17,14 +18,20 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.language.I18n;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
+import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.TreeSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -45,7 +52,18 @@ public class EffectLayersScreen extends Screen {
     private final Screen parent;
     private final ResourceLocation id;
     private final JsonObject json;
-    private final List<ResourceLocation> textures;
+    private List<ResourceLocation> textures;
+    @Nullable
+    private List<ResourceLocation> allTextures;
+    @Nullable
+    private List<ResourceLocation> pickerCache;
+    private final EditBox pickerSearch;
+    @Nullable
+    private List<ResourceLocation> fluidTextures;
+    private int pickerMode;
+    private boolean reloadingTextures;
+    @Nullable
+    private String folderError;
     private final Map<String, JsonObject> presets = EffectStudio.library("mm_fx_parts");
     private final List<String> presetNames = new ArrayList<>(presets.keySet());
     private final Map<ResourceLocation, int[]> textureInfo = new HashMap<>();
@@ -83,9 +101,109 @@ public class EffectLayersScreen extends Screen {
         if (!json.has("layers")) {
             json.add("layers", new JsonArray());
         }
+        this.textures = listTextures("textures/fx");
+        this.pickerSearch = new EditBox(Minecraft.getInstance().font, 0, 0, 100, 14, Component.empty());
+        this.pickerSearch.setMaxLength(60);
+        this.pickerSearch.setResponder(value -> {
+            pickerCache = null;
+            pickerScroll = 0;
+        });
+    }
+
+    private static List<ResourceLocation> listTextures(String folder) {
         var resources = Minecraft.getInstance().getResourceManager();
-        this.textures = resources.listResources("textures/fx", path -> path.getPath().endsWith(".png")).keySet()
-                .stream().sorted().toList();
+        return resources.listResources(folder, path -> path.getPath().endsWith(".png")).keySet().stream().sorted().toList();
+    }
+
+    private static List<ResourceLocation> listFluidTextures(List<ResourceLocation> all) {
+        var resources = Minecraft.getInstance().getResourceManager();
+        var found = new TreeSet<ResourceLocation>();
+        for (var fluid : BuiltInRegistries.FLUID) {
+            try {
+                var ext = IClientFluidTypeExtensions.of(fluid);
+                for (ResourceLocation sprite : new ResourceLocation[]{ext.getStillTexture(), ext.getFlowingTexture()}) {
+                    if (sprite == null) {
+                        continue;
+                    }
+                    ResourceLocation file = ResourceLocation.fromNamespaceAndPath(sprite.getNamespace(), "textures/" + sprite.getPath() + ".png");
+                    if (resources.getResource(file).isPresent()) {
+                        found.add(file);
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        for (ResourceLocation texture : all) {
+            String path = texture.getPath();
+            String name = path.substring(path.lastIndexOf('/') + 1, path.length() - 4);
+            if (name.endsWith("_still") || name.endsWith("_flow") || name.endsWith("_flowing") || path.contains("/fluid/") || path.contains("/fluids/")) {
+                found.add(texture);
+            }
+        }
+        return List.copyOf(found);
+    }
+
+    private List<ResourceLocation> pickerList() {
+        if (pickerCache == null) {
+            if (pickerMode > 0 && allTextures == null) {
+                allTextures = listTextures("textures");
+            }
+            if (pickerMode == 1 && fluidTextures == null) {
+                fluidTextures = listFluidTextures(allTextures);
+            }
+            List<ResourceLocation> source = pickerMode == 0 ? textures : pickerMode == 1 ? fluidTextures : allTextures;
+            String needle = pickerSearch.getValue().trim().toLowerCase(Locale.ROOT);
+            pickerCache = needle.isEmpty() ? source : source.stream().filter(t -> t.toString().toLowerCase(Locale.ROOT).contains(needle)).toList();
+        }
+        return pickerCache;
+    }
+
+    private void openPicker() {
+        pickerOpen = true;
+        pickerScroll = 0;
+        pickerCache = null;
+        folderError = null;
+        pickerSearch.setFocused(true);
+    }
+
+    private void refreshTextures() {
+        textures = listTextures("textures/fx");
+        allTextures = null;
+        fluidTextures = null;
+        pickerCache = null;
+        textureInfo.clear();
+    }
+
+    private void openTextureFolder() {
+        Path dir = FMLPaths.GAMEDIR.get().resolve("kubejs").resolve("assets").resolve(session.structure.getNamespace())
+                .resolve("textures").resolve("fx");
+        try {
+            Files.createDirectories(dir);
+            Util.getPlatform().openFile(dir.toFile());
+        } catch (Exception e) {
+            folderError = e.getMessage() != null ? e.getMessage() : e.toString();
+        }
+    }
+
+    private void reloadTextures() {
+        if (reloadingTextures) {
+            return;
+        }
+        reloadingTextures = true;
+        Minecraft mc = Minecraft.getInstance();
+        mc.reloadResourcePacks().thenRun(() -> mc.execute(() -> {
+            try {
+                session.edited.forEach((editedId, edited) -> {
+                    try {
+                        FxManager.preview(editedId, edited);
+                    } catch (Exception ignored) {
+                    }
+                });
+                refreshTextures();
+            } finally {
+                reloadingTextures = false;
+            }
+        }));
     }
 
     private JsonArray layers() {
@@ -578,10 +696,7 @@ public class EffectLayersScreen extends Screen {
     private void addTexture(FxSchema.Field f, int y) {
         String current = target().has("texture") && target().get("texture").isJsonPrimitive() ? target().get("texture").getAsString() : "";
         Component label = current.isEmpty() ? Component.translatable("gui.mm.effect_studio.texture_none") : Component.literal(font.plainSubstrByWidth(textureName(current), ctrlW - 28));
-        addRenderableWidget(Button.builder(label, b -> {
-            pickerOpen = true;
-            pickerScroll = 0;
-        }).tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.texture_pick"))).bounds(ctrlX + 22, y, Math.min(ctrlW - 22, 168), 18).build());
+        addRenderableWidget(Button.builder(label, b -> openPicker()).tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.texture_pick"))).bounds(ctrlX + 22, y, Math.min(ctrlW - 22, 168), 18).build());
     }
 
     private static String textureName(String texture) {
@@ -887,10 +1002,21 @@ public class EffectLayersScreen extends Screen {
         if (pickerOpen) {
             if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
                 pickerOpen = false;
+            } else {
+                pickerSearch.keyPressed(keyCode, scanCode, modifiers);
             }
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(char codePoint, int modifiers) {
+        if (pickerOpen) {
+            pickerSearch.charTyped(codePoint, modifiers);
+            return true;
+        }
+        return super.charTyped(codePoint, modifiers);
     }
 
     private int[] chooserBox() {
@@ -936,9 +1062,14 @@ public class EffectLayersScreen extends Screen {
         gfx.pose().popPose();
     }
 
+    private static final int MAX_PREVIEW = 512;
+    private static final int GRID_TOP = 42;
+    private static final int GRID_FOOT = 30;
+    private static final String[] PICKER_BUTTONS = {"effects", "fluids", "all", "folder", "reload"};
+
     private int[] pickerBox() {
         int w = Math.min(width - 40, 420);
-        int h = Math.min(height - 60, 280);
+        int h = Math.min(height - 40, 330);
         return new int[]{(width - w) / 2, (height - h) / 2, w, h};
     }
 
@@ -947,7 +1078,31 @@ public class EffectLayersScreen extends Screen {
     }
 
     private int pickerRows() {
-        return Math.max(1, (pickerBox()[3] - 44) / CELL);
+        return Math.max(1, (pickerBox()[3] - GRID_TOP - GRID_FOOT) / CELL);
+    }
+
+    private int[][] pickerButtonRects(int[] box) {
+        int[][] rects = new int[PICKER_BUTTONS.length][];
+        int x = box[0] + box[2] - 8;
+        for (int k = PICKER_BUTTONS.length - 1; k >= 0; k--) {
+            int w = font.width(Component.translatable("gui.mm.effect_studio.texture_btn." + PICKER_BUTTONS[k])) + 10;
+            x -= w;
+            rects[k] = new int[]{x, box[1] + 4, w, 14};
+            x -= 2;
+        }
+        return rects;
+    }
+
+    private void pickerButtonPressed(int index) {
+        switch (index) {
+            case 0, 1, 2 -> {
+                pickerMode = index;
+                pickerCache = null;
+                pickerScroll = 0;
+            }
+            case 3 -> openTextureFolder();
+            default -> reloadTextures();
+        }
     }
 
     @Override
@@ -973,9 +1128,21 @@ public class EffectLayersScreen extends Screen {
             pickerOpen = false;
             return true;
         }
+        if (button == 0) {
+            int[][] rects = pickerButtonRects(box);
+            for (int k = 0; k < rects.length; k++) {
+                if (mouseX >= rects[k][0] && mouseX < rects[k][0] + rects[k][2] && mouseY >= rects[k][1] && mouseY < rects[k][1] + rects[k][3]) {
+                    pickerButtonPressed(k);
+                    return true;
+                }
+            }
+            pickerSearch.mouseClicked(mouseX, mouseY, button);
+            pickerSearch.setFocused(true);
+        }
         int index = pickerIndexAt(mouseX, mouseY);
-        if (button == 0 && index >= 0 && index < textures.size()) {
-            target().addProperty("texture", textures.get(index).toString());
+        List<ResourceLocation> list = pickerList();
+        if (button == 0 && index >= 0 && index < list.size()) {
+            target().addProperty("texture", list.get(index).toString());
             pickerOpen = false;
             apply();
             rebuildWidgets();
@@ -987,8 +1154,8 @@ public class EffectLayersScreen extends Screen {
         int[] box = pickerBox();
         int cols = pickerCols();
         int cx = (int) (mouseX - box[0] - 8) / CELL;
-        int cy = (int) (mouseY - box[1] - 22) / CELL;
-        if (mouseX < box[0] + 8 || mouseY < box[1] + 22 || cx >= cols || cy >= pickerRows()) {
+        int cy = (int) (mouseY - box[1] - GRID_TOP) / CELL;
+        if (mouseX < box[0] + 8 || mouseY < box[1] + GRID_TOP || cx >= cols || cy >= pickerRows()) {
             return -1;
         }
         return (pickerScroll + cy) * cols + cx;
@@ -1000,7 +1167,23 @@ public class EffectLayersScreen extends Screen {
 
     private static int[] readInfo(ResourceLocation texture) {
         var resources = Minecraft.getInstance().getResourceManager();
-        try (InputStream in = resources.open(texture); NativeImage image = NativeImage.read(in)) {
+        try (InputStream in = resources.open(texture)) {
+            byte[] data = in.readAllBytes();
+            if (data.length >= 24 && data[1] == 'P' && data[2] == 'N' && data[3] == 'G') {
+                int w = (data[16] & 0xFF) << 24 | (data[17] & 0xFF) << 16 | (data[18] & 0xFF) << 8 | (data[19] & 0xFF);
+                int h = (data[20] & 0xFF) << 24 | (data[21] & 0xFF) << 16 | (data[22] & 0xFF) << 8 | (data[23] & 0xFF);
+                if (w > MAX_PREVIEW || h > MAX_PREVIEW) {
+                    return new int[]{3, w, h};
+                }
+            }
+            return decodeInfo(data);
+        } catch (Exception e) {
+            return new int[]{0, 1, 1};
+        }
+    }
+
+    private static int[] decodeInfo(byte[] data) {
+        try (NativeImage image = NativeImage.read(new java.io.ByteArrayInputStream(data))) {
             int corner = image.getPixelRGBA(0, 0);
             int kind = (corner >>> 24) == 0 ? 1 : (corner & 0xFFFFFF) == 0 ? 2 : 3;
             return new int[]{kind, image.getWidth(), image.getHeight()};
@@ -1019,7 +1202,17 @@ public class EffectLayersScreen extends Screen {
             gfx.drawCenteredString(font, "?", x + size / 2, y + size / 2 - 4, 0xFF5555);
             return;
         }
-        gfx.blit(texture, x, y, size, size, 0, 0, info[1], info[2], info[1], info[2]);
+        if (info[1] > MAX_PREVIEW || info[2] > MAX_PREVIEW) {
+            gfx.drawCenteredString(font, "\u2026", x + size / 2, y + size / 2 - 4, 0xFFAAAAAA);
+            return;
+        }
+        int lo = Math.min(info[1], info[2]);
+        int hi = Math.max(info[1], info[2]);
+        if (hi % lo == 0) {
+            gfx.blit(texture, x, y, size, size, 0, 0, lo, lo, info[1], info[2]);
+        } else {
+            gfx.blit(texture, x, y, size, size, 0, 0, info[1], info[2], info[1], info[2]);
+        }
     }
 
     @Override
@@ -1048,7 +1241,7 @@ public class EffectLayersScreen extends Screen {
             gfx.drawWordWrap(font, Component.translatable("gui.mm.effect_studio.no_layers"), panelX, rowsTop + Math.min(rows.size(), rowsFit) * ROW + 8, textWidth, 0xFFD040);
         }
         if (pickerOpen) {
-            renderPicker(gfx, mouseX, mouseY);
+            renderPicker(gfx, mouseX, mouseY, partialTick);
         }
         if (chooserOpen) {
             renderChooser(gfx, mouseX, mouseY);
@@ -1102,38 +1295,77 @@ public class EffectLayersScreen extends Screen {
         }
     }
 
-    private void renderPicker(GuiGraphics gfx, int mouseX, int mouseY) {
+    private void renderPicker(GuiGraphics gfx, int mouseX, int mouseY, float partialTick) {
         gfx.pose().pushPose();
         gfx.pose().translate(0, 0, 400);
         gfx.fill(0, 0, width, height, 0xA0000000);
         int[] box = pickerBox();
         gfx.fill(box[0] - 1, box[1] - 1, box[0] + box[2] + 1, box[1] + box[3] + 1, 0xFF8080A0);
         gfx.fill(box[0], box[1], box[0] + box[2], box[1] + box[3], 0xFF1E1E28);
-        gfx.drawString(font, Component.translatable("gui.mm.effect_studio.texture_pick"), box[0] + 8, box[1] + 6, 0xFFFFFF);
+        gfx.drawString(font, Component.translatable("gui.mm.effect_studio.texture_pick"), box[0] + 8, box[1] + 8, 0xFFFFFF);
+        int[][] rects = pickerButtonRects(box);
+        String tip = null;
+        for (int k = 0; k < rects.length; k++) {
+            int[] r = rects[k];
+            boolean over = mouseX >= r[0] && mouseX < r[0] + r[2] && mouseY >= r[1] && mouseY < r[1] + r[3];
+            boolean on = k < 3 && k == pickerMode || k == 4 && reloadingTextures;
+            gfx.fill(r[0], r[1], r[0] + r[2], r[1] + r[3], on ? 0xFF3A6A4A : over ? 0xFF4A4A60 : 0xFF2E2E40);
+            gfx.renderOutline(r[0], r[1], r[2], r[3], over ? 0xFFFFFFFF : 0xFF606078);
+            gfx.drawCenteredString(font, Component.translatable("gui.mm.effect_studio.texture_btn." + PICKER_BUTTONS[k]), r[0] + r[2] / 2, r[1] + 3, 0xFFFFFF);
+            if (over) {
+                tip = PICKER_BUTTONS[k];
+            }
+        }
+        pickerSearch.setX(box[0] + 8);
+        pickerSearch.setY(box[1] + 24);
+        pickerSearch.setWidth(box[2] - 16);
+        pickerSearch.render(gfx, mouseX, mouseY, partialTick);
+        if (pickerSearch.getValue().isEmpty()) {
+            gfx.drawString(font, Component.translatable("gui.mm.effect_studio.texture_search"), box[0] + 12, box[1] + 27, 0xFF707080);
+        }
+        List<ResourceLocation> list = pickerList();
         int cols = pickerCols();
         int visible = pickerRows();
-        int total = (textures.size() + cols - 1) / cols;
+        int total = (list.size() + cols - 1) / cols;
         pickerScroll = Math.max(0, Math.min(pickerScroll, Math.max(0, total - visible)));
         String current = target().has("texture") && target().get("texture").isJsonPrimitive() ? target().get("texture").getAsString() : "";
         int hover = pickerIndexAt(mouseX, mouseY);
         for (int r = 0; r < visible; r++) {
             for (int c = 0; c < cols; c++) {
                 int index = (pickerScroll + r) * cols + c;
-                if (index >= textures.size()) {
+                if (index >= list.size()) {
                     break;
                 }
                 int x = box[0] + 8 + c * CELL;
-                int y = box[1] + 22 + r * CELL;
-                ResourceLocation texture = textures.get(index);
+                int y = box[1] + GRID_TOP + r * CELL;
+                ResourceLocation texture = list.get(index);
                 boolean chosen = texture.toString().equals(current);
                 gfx.fill(x, y, x + CELL - 4, y + CELL - 4, chosen ? 0xFF50C878 : index == hover ? 0xFFFFFFFF : 0xFF404050);
                 thumb(gfx, texture, x + 2, y + 2, CELL - 8);
             }
         }
-        if (hover >= 0 && hover < textures.size()) {
-            gfx.drawString(font, font.plainSubstrByWidth(textureName(textures.get(hover).toString()), box[2] - 16), box[0] + 8, box[1] + box[3] - 14, 0xE0E0E0);
+        if (total > visible) {
+            int trackH = visible * CELL - 4;
+            int barH = Math.max(10, trackH * visible / total);
+            int barY = box[1] + GRID_TOP + (trackH - barH) * pickerScroll / Math.max(1, total - visible);
+            gfx.fill(box[0] + box[2] - 6, box[1] + GRID_TOP, box[0] + box[2] - 3, box[1] + GRID_TOP + trackH, 0x40FFFFFF);
+            gfx.fill(box[0] + box[2] - 6, barY, box[0] + box[2] - 3, barY + barH, 0xC0FFFFFF);
+        }
+        int footY = box[1] + box[3] - GRID_FOOT + 6;
+        if (hover >= 0 && hover < list.size()) {
+            gfx.drawString(font, font.plainSubstrByWidth(list.get(hover).toString(), box[2] - 16), box[0] + 8, footY, 0xE0E0E0);
+        } else if (folderError != null) {
+            gfx.drawString(font, font.plainSubstrByWidth(folderError, box[2] - 16), box[0] + 8, footY, 0xFF5555);
+        } else if (list.isEmpty()) {
+            gfx.drawString(font, Component.translatable("gui.mm.effect_studio.texture_empty"), box[0] + 8, footY, 0xFFAA00);
         } else {
-            gfx.drawString(font, Component.translatable("gui.mm.effect_studio.texture_hint"), box[0] + 8, box[1] + box[3] - 14, 0x909090);
+            var hintLines = font.split(Component.translatable("gui.mm.effect_studio.texture_hint", session.structure.getNamespace()), box[2] - 16);
+            for (int line = 0; line < Math.min(2, hintLines.size()); line++) {
+                gfx.drawString(font, hintLines.get(line), box[0] + 8, footY + line * 10, 0x909090);
+            }
+        }
+        if (tip != null) {
+            gfx.renderTooltip(font, font.split(Component.translatable("gui.mm.effect_studio.texture_btn." + tip + ".tip"), 200), mouseX, mouseY);
         }
         gfx.pose().popPose();
     }
