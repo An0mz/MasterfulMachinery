@@ -778,6 +778,8 @@
   "gui.mm.effect_studio.f.drip_patch.tip": "On: a wet patch shows where the liquid starts.",
   "gui.mm.effect_studio.f.seep.faces": "Bleeding sides",
   "gui.mm.effect_studio.f.seep.faces.tip": "Which sides bleed, like north, east. Empty means all. It is easier to select the spot in the 3D view and click the block sides there.",
+  "gui.mm.effect_studio.f.seep.color": "Colour",
+  "gui.mm.effect_studio.f.seep.color.tip": "The colour of the liquid. Click a colour or type one like #7dff2a. Seeping sides are drawn in plain colour, so they do not use a texture.",
   "gui.mm.effect_studio.f.palette": "Colours",
   "gui.mm.effect_studio.f.palette.tip": "Seven colours from dark to light, like #300000, #500000. Empty uses blood red.",
   "gui.mm.effect_studio.f.emitter.rate": "Particles per second",

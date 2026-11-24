@@ -6,6 +6,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Rotation;
+import io.ticticboom.mods.mm.Ref;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
@@ -15,6 +16,7 @@ import java.util.Arrays;
 
 public final class SeepLayer implements FxLayer {
     private static final int[] DEFAULT_PALETTE = {0x240306, 0x37050a, 0x4c080d, 0x5f0c11, 0x741416, 0x8c2421, 0xa8473f};
+    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(Ref.ID, "textures/fx/blood_white.png");
     private static final int MAX_BLOCKS = 16;
     private static final int UNDER = 8;
     private static final double OFF = 0.0045;
@@ -22,7 +24,7 @@ public final class SeepLayer implements FxLayer {
 
     private final String at;
     private final String top;
-    private final ResourceLocation texture;
+    private final int fixedColor;
     private final int[] palette;
     private final boolean portColor;
     private final boolean glow;
@@ -44,7 +46,7 @@ public final class SeepLayer implements FxLayer {
         skip = FxSkip.parse(json);
         at = json.has("at") ? json.get("at").getAsString() : "drips";
         top = json.has("top") ? json.get("top").getAsString() : "seep_top";
-        texture = FxTexture.required(json, "seep");
+        fixedColor = FxColor.parse(json, "color", -1);
         palette = json.has("palette") ? parsePalette(json.getAsJsonArray("palette")) : DEFAULT_PALETTE;
         portColor = FxColor.port(json);
         glow = json.has("glow") && json.get("glow").getAsBoolean();
@@ -443,7 +445,7 @@ public final class SeepLayer implements FxLayer {
 
         @Override
         public void render(FxContext ctx) {
-            tint = FxColor.pick(portColor, -1, ctx);
+            tint = FxColor.pick(portColor, fixedColor, ctx);
             VertexConsumer vc = null;
             double ws = ctx.intensity.now();
             for (int i = 0; i < columns.length; i++) {
@@ -453,7 +455,7 @@ public final class SeepLayer implements FxLayer {
                 }
                 if (vc == null) {
                     if (renderType == null) {
-                        renderType = RenderType.entityTranslucent(texture);
+                        renderType = RenderType.entityTranslucent(TEXTURE);
                     }
                     vc = ctx.buffers.getBuffer(renderType);
                 }

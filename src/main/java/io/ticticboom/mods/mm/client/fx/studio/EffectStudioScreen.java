@@ -3279,7 +3279,7 @@ public class EffectStudioScreen extends Screen {
                     }
                     layer.add(key, scaled);
                 }
-                if (color != null && !(layer.has("type") && layer.get("type").getAsString().equals("seep"))) {
+                if (color != null) {
                     layer.addProperty("color", color);
                 }
             }

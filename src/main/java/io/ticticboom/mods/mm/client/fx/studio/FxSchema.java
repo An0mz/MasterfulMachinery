@@ -59,7 +59,7 @@ final class FxSchema {
                 new Field[]{num("life", "0.55", 0.1, 3, 0.05), num("width", "0.014", 0.002, 0.1, 0.002), num("speed", "0.42", 0, 2, 0.01),
                         num("max", "32", 1, 256, 1)}));
         LAYERS.put("seep", build(
-                new Field[]{tex(), num("alpha", "1", 0, 1, 0.01), num("chance", "0.6", 0, 1, 0.05), num("speed", "1", 0, 4, 0.05),
+                new Field[]{color("#7a0a0a"), num("alpha", "1", 0, 1, 0.01), num("chance", "0.6", 0, 1, 0.05), num("speed", "1", 0, 4, 0.05),
                         num("streams", "1", 1, 4, 1), toggle("glow", false), toggle("port_color", false)},
                 new Field[]{anchor("at", "drips"), anchor("top", "seep_top"), toggle("stains", true), toggle("drip_patch", true),
                         text("faces", ""), text("palette", "")}));
