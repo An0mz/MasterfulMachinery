@@ -38,8 +38,19 @@ public final class FxPortColor {
         return r << 16 | g << 8 | b;
     }
 
+    public static int texture(ResourceLocation file) {
+        return AVERAGES.computeIfAbsent(file, FxPortColor::averageTexture);
+    }
+
+    private static int averageTexture(ResourceLocation file) {
+        return averageOf(file, -1);
+    }
+
     private static int average(ResourceLocation sprite) {
-        var file = ResourceLocation.fromNamespaceAndPath(sprite.getNamespace(), "textures/" + sprite.getPath() + ".png");
+        return averageOf(ResourceLocation.fromNamespaceAndPath(sprite.getNamespace(), "textures/" + sprite.getPath() + ".png"), 0xFFFFFF);
+    }
+
+    private static int averageOf(ResourceLocation file, int fallback) {
         try (InputStream in = Minecraft.getInstance().getResourceManager().open(file); NativeImage image = NativeImage.read(in)) {
             long r = 0, g = 0, b = 0, weight = 0;
             for (int y = 0; y < image.getHeight(); y++) {
@@ -53,12 +64,12 @@ public final class FxPortColor {
                 }
             }
             if (weight == 0) {
-                return 0xFFFFFF;
+                return fallback;
             }
             return (int) (r / weight) << 16 | (int) (g / weight) << 8 | (int) (b / weight);
         } catch (Exception e) {
-            Ref.LOG.warn("Effect: could not read fluid texture {}: {}", file, e.getMessage());
-            return 0xFFFFFF;
+            Ref.LOG.warn("Effect: could not read texture {}: {}", file, e.getMessage());
+            return fallback;
         }
     }
 }

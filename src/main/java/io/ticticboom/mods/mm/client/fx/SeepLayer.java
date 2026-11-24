@@ -25,6 +25,8 @@ public final class SeepLayer implements FxLayer {
     private final String at;
     private final String top;
     private final int fixedColor;
+    @Nullable
+    private final ResourceLocation tintTexture;
     private final int[] palette;
     private final boolean portColor;
     private final boolean glow;
@@ -47,6 +49,14 @@ public final class SeepLayer implements FxLayer {
         at = json.has("at") ? json.get("at").getAsString() : "drips";
         top = json.has("top") ? json.get("top").getAsString() : "seep_top";
         fixedColor = FxColor.parse(json, "color", -1);
+        ResourceLocation picked = null;
+        if (json.has("texture")) {
+            picked = ResourceLocation.tryParse(json.get("texture").getAsString());
+            if (picked == null) {
+                throw new IllegalArgumentException("seep 'texture' is not a valid id: " + json.get("texture").getAsString());
+            }
+        }
+        tintTexture = TEXTURE.equals(picked) ? null : picked;
         palette = json.has("palette") ? parsePalette(json.getAsJsonArray("palette")) : DEFAULT_PALETTE;
         portColor = FxColor.port(json) || FxColor.portTexture(json);
         glow = json.has("glow") && json.get("glow").getAsBoolean();
@@ -238,7 +248,8 @@ public final class SeepLayer implements FxLayer {
             int own = columns[i].index < pointMasks.length ? pointMasks[columns[i].index] : -1;
             chosen[i] = rotatedMask(own >= 0 ? own : faceMask, shared.rotation);
         }
-        return new Seeps(columns, faces, chosen, toWorld);
+        int baseTint = fixedColor >= 0 ? fixedColor : tintTexture == null ? -1 : FxPortColor.texture(tintTexture);
+        return new Seeps(columns, faces, chosen, toWorld, baseTint);
     }
 
     private int[] sideCounts(int point, Rotation rotation) {
@@ -341,10 +352,12 @@ public final class SeepLayer implements FxLayer {
         private final int[] lastMask;
         private final int[] chosen;
         private final int[] toWorld;
+        private final int baseTint;
         private int tint = -1;
         private RenderType renderType;
 
-        Seeps(FxColumn[] columns, Face[][] faces, int[] chosen, int[] toWorld) {
+        Seeps(FxColumn[] columns, Face[][] faces, int[] chosen, int[] toWorld, int baseTint) {
+            this.baseTint = baseTint;
             this.columns = columns;
             this.faces = faces;
             this.chosen = chosen;
@@ -445,7 +458,7 @@ public final class SeepLayer implements FxLayer {
 
         @Override
         public void render(FxContext ctx) {
-            tint = FxColor.pick(portColor, fixedColor, ctx);
+            tint = FxColor.pick(portColor, baseTint, ctx);
             VertexConsumer vc = null;
             double ws = ctx.intensity.now();
             for (int i = 0; i < columns.length; i++) {
