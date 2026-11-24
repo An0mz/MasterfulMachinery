@@ -110,6 +110,8 @@ public class EffectStudioScreen extends Screen {
     private String search = "";
     private int libScroll;
     private int libScrollMax;
+    private int libVisible = 1;
+    private boolean libDrag;
     @Nullable
     private String renaming;
     @Nullable
@@ -415,6 +417,7 @@ public class EffectStudioScreen extends Screen {
             });
         }
         int visible = Math.max(1, (height - 8 - top) / 16);
+        libVisible = visible;
         libScrollMax = Math.max(0, rows.size() - visible);
         libScroll = Math.max(0, Math.min(libScroll, libScrollMax));
         for (int r = libScroll; r < rows.size() && r < libScroll + visible; r++) {
@@ -3494,8 +3497,13 @@ public class EffectStudioScreen extends Screen {
             hint = Component.translatable("gui.mm.effect_studio.controls");
         }
         boolean wrong = underside && hover != null && hover.getDirection() != Direction.DOWN;
-        gfx.drawCenteredString(font, hint, viewport.x() + viewport.w() / 2, viewport.y() + 4,
-                wrong ? 0xFF5555 : step != null || adding != null || pickingBlocks != null || facePicking || pickingPort ? 0xFFFF55 : 0xA0A0A0);
+        int hintColor = wrong ? 0xFF5555 : step != null || adding != null || pickingBlocks != null || facePicking || pickingPort ? 0xFFFF55 : 0xA0A0A0;
+        var hintLines = font.split(hint, viewport.w() - 12);
+        int shown = Math.min(4, hintLines.size());
+        gfx.fill(viewport.x(), viewport.y(), viewport.x() + viewport.w(), viewport.y() + 6 + shown * 10, 0x66000000);
+        for (int line = 0; line < shown; line++) {
+            gfx.drawCenteredString(font, hintLines.get(line), viewport.x() + viewport.w() / 2, viewport.y() + 4 + line * 10, hintColor);
+        }
         if (marquee) {
             int bx0 = (int) Math.min(pressX, marqueeX);
             int by0 = (int) Math.min(pressY, marqueeY);
@@ -3516,7 +3524,7 @@ public class EffectStudioScreen extends Screen {
                     double[] p = points.get(j);
                     double[] s = view.project(p[0] - origin.getX(), p[1] - origin.getY(), p[2] - origin.getZ());
                     if (s != null && viewport.contains((int) s[0], (int) s[1])) {
-                        gfx.drawString(font, String.valueOf(j + 1), (int) s[0] + 5, (int) s[1] - 10, SPOT_COLORS[i % SPOT_COLORS.length]);
+                        gfx.drawString(font, String.valueOf(j + 1), insideX((int) s[0] + 5, String.valueOf(j + 1)), (int) s[1] - 10, SPOT_COLORS[i % SPOT_COLORS.length]);
                     }
                 }
             }
@@ -3534,7 +3542,8 @@ public class EffectStudioScreen extends Screen {
                     double[] p = points.get(j);
                     double[] s = view.project(p[0] - origin.getX(), p[1] - origin.getY(), p[2] - origin.getZ());
                     if (s != null && viewport.contains((int) s[0], (int) s[1])) {
-                        gfx.drawString(font, points.size() > 1 ? pretty(stepped[0]) + " " + (j + 1) : pretty(stepped[0]), (int) s[0] + 5, (int) s[1] - 10, color);
+                        String name = points.size() > 1 ? pretty(stepped[0]) + " " + (j + 1) : pretty(stepped[0]);
+                        gfx.drawString(font, name, insideX((int) s[0] + 5, name), (int) s[1] - 10, color);
                     }
                 }
             }
@@ -3543,6 +3552,7 @@ public class EffectStudioScreen extends Screen {
             gfx.drawString(font, (String) label[2], (int) label[0], (int) label[1], (int) label[3]);
         }
         drawSeepSides(gfx);
+        drawLibraryScroll(gfx);
         if (dragFromLibrary && placing != null && Math.abs(mouseX - pressX) + Math.abs(mouseY - pressY) >= 4) {
             String text = presetLabel(placing);
             int tw = font.width(text);
@@ -3614,6 +3624,38 @@ public class EffectStudioScreen extends Screen {
                 }
                 gfx.drawString(font, menuLabel(entries[i], menu), menuX + 4, ey + 3, 0xFFFFFF);
             }
+        }
+    }
+
+    private int insideX(int x, String text) {
+        return Math.max(viewport.x() + 2, Math.min(x, viewport.x() + viewport.w() - font.width(text) - 2));
+    }
+
+    private void drawLibraryScroll(GuiGraphics gfx) {
+        if (session.collapsed || libScrollMax <= 0) {
+            return;
+        }
+        int x = PANEL + 8;
+        int top = 42;
+        int track = libVisible * 16;
+        int bar = Math.max(12, track * libVisible / (libVisible + libScrollMax));
+        int barY = top + (track - bar) * libScroll / libScrollMax;
+        gfx.fill(x, top, x + 3, top + track, 0x40FFFFFF);
+        gfx.fill(x, barY, x + 3, barY + bar, libDrag ? 0xFFFFFFFF : 0xC0FFFFFF);
+    }
+
+    private boolean overLibraryScroll(double mouseX, double mouseY) {
+        return !session.collapsed && libScrollMax > 0 && mouseX >= PANEL + 6 && mouseX < PANEL + 12 && mouseY >= 42 && mouseY < 42 + libVisible * 16;
+    }
+
+    private void scrollLibraryTo(double mouseY) {
+        int track = libVisible * 16;
+        int bar = Math.max(12, track * libVisible / (libVisible + libScrollMax));
+        double fraction = (mouseY - 42 - bar / 2.0) / Math.max(1, track - bar);
+        int next = Math.max(0, Math.min(libScrollMax, (int) Math.round(fraction * libScrollMax)));
+        if (next != libScroll) {
+            libScroll = next;
+            rebuildWidgets();
         }
     }
 
@@ -3695,6 +3737,12 @@ public class EffectStudioScreen extends Screen {
                 spotScroll = 0;
                 rebuildWidgets();
             }
+            return true;
+        }
+        if (button == 0 && menu == null && overLibraryScroll(mouseX, mouseY)) {
+            libDrag = true;
+            swallowRelease = true;
+            scrollLibraryTo(mouseY);
             return true;
         }
         if (menu == null && overOverlay(mouseX, mouseY)) {
@@ -3855,6 +3903,10 @@ public class EffectStudioScreen extends Screen {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (libDrag && button == 0) {
+            scrollLibraryTo(mouseY);
+            return true;
+        }
         if (arrowLayer >= 0 && button == 0) {
             dragArrow(mouseX, mouseY);
             return true;
@@ -3878,6 +3930,9 @@ public class EffectStudioScreen extends Screen {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (libDrag) {
+            libDrag = false;
+        }
         if (swallowRelease) {
             swallowRelease = false;
             return true;
