@@ -48,7 +48,7 @@ public final class SeepLayer implements FxLayer {
         top = json.has("top") ? json.get("top").getAsString() : "seep_top";
         fixedColor = FxColor.parse(json, "color", -1);
         palette = json.has("palette") ? parsePalette(json.getAsJsonArray("palette")) : DEFAULT_PALETTE;
-        portColor = FxColor.port(json);
+        portColor = FxColor.port(json) || FxColor.portTexture(json);
         glow = json.has("glow") && json.get("glow").getAsBoolean();
         double mean = 0;
         for (int c : palette) {

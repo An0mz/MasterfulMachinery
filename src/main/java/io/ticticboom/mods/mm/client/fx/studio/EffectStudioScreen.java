@@ -657,7 +657,7 @@ public class EffectStudioScreen extends Screen {
     }
 
     private static final Set<String> LIQUID_COLOUR = Set.of("stream", "drip", "drops", "pool", "ripple", "seep", "emitter", "beam", "glow");
-    private static final Set<String> LIQUID_LOOK = Set.of("stream", "drip", "drops", "pool", "ripple");
+    private static final Set<String> LIQUID_LOOK = Set.of("stream", "drip", "drops", "pool", "ripple", "seep");
 
     private int buildFluid(int px, int y, ResourceLocation id) {
         rowLabels.add(new Object[]{px, y, Component.translatable("gui.mm.effect_studio.fluid.title").getString(), 0xFFFFFFFF});
