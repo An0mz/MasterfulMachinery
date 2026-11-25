@@ -18,7 +18,6 @@ public final class SeepLayer implements FxLayer {
     private static final int[] DEFAULT_PALETTE = {0x240306, 0x37050a, 0x4c080d, 0x5f0c11, 0x741416, 0x8c2421, 0xa8473f};
     private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(Ref.ID, "textures/fx/blood_white.png");
     private static final int MAX_BLOCKS = 16;
-    private static final int UNDER = 8;
     private static final double OFF = 0.0045;
     private static final int[][] DIRECTIONS = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 
@@ -215,13 +214,44 @@ public final class SeepLayer implements FxLayer {
             RandomSource random = RandomSource.create(shared.seed() ^ 0x5DEECE66DL ^ (c.index * 0x9E3779B97F4A7C15L));
             int[] perSide = sideCounts(c.index, shared.rotation);
             int most = Math.max(Math.max(perSide[0], perSide[1]), Math.max(perSide[2], perSide[3]));
-            faces[i] = new Face[4 * most];
-            for (int s = 0; s < most; s++) {
-                for (int d = 0; d < 4; d++) {
-                    int n = perSide[d];
-                    boolean active = s < n;
-                    int slot = !active || n == 1 ? -1 : 3 + (int) Math.round(s * 9.0 / (n - 1));
-                    faces[i][s * 4 + d] = new Face(c, DIRECTIONS[d][0], DIRECTIONS[d][1], columnTop, rows, random, slot, active);
+            int x1 = (int) Math.floor(c.x + 1e-6);
+            int z1 = (int) Math.floor(c.z + 1e-6);
+            boolean spanX = Math.abs(c.x - x1) < 1e-6;
+            boolean spanZ = Math.abs(c.z - z1) < 1e-6;
+            int x0 = spanX ? x1 - 1 : x1;
+            int z0 = spanZ ? z1 - 1 : z1;
+            int depthRows = spanX || spanZ ? 2 : 1;
+            int lines = depthRows > 1 ? Math.max(2, most) : most;
+            faces[i] = new Face[depthRows * 4 * lines];
+            int f = 0;
+            for (int r = 0; r < depthRows; r++) {
+                for (int s = 0; s < lines; s++) {
+                    for (int d = 0; d < 4; d++) {
+                        boolean xFace = DIRECTIONS[d][0] != 0;
+                        int width = xFace ? z1 - z0 + 1 : x1 - x0 + 1;
+                        int depth = xFace ? x1 - x0 + 1 : z1 - z0 + 1;
+                        int n = perSide[d];
+                        boolean pair = n == 1 && width > 1;
+                        boolean active = (s < n || pair && s == 1) && r < depth;
+                        int across = 0;
+                        int slot = -1;
+                        if (active && n > 1) {
+                            int spot = 3 + (int) Math.round(s * (width * 16 - 7.0) / (n - 1));
+                            across = spot / 16;
+                            slot = Math.max(1, Math.min(14, spot % 16));
+                        } else if (width > 1) {
+                            int preferred = FxNoise.hash(d * 7 + r, c.seed) < 0.5 ? 0 : 1;
+                            across = pair && s == 1 ? 1 - preferred : preferred;
+                        }
+                        int along = Math.min(r, depth - 1);
+                        int cx = xFace ? x0 + along : x0 + across;
+                        int cz = xFace ? z0 + across : z0 + along;
+                        Face face = new Face(c, cx, cz, spanX, spanZ, DIRECTIONS[d][0], DIRECTIONS[d][1], columnTop, rows, random, slot, active, s == 0);
+                        if (pair && s == 1) {
+                            face.twin = faces[i][f - 4];
+                        }
+                        faces[i][f++] = face;
+                    }
                 }
             }
         }
@@ -288,7 +318,11 @@ public final class SeepLayer implements FxLayer {
         final int[] path;
         final long seed;
         double pickRoll;
+        @Nullable
+        Face twin;
         final boolean active;
+        final boolean lead;
+        final boolean spans;
         final double stainY;
         final double stainU;
         final double stainLen;
@@ -303,17 +337,20 @@ public final class SeepLayer implements FxLayer {
         boolean rivulet;
         boolean stain;
 
-        Face(FxColumn column, int dx, int dz, double seepTop, int rows, RandomSource random, int slot, boolean active) {
+        Face(FxColumn column, int cellX, int cellZ, boolean spanX, boolean spanZ, int dx, int dz, double seepTop, int rows, RandomSource random,
+             int slot, boolean active, boolean lead) {
             this.column = column;
             this.active = active;
+            this.lead = lead;
+            this.spans = spanX || spanZ;
             this.xFace = dx != 0;
             this.sign = xFace ? dx : dz;
             this.nx = dx;
             this.nz = dz;
-            this.cellX = (int) Math.floor(column.x);
-            this.cellZ = (int) Math.floor(column.z);
+            this.cellX = cellX;
+            this.cellZ = cellZ;
             this.plane = xFace ? (sign < 0 ? cellX : cellX + 1) : (sign < 0 ? cellZ : cellZ + 1);
-            this.uCenter = xFace ? column.z : column.x;
+            this.uCenter = xFace ? (spanZ ? cellZ + 0.5 : column.z) : (spanX ? cellX + 0.5 : column.x);
             this.seepTop = seepTop;
             this.rows = rows;
             this.pickRoll = random.nextDouble();
@@ -374,16 +411,18 @@ public final class SeepLayer implements FxLayer {
                     continue;
                 }
                 int mask = 0;
+                boolean changed = false;
                 for (int d = 0; d < list.length; d++) {
                     Face f = list[d];
                     if (!f.active) {
                         continue;
                     }
                     int topBlock = (int) Math.round(f.seepTop);
-                    boolean ok = f.column.blockAbove;
+                    boolean ok = f.spans || f.column.blockAbove;
                     for (int y = topBlock - 1; y >= (int) Math.round(f.column.top) && ok; y--) {
                         ok = ctx.passable(f.cellX + f.nx, y, f.cellZ + f.nz) && ctx.solid(f.cellX, y, f.cellZ);
                     }
+                    changed |= f.exposed != ok;
                     f.exposed = ok;
                     f.ringAbove = ctx.solid(f.cellX + f.nx, topBlock, f.cellZ + f.nz);
                     int by = (int) Math.floor(f.stainY - 0.001);
@@ -397,7 +436,7 @@ public final class SeepLayer implements FxLayer {
                         f.light[k] = ctx.light(f.cellX + f.nx + 0.5, topBlock - 1 - k + 0.5, f.cellZ + f.nz + 0.5);
                     }
                 }
-                if (mask != lastMask[i]) {
+                if (mask != lastMask[i] || changed) {
                     lastMask[i] = mask;
                     pick(list, mask, chosen[i]);
                 }
@@ -411,7 +450,7 @@ public final class SeepLayer implements FxLayer {
                 }
             } else {
                 for (int d = 0; d < 4; d++) {
-                    boolean on = list[d].exposed && list[d].pickRoll < chance;
+                    boolean on = (mask & (1 << d)) != 0 && list[d].pickRoll < chance;
                     for (int s = d; s < list.length; s += 4) {
                         list[s].rivulet = on && list[s].active;
                     }
@@ -424,7 +463,7 @@ public final class SeepLayer implements FxLayer {
                     int first = (int) (FxNoise.hash(11, list[0].column.seed) * 4);
                     for (int n = 0; n < 4; n++) {
                         int d = toWorld[(first + n) % 4];
-                        if (list[d].exposed) {
+                        if ((mask & (1 << d)) != 0) {
                             for (int s = d; s < list.length; s += 4) {
                                 list[s].rivulet = list[s].active;
                             }
@@ -433,8 +472,13 @@ public final class SeepLayer implements FxLayer {
                     }
                 }
             }
+            for (Face f : list) {
+                if (f.twin != null && f.rivulet && f.twin.rivulet && f.twin.exposed) {
+                    f.rivulet = false;
+                }
+            }
             for (int d = 0; d < list.length; d++) {
-                list[d].stain = stains && d < 4 && !list[d].rivulet;
+                list[d].stain = stains && list[d].lead && list[d].active && !list[d].rivulet;
             }
         }
 
@@ -463,7 +507,7 @@ public final class SeepLayer implements FxLayer {
             double ws = ctx.intensity.now();
             for (int i = 0; i < columns.length; i++) {
                 Face[] list = faces[i];
-                if (list == null || !columns[i].blockAbove) {
+                if (list == null || !columns[i].blockAbove && !list[0].spans) {
                     continue;
                 }
                 if (vc == null) {
@@ -549,12 +593,24 @@ public final class SeepLayer implements FxLayer {
             int inward = -r.sign;
             int dripU = (int) Math.floor((r.xFace ? r.column.z : r.column.x) * 16);
             int planePx = (int) Math.round(r.plane * 16);
+            int startAcross = planePx + (inward < 0 ? -1 : 0);
+            int dripAcross = (int) Math.floor((r.xFace ? r.column.x : r.column.z) * 16);
+            int acrossDist = Math.abs(dripAcross - startAcross);
+            int under = Math.max(acrossDist, Math.abs(dripU - edgeU)) + 1;
             int u = edgeU;
-            for (int k = 0; k < UNDER; k++) {
-                if (u != dripU && FxNoise.hash(k + 300, seed) < 0.4) {
+            int lastAcross = Integer.MIN_VALUE;
+            int lastU = Integer.MIN_VALUE;
+            for (int k = 0; k < under; k++) {
+                int gap = Math.abs(dripU - u);
+                if (gap > 0 && (gap > under - 1 - k || FxNoise.hash(k + 300, seed) < 0.4)) {
                     u += Integer.signum(dripU - u);
                 }
-                int across = planePx + inward * k + (inward < 0 ? -1 : 0);
+                int across = startAcross + inward * Math.min(k, acrossDist);
+                if (across == lastAcross && u == lastU) {
+                    continue;
+                }
+                lastAcross = across;
+                lastU = u;
                 int ph = Math.floorMod(rows + k - moved, period);
                 int idx = ph < 3 ? 4 : (ws > 0.5 ? 3 : 2);
                 under(vc, ctx, r.xFace, r.column.top, across, u, color(idx, a), underLight);

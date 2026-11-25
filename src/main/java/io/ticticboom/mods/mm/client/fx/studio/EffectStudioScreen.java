@@ -112,6 +112,7 @@ public class EffectStudioScreen extends Screen {
     private int libScrollMax;
     private int libVisible = 1;
     private boolean libDrag;
+    private boolean worldReady;
     @Nullable
     private String renaming;
     @Nullable
@@ -216,6 +217,7 @@ public class EffectStudioScreen extends Screen {
         if (view == null || model != be.getStructure()) {
             model = be.getStructure();
             view = GuiStructureRenderer.ofFormed(model, be.getLevel(), be.getBlockPos(), be.getFormedRotation());
+            worldReady = false;
             view.setOverlay(this::renderEffects);
             view.setStudio(true);
         }
@@ -634,8 +636,9 @@ public class EffectStudioScreen extends Screen {
                 sy += 18;
                 rowLabels.add(new Object[]{px, sy + 3, Component.translatable("gui.mm.effect_studio.seep.lines").getString(), 0xFFFFFFFF});
                 sy += 14;
+                Set<String> open = openSides(seep);
                 for (String side : sides) {
-                    if (chosen != null && !chosen.contains(side)) {
+                    if (chosen != null && !chosen.contains(side) || open != null && !open.contains(side)) {
                         continue;
                     }
                     int lineCount = sideCount(seep, -1, side);
@@ -3585,6 +3588,10 @@ public class EffectStudioScreen extends Screen {
         view.init();
         view.render(gfx, mouseX, mouseY, viewport.contains(mouseX, mouseY));
         gfx.pose().popPose();
+        if (!worldReady) {
+            worldReady = true;
+            rebuildWidgets();
+        }
         if (!session.collapsed) {
             gfx.drawString(font, Component.translatable("gui.mm.effect_studio.add_effect"), 6, 8, 0xFFFFFF);
             gfx.drawString(font, Component.translatable("gui.mm.effect_studio.placed"), width - PANEL - 6, 8, 0xFFFFFF);
@@ -3744,6 +3751,54 @@ public class EffectStudioScreen extends Screen {
         }
     }
 
+    private boolean sideOpen(double[] p, int side) {
+        var origin = model.layout().getCharGrid().getControllerPos();
+        var world = view.previewWorld();
+        int[][] steps = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+        double x = p[0] - origin.getX();
+        double z = p[2] - origin.getZ();
+        int x1 = (int) Math.floor(x + 1e-6);
+        int z1 = (int) Math.floor(z + 1e-6);
+        int x0 = Math.abs(x - x1) < 1e-6 ? x1 - 1 : x1;
+        int z0 = Math.abs(z - z1) < 1e-6 ? z1 - 1 : z1;
+        boolean single = x0 == x1 && z0 == z1;
+        int y = (int) Math.floor(p[1] - origin.getY() + 0.001);
+        for (int cx = x0; cx <= x1; cx++) {
+            for (int cz = z0; cz <= z1; cz++) {
+                if (!single && world.getBlockState(new BlockPos(cx, y, cz)).isAir()) {
+                    continue;
+                }
+                BlockPos beside = new BlockPos(cx + steps[side][0], y, cz + steps[side][1]);
+                var state = world.getBlockState(beside);
+                if (state.isAir() || state.getCollisionShape(world, beside).isEmpty()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Nullable
+    private Set<String> openSides(JsonObject seep) {
+        if (view == null || model == null) {
+            return null;
+        }
+        List<double[]> points = pointsOf(selectedAnchors().get(seepAt(seep)));
+        if (points.isEmpty()) {
+            return null;
+        }
+        String[] names = {"north", "east", "south", "west"};
+        var result = new HashSet<String>();
+        for (double[] p : points) {
+            for (int i = 0; i < 4; i++) {
+                if (sideOpen(p, i)) {
+                    result.add(names[i]);
+                }
+            }
+        }
+        return result;
+    }
+
     private int insideX(int x, String text) {
         return Math.max(viewport.x() + 2, Math.min(x, viewport.x() + viewport.w() - font.width(text) - 2));
     }
@@ -3791,23 +3846,23 @@ public class EffectStudioScreen extends Screen {
         var origin = model.layout().getCharGrid().getControllerPos();
         Set<String> layerFaces = seepFaces(seep);
         String[] sides = {"north", "east", "south", "west"};
-        double[][] offsets = {{0, -0.62}, {0.62, 0}, {0, 0.62}, {-0.62, 0}};
         for (int j = 0; j < points.size(); j++) {
             if (!at.equals(handleName) || j != handleIndex) {
                 continue;
             }
             double[] p = points.get(j);
-            double cx = Math.floor(p[0] - origin.getX()) + 0.5;
+            double px = p[0] - origin.getX();
+            double pz = p[2] - origin.getZ();
+            boolean spanX = Math.abs(px - Math.rint(px)) < 1e-6;
+            boolean spanZ = Math.abs(pz - Math.rint(pz)) < 1e-6;
+            double cx = spanX ? Math.rint(px) : Math.floor(px) + 0.5;
             double cy = Math.floor(p[1] - origin.getY() + 0.001) + 0.5;
-            double cz = Math.floor(p[2] - origin.getZ()) + 0.5;
+            double cz = spanZ ? Math.rint(pz) : Math.floor(pz) + 0.5;
+            double[][] offsets = {{0, spanZ ? -1.12 : -0.62}, {spanX ? 1.12 : 0.62, 0}, {0, spanZ ? 1.12 : 0.62}, {spanX ? -1.12 : -0.62, 0}};
             Set<String> own = pointFaces(seep, j);
             Set<String> chosen = own != null ? own : layerFaces;
-            int[][] steps = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
-            var world = view.previewWorld();
             for (int i = 0; i < 4; i++) {
-                BlockPos beside = new BlockPos((int) Math.floor(cx) + steps[i][0], (int) Math.floor(cy), (int) Math.floor(cz) + steps[i][1]);
-                var state = world.getBlockState(beside);
-                if (!state.isAir() && !state.getCollisionShape(world, beside).isEmpty()) {
+                if (!sideOpen(p, i)) {
                     continue;
                 }
                 double[] s = view.project(cx + offsets[i][0], cy, cz + offsets[i][1]);
