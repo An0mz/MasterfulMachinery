@@ -2562,6 +2562,55 @@ public class EffectStudioScreen extends Screen {
     }
 
     @Nullable
+    private static String sharedPoint(JsonArray layers) {
+        for (JsonElement element : layers) {
+            JsonObject layer = element.getAsJsonObject();
+            String type = layer.has("type") ? layer.get("type").getAsString() : "";
+            if (FALLING.contains(type)) {
+                for (String key : new String[]{"at", "from"}) {
+                    if (layer.has(key)) {
+                        return layer.get(key).getAsString();
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static void fillAnchors(JsonArray layers, @Nullable String shared) {
+        String point = shared != null ? shared : sharedPoint(layers);
+        for (JsonElement element : layers) {
+            JsonObject layer = element.getAsJsonObject();
+            String type = layer.has("type") ? layer.get("type").getAsString() : "";
+            if (type.equals("glow")) {
+                continue;
+            }
+            for (FxSchema.Field field : FxSchema.LAYERS.getOrDefault(type, List.of())) {
+                if (field.kind() == FxSchema.Kind.ANCHOR && !layer.has(field.key())) {
+                    layer.addProperty(field.key(), point != null && field.def().equals("drips") ? point : field.def());
+                }
+            }
+        }
+    }
+
+    @Nullable
+    private static String anchorName(JsonObject layer, String key) {
+        if (layer.has(key)) {
+            return layer.get(key).getAsString();
+        }
+        String type = layer.has("type") ? layer.get("type").getAsString() : "";
+        if (type.equals("glow")) {
+            return null;
+        }
+        for (FxSchema.Field field : FxSchema.LAYERS.getOrDefault(type, List.of())) {
+            if (field.kind() == FxSchema.Kind.ANCHOR && field.key().equals(key)) {
+                return field.def();
+            }
+        }
+        return null;
+    }
+
+    @Nullable
     private static String mainAnchor(JsonObject layer) {
         String type = layer.has("type") ? layer.get("type").getAsString() : "";
         boolean halo = layer.has("mode") && "halo".equals(layer.get("mode").getAsString());
@@ -2768,18 +2817,21 @@ public class EffectStudioScreen extends Screen {
             pending.remove(key);
         }
         var seen = new LinkedHashMap<String, String>();
-        for (JsonElement element : preset(preset).getAsJsonArray("layers")) {
+        JsonArray presetLayers = preset(preset).getAsJsonArray("layers").deepCopy();
+        fillAnchors(presetLayers, null);
+        for (JsonElement element : presetLayers) {
             JsonObject layer = element.getAsJsonObject();
             String type = layer.has("type") ? layer.get("type").getAsString() : "";
             boolean area = "glow".equals(type) && !(layer.has("mode") && layer.get("mode").getAsString().equals("halo"));
             for (String key : new String[]{"at", "from"}) {
-                if (FALLING.contains(type) && layer.has(key) && !(layer.has("off") && layer.get("off").getAsBoolean())) {
-                    undersides.add(layer.get(key).getAsString());
+                String name = anchorName(layer, key);
+                if (FALLING.contains(type) && name != null && !(layer.has("off") && layer.get("off").getAsBoolean())) {
+                    undersides.add(name);
                 }
             }
             for (String key : new String[]{"at", "from", "to", "top"}) {
-                if (layer.has(key)) {
-                    String name = layer.get(key).getAsString();
+                String name = anchorName(layer, key);
+                if (name != null) {
                     seen.putIfAbsent(name, AUTO.contains(name) ? "auto" : area ? "area" : "point");
                 }
             }
@@ -2976,6 +3028,7 @@ public class EffectStudioScreen extends Screen {
             return;
         }
         JsonObject json = chosen.deepCopy();
+        fillAnchors(json.getAsJsonArray("layers"), null);
         json.addProperty("name", presetName(placing));
         for (String name : linkedOf(json)) {
             var chain = new ArrayList<int[]>();
@@ -3182,7 +3235,9 @@ public class EffectStudioScreen extends Screen {
         String sourceName = sourceName(anchors);
         JsonElement source = sourceName == null ? null : anchors.get(sourceName);
         JsonArray layers = base.getAsJsonArray("layers");
-        for (JsonElement element : parts.get(name).getAsJsonArray("layers")) {
+        JsonArray partLayers = parts.get(name).getAsJsonArray("layers").deepCopy();
+        fillAnchors(partLayers, sharedPoint(layers));
+        for (JsonElement element : partLayers) {
             JsonObject layer = element.getAsJsonObject().deepCopy();
             String type = layer.has("type") ? layer.get("type").getAsString() : "";
             if (type.equals("drops") || type.equals("ripple")) {
@@ -3195,11 +3250,8 @@ public class EffectStudioScreen extends Screen {
                 }
             }
             for (String key : new String[]{"at", "from", "to", "top"}) {
-                if (!layer.has(key)) {
-                    continue;
-                }
-                String anchor = layer.get(key).getAsString();
-                if (anchors.has(anchor)) {
+                String anchor = anchorName(layer, key);
+                if (anchor == null || anchors.has(anchor)) {
                     continue;
                 }
                 JsonElement value = AUTO.contains(anchor) ? autoAll(anchor, source, null, null) : source;
