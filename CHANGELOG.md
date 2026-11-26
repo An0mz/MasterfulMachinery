@@ -21,7 +21,8 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
     own floor, and a new seep spot its own top.
   - **Seeping sides.** Pick which sides of a block bleed and how many lines run down each side. Put a
     spot on the corner between blocks, such as the middle of a 2x2 pillar, to make every block around
-    it seep. Seeping sides take a colour, a texture's colour or a port fluid's look.
+    it seep. Seeping follows the shape of stairs, slabs and other partial blocks, stepping in and out
+    with the block. Seeping sides take a colour, a texture's colour or a port fluid's look.
   - **Look tab.** Amount, size and speed (separately for idle and working), colour and particle
     direction. Reroll gives a new random look.
   - **Advanced tab.** Every setting named in plain words with a hover explanation, using sliders,
