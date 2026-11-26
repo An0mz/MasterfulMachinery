@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
+## [1.21.1-0.19.1] - 2026-11-26
+
+### Added
+- **Sparks on mana ports.** Botania mana sparks can go on top of mana ports. Input ports take mana from
+  sparks, so a Dominant augment on the port's spark or Recessive augments on nearby pools fill them.
+  Output ports never take mana from sparks, but sparks can draw mana out of them, for example to feed a
+  Terra Plate.
+
 ## [1.21.1-0.19.0] - 2026-11-26
 
 ### Added
