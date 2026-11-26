@@ -114,6 +114,17 @@ public class EffectStudioScreen extends Screen {
     private boolean libDrag;
     private boolean worldReady;
     @Nullable
+    private String newSpot;
+    private int newSpotLayer = -1;
+    @Nullable
+    private String newSpotKey;
+    @Nullable
+    private JsonElement newSpotPrevious;
+    @Nullable
+    private JsonObject newSpotEffect;
+    @Nullable
+    private ResourceLocation newSpotId;
+    @Nullable
     private String renaming;
     @Nullable
     private String confirmDelete;
@@ -228,8 +239,14 @@ public class EffectStudioScreen extends Screen {
         }
         if (selectedId() != null) {
             spots.addAll(spotNames(selectedAnchors()));
-            if (adding != null && !spots.contains(adding)) {
+            if (adding != null && !spots.contains(adding) && !adding.equals(newSpot)) {
                 adding = null;
+            }
+            if (newSpot != null && !newSpot.equals(adding)) {
+                if (!hasNewSpotPoints()) {
+                    swapNewSpot(false);
+                }
+                newSpot = null;
             }
             if (handle() == null) {
                 deselect();
@@ -1758,6 +1775,54 @@ public class EffectStudioScreen extends Screen {
         rebuildWidgets();
     }
 
+    void startNewSpot(String name, int layer, String key, @Nullable JsonElement previous) {
+        session.unsaved = true;
+        session.dirty = true;
+        newSpotLayer = layer;
+        newSpotKey = key;
+        newSpotPrevious = previous;
+        newSpotId = selectedId();
+        newSpotEffect = session.selected >= 0 && session.selected < session.effects.size() ? session.effects.get(session.selected) : null;
+        newSpot = name;
+        adding = name;
+        pickingBlocks = null;
+        linkFrom = -1;
+        deselect();
+        placing = null;
+        steps.clear();
+    }
+
+    private boolean hasNewSpotPoints() {
+        return newSpotEffect != null && newSpotEffect.has("anchors") && newSpotEffect.get("anchors").isJsonObject()
+                && newSpotEffect.getAsJsonObject("anchors").has(newSpot);
+    }
+
+    @Nullable
+    private JsonObject newSpotLayer() {
+        JsonObject fx = newSpotId == null ? null : base(newSpotId);
+        if (fx == null || !fx.has("layers") || newSpotLayer < 0 || newSpotLayer >= fx.getAsJsonArray("layers").size()) {
+            return null;
+        }
+        JsonElement layer = fx.getAsJsonArray("layers").get(newSpotLayer);
+        return layer.isJsonObject() ? layer.getAsJsonObject() : null;
+    }
+
+    private void swapNewSpot(boolean toNew) {
+        JsonObject layer = newSpotLayer();
+        if (layer == null || newSpotKey == null || newSpot == null) {
+            return;
+        }
+        if (toNew) {
+            layer.addProperty(newSpotKey, newSpot);
+        } else if (newSpotPrevious == null) {
+            layer.remove(newSpotKey);
+        } else {
+            layer.add(newSpotKey, newSpotPrevious.deepCopy());
+        }
+        rescale(newSpotId);
+        session.dirty = true;
+    }
+
     private void changed(String name) {
         JsonObject anchors = selectedAnchors();
         if (name.equals(sourceName(anchors))) {
@@ -1789,7 +1854,14 @@ public class EffectStudioScreen extends Screen {
         if (undersidesOf(base(id)).contains(adding) && hit.getDirection() != Direction.DOWN) {
             return;
         }
+        boolean firstOfNew = adding.equals(newSpot) && !hasNewSpotPoints();
+        if (firstOfNew) {
+            swapNewSpot(false);
+        }
         remember();
+        if (firstOfNew) {
+            swapNewSpot(true);
+        }
         var origin = model.layout().getCharGrid().getControllerPos();
         Vec3 at = snap(hit);
         boolean linking = linking();

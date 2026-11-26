@@ -563,6 +563,7 @@
   "gui.mm.effect_studio.expert_off": "Expert editor: Off",
   "gui.mm.effect_studio.expert_tip": "Show every setting as plain text, the way it is saved in the file. For people who know the format.",
   "gui.mm.effect_studio.reset": "Put back the default",
+  "gui.mm.effect_studio.new_spot.tip": "Give this layer a spot of its own. You go back to the 3D view to click where it goes, Ctrl-click to add several.",
   "gui.mm.effect_studio.toggle_on": "On",
   "gui.mm.effect_studio.toggle_off": "Off",
   "gui.mm.effect_studio.pair_idle": "Idle: ",

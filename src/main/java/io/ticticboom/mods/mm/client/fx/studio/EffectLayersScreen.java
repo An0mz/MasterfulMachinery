@@ -458,7 +458,7 @@ public class EffectLayersScreen extends Screen {
             case COLOR -> addColor(f, y);
             case TEXTURE -> addTexture(f, y);
             case CHOICE -> addChoice(f, y, f.options());
-            case ANCHOR -> addChoice(f, y, anchorOptions(f));
+            case ANCHOR -> addAnchor(f, y);
             case TEXT -> addText(f, y);
         }
         if (f.kind() != FxSchema.Kind.TEXTURE) {
@@ -771,7 +771,52 @@ public class EffectLayersScreen extends Screen {
         return I18n.exists(key) ? Component.translatable(key) : Component.literal(option);
     }
 
+    private void addAnchor(FxSchema.Field f, int y) {
+        if (!anchorKinds(f).contains("point") || selected < 0 || session.selected < 0 || !(parent instanceof EffectStudioScreen studio)) {
+            addChoice(f, y, anchorOptions(f));
+            return;
+        }
+        int w = Math.min(ctrlW, 168) - 22;
+        addChoice(f, y, anchorOptions(f), w);
+        addRenderableWidget(Button.builder(Component.literal("+"), b -> {
+            String name = freeSpotName(type(target()) + "_spot");
+            JsonObject layer = target();
+            JsonElement previous = layer.has(f.key()) ? layer.get(f.key()).deepCopy() : null;
+            layer.addProperty(f.key(), name);
+            touched(f.key());
+            apply();
+            studio.startNewSpot(name, selected, f.key(), previous);
+            minecraft.setScreen(parent);
+        }).tooltip(Tooltip.create(Component.translatable("gui.mm.effect_studio.new_spot.tip"))).bounds(ctrlX + w + 4, y, 18, 18).build());
+    }
+
+    private String freeSpotName(String base) {
+        var taken = new java.util.HashSet<String>();
+        JsonObject effect = session.effects.get(session.selected);
+        if (effect.has("anchors") && effect.get("anchors").isJsonObject()) {
+            taken.addAll(effect.getAsJsonObject("anchors").keySet());
+        }
+        for (JsonElement element : layers()) {
+            if (element.isJsonObject()) {
+                for (var entry : element.getAsJsonObject().entrySet()) {
+                    if (entry.getValue().isJsonPrimitive() && entry.getValue().getAsJsonPrimitive().isString()) {
+                        taken.add(entry.getValue().getAsString());
+                    }
+                }
+            }
+        }
+        String name = base;
+        for (int n = 2; taken.contains(name); n++) {
+            name = base + "_" + n;
+        }
+        return name;
+    }
+
     private void addChoice(FxSchema.Field f, int y, List<String> options) {
+        addChoice(f, y, options, Math.min(ctrlW, 168));
+    }
+
+    private void addChoice(FxSchema.Field f, int y, List<String> options, int w) {
         String[] current = {choiceValue(f)};
         addRenderableWidget(Button.builder(optionText(f, current[0]), b -> {
             int next = options.indexOf(current[0]) + 1;
@@ -780,7 +825,7 @@ public class EffectLayersScreen extends Screen {
             b.setMessage(optionText(f, current[0]));
             touched(f.key());
             apply();
-        }).bounds(ctrlX, y, Math.min(ctrlW, 168), 18).build());
+        }).bounds(ctrlX, y, w, 18).build());
     }
 
     private void addText(FxSchema.Field f, int y) {
