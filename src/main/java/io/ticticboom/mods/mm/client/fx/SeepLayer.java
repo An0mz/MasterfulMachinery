@@ -4,12 +4,15 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Rotation;
 import io.ticticboom.mods.mm.Ref;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
@@ -294,6 +297,20 @@ public final class SeepLayer implements FxLayer {
         return result;
     }
 
+    private static int insetOf(VoxelShape shape, Face f, double y, double u, int fallback) {
+        double edge;
+        if (f.xFace) {
+            edge = f.sign > 0 ? shape.max(Direction.Axis.X, y, u) : shape.min(Direction.Axis.X, y, u);
+        } else {
+            edge = f.sign > 0 ? shape.max(Direction.Axis.Z, u, y) : shape.min(Direction.Axis.Z, u, y);
+        }
+        if (Double.isInfinite(edge)) {
+            return fallback;
+        }
+        int px = (int) Math.round((f.sign > 0 ? 1 - edge : edge) * 16);
+        return Math.max(0, Math.min(15, px));
+    }
+
     private int color(int tint, int index, double a) {
         int al = (int) Math.max(0, Math.min(255, a));
         int i = Math.max(0, Math.min(6, index));
@@ -328,6 +345,9 @@ public final class SeepLayer implements FxLayer {
         final double stainLen;
         final double stainPhase;
         final int[] light = new int[MAX_BLOCKS];
+        final byte[] inset;
+        boolean shaped;
+        int stainInset;
         final int cellMin;
         int stainLight;
         double crawl;
@@ -367,6 +387,7 @@ public final class SeepLayer implements FxLayer {
             this.stainLen = 0.2 + 0.35 * random.nextDouble();
             this.stainPhase = random.nextDouble();
             this.path = new int[rows];
+            this.inset = new byte[rows];
             this.cellMin = (xFace ? cellZ : cellX) * 16;
             int target = (int) Math.floor(uCenter * 16);
             int start = slot >= 0 ? cellMin + slot
@@ -434,6 +455,9 @@ public final class SeepLayer implements FxLayer {
                     f.stainExposed = ctx.solid(f.cellX, by, f.cellZ) && ctx.passable(f.cellX + f.nx, by, f.cellZ + f.nz);
                     f.stainHides = ctx.opaque(f.cellX, by, f.cellZ);
                     f.stainLight = ctx.light(f.cellX + f.nx + 0.5, by + 0.5, f.cellZ + f.nz + 0.5);
+                    VoxelShape stainShape = ctx.shape(BlockPos.asLong(f.cellX, by, f.cellZ));
+                    f.stainInset = stainShape == Shapes.block() ? 0
+                            : insetOf(stainShape, f, f.stainY - 0.03 - by, f.stainU - (f.xFace ? f.cellZ : f.cellX), 0);
                     if (ok) {
                         mask |= 1 << (d % 4);
                     }
@@ -441,12 +465,45 @@ public final class SeepLayer implements FxLayer {
                     for (int k = 0; k < blocks; k++) {
                         f.light[k] = ctx.light(f.cellX + f.nx + 0.5, topBlock - 1 - k + 0.5, f.cellZ + f.nz + 0.5);
                     }
+                    if (ok) {
+                        shape(ctx, f);
+                    }
                 }
                 if (mask != lastMask[i] || changed) {
                     lastMask[i] = mask;
                     pick(list, mask, chosen[i]);
                 }
             }
+        }
+
+        private void shape(FxContext ctx, Face f) {
+            int topPx = (int) Math.round(f.seepTop * 16);
+            int lastBlock = Integer.MIN_VALUE;
+            VoxelShape shape = null;
+            boolean full = true;
+            boolean any = false;
+            int last = -1;
+            int firstValid = -1;
+            for (int row = 0; row < f.rows; row++) {
+                double cy = (topPx - row - 0.5) / 16.0;
+                int by = (int) Math.floor(cy);
+                if (by != lastBlock) {
+                    lastBlock = by;
+                    shape = ctx.shape(BlockPos.asLong(f.cellX, by, f.cellZ));
+                    full = shape == Shapes.block();
+                }
+                last = full ? 0 : insetOf(shape, f, cy - by, (f.path[row] - f.cellMin + 0.5) / 16.0, last);
+                if (last >= 0 && firstValid < 0) {
+                    firstValid = row;
+                }
+                f.inset[row] = (byte) last;
+                any |= last > 0;
+            }
+            int lead = firstValid < 0 ? 0 : f.inset[firstValid];
+            for (int row = 0; row < f.rows && (firstValid < 0 || row < firstValid); row++) {
+                f.inset[row] = (byte) lead;
+            }
+            f.shaped = any;
         }
 
         private void pick(Face[] list, int mask, int chosen) {
@@ -562,9 +619,12 @@ public final class SeepLayer implements FxLayer {
             int edgeU = col[rows - 1];
             int inward = -r.sign;
             int dripU = (int) Math.floor((r.xFace ? r.column.z : r.column.x) * 16);
-            int planePx = (int) Math.round(r.plane * 16);
+            int planePx = (int) Math.round(r.plane * 16) - r.sign * r.inset[rows - 1];
             int startAcross = planePx + (inward < 0 ? -1 : 0);
             int dripAcross = (int) Math.floor((r.xFace ? r.column.x : r.column.z) * 16);
+            if (r.inset[rows - 1] > 0 && dripAcross != startAcross) {
+                inward = Integer.signum(dripAcross - startAcross);
+            }
             int acrossDist = Math.abs(dripAcross - startAcross);
             int under = Math.max(acrossDist, Math.abs(dripU - edgeU)) + 1;
             int u = edgeU;
@@ -590,8 +650,9 @@ public final class SeepLayer implements FxLayer {
             }
             int phEdge = Math.floorMod(rows - 1 - moved, period);
             if (phEdge < 3) {
-                double ex = r.xFace ? r.plane - r.sign * 0.5 / 16 : (edgeU + 0.5) / 16.0;
-                double ez = r.xFace ? (edgeU + 0.5) / 16.0 : r.plane - r.sign * 0.5 / 16;
+                double edgePlane = r.plane - r.sign * r.inset[rows - 1] / 16.0;
+                double ex = r.xFace ? edgePlane - r.sign * 0.5 / 16 : (edgeU + 0.5) / 16.0;
+                double ez = r.xFace ? (edgeU + 0.5) / 16.0 : edgePlane - r.sign * 0.5 / 16;
                 double hh = 0.5 / 16 * (1 + phEdge * 0.5);
                 FxMesh.box(vc, ctx.pose, ex, r.column.top - hh, ez, 0.5 / 16, hh, color(3, a), glow ? LightTexture.FULL_BRIGHT : underLight);
             }
@@ -605,19 +666,28 @@ public final class SeepLayer implements FxLayer {
                 if (FxNoise.hash(k + 50, seed) < 0.25 && Math.abs(k) > 1) {
                     continue;
                 }
-                px(vc, ctx, r, inCell(r, col[0] + k), topPx, 1, Math.abs(k) <= 1 ? 2 : 1, color(1, a), light0);
+                int u = inCell(r, col[0] + k);
+                if (Math.abs(k) <= 1 && rows > 1 && r.inset[1] != r.inset[0]) {
+                    px(vc, ctx, r, u, topPx, 1, 1, color(1, a), light0, r.inset[0]);
+                    px(vc, ctx, r, u, topPx - 1, 1, 1, color(1, a), light0, r.inset[1]);
+                } else {
+                    px(vc, ctx, r, u, topPx, 1, Math.abs(k) <= 1 ? 2 : 1, color(1, a), light0, r.inset[0]);
+                }
             }
             int side = FxNoise.hash(2, seed) < 0.5 ? -lw : lw;
             int sideLen = 2 + (int) (FxNoise.hash(3, seed) * 4);
             for (int k = 0; k < sideLen; k++) {
                 boolean last = k == sideLen - 1;
-                px(vc, ctx, r, inCell(r, col[0] + side), topPx - 1 - k, 1, 1, color(last ? 1 : 2, a * (last ? 0.7 : 1)), light0);
+                px(vc, ctx, r, inCell(r, col[0] + side), topPx - 1 - k, 1, 1, color(last ? 1 : 2, a * (last ? 0.7 : 1)), light0,
+                        r.inset[Math.min(k + 1, rows - 1)]);
             }
             int runX = Integer.MIN_VALUE;
             int coreTop = 0;
             int coreLen = 0;
             int coreCol = 0;
             int coreLight = 0;
+            int coreIn = 0;
+            int wideIn = 0;
             int wideTop = 0;
             int wideLen = 0;
             int wideCol = 0;
@@ -626,6 +696,7 @@ public final class SeepLayer implements FxLayer {
                 int y = topPx - row;
                 int l = r.light[Math.min(r.light.length - 1, row / 16)];
                 int x = col[row];
+                int in = r.inset[row];
                 int ph = Math.floorMod(row - moved, period);
                 boolean bead = ph < 3;
                 boolean wide = ws > 0.5 || FxNoise.hash(row + 200, seed) < 0.2 + 0.6 * ws;
@@ -636,64 +707,100 @@ public final class SeepLayer implements FxLayer {
                 }
                 if (x != runX) {
                     if (coreLen > 0) {
-                        px(vc, ctx, r, runX, coreTop, 1, coreLen, coreCol, coreLight);
+                        px(vc, ctx, r, runX, coreTop, 1, coreLen, coreCol, coreLight, coreIn);
                     }
                     if (wideLen > 0) {
-                        px(vc, ctx, r, runX + 1, wideTop, 1, wideLen, wideCol, wideLight);
+                        px(vc, ctx, r, runX + 1, wideTop, 1, wideLen, wideCol, wideLight, wideIn);
                     }
                     coreLen = 0;
                     wideLen = 0;
                     runX = x;
                 }
                 if (wider && !bead) {
-                    px(vc, ctx, r, x - 1, y, 1, 1, color(1, a * 0.9), l);
+                    px(vc, ctx, r, x - 1, y, 1, 1, color(1, a * 0.9), l, in);
                 }
                 if (bead) {
-                    px(vc, ctx, r, x - 1, y, 1, 1, color(1, a), l);
+                    px(vc, ctx, r, x - 1, y, 1, 1, color(1, a), l, in);
                 }
                 int cc = bead ? color(ph == 0 ? 4 : 3, a) : color(core, a);
-                if (coreLen > 0 && (cc != coreCol || l != coreLight)) {
-                    px(vc, ctx, r, x, coreTop, 1, coreLen, coreCol, coreLight);
+                if (coreLen > 0 && (cc != coreCol || l != coreLight || in != coreIn)) {
+                    px(vc, ctx, r, x, coreTop, 1, coreLen, coreCol, coreLight, coreIn);
                     coreLen = 0;
                 }
                 if (coreLen == 0) {
                     coreTop = y;
                     coreCol = cc;
                     coreLight = l;
+                    coreIn = in;
                 }
                 coreLen++;
                 if (bead || wide) {
                     int sc = bead ? color(2, a) : color(ws > 0.5 ? 2 : 1, a * 0.95);
-                    if (wideLen > 0 && (sc != wideCol || l != wideLight)) {
-                        px(vc, ctx, r, x + 1, wideTop, 1, wideLen, wideCol, wideLight);
+                    if (wideLen > 0 && (sc != wideCol || l != wideLight || in != wideIn)) {
+                        px(vc, ctx, r, x + 1, wideTop, 1, wideLen, wideCol, wideLight, wideIn);
                         wideLen = 0;
                     }
                     if (wideLen == 0) {
                         wideTop = y;
                         wideCol = sc;
                         wideLight = l;
+                        wideIn = in;
                     }
                     wideLen++;
                 } else if (wideLen > 0) {
-                    px(vc, ctx, r, x + 1, wideTop, 1, wideLen, wideCol, wideLight);
+                    px(vc, ctx, r, x + 1, wideTop, 1, wideLen, wideCol, wideLight, wideIn);
                     wideLen = 0;
                 }
                 if (row > 0 && col[row - 1] != x) {
-                    px(vc, ctx, r, Math.min(x, col[row - 1]), y + 1, 1, 1, color(2, a), l);
+                    px(vc, ctx, r, Math.min(x, col[row - 1]), y + 1, 1, 1, color(2, a), l, r.inset[row - 1]);
+                }
+                if (row > 0 && r.inset[row - 1] != in) {
+                    step(vc, ctx, r, x, y, r.inset[row - 1], in, color(2, a), l);
                 }
             }
             if (coreLen > 0) {
-                px(vc, ctx, r, runX, coreTop, 1, coreLen, coreCol, coreLight);
+                px(vc, ctx, r, runX, coreTop, 1, coreLen, coreCol, coreLight, coreIn);
             }
             if (wideLen > 0) {
-                px(vc, ctx, r, runX + 1, wideTop, 1, wideLen, wideCol, wideLight);
+                px(vc, ctx, r, runX + 1, wideTop, 1, wideLen, wideCol, wideLight, wideIn);
             }
         }
 
         private void simpleRivulet(VertexConsumer vc, FxContext ctx, Face r, double ws) {
             double a = (215 + 35 * ws) * ctx.fade * alpha;
             int topPx = (int) Math.round(r.seepTop * 16);
-            px(vc, ctx, r, r.path[0], topPx, ws > 0.5 ? 3 : 2, r.rows, color(ws > 0.5 ? 3 : 2, a), r.light[0]);
+            int w = ws > 0.5 ? 3 : 2;
+            int col = color(ws > 0.5 ? 3 : 2, a);
+            if (!r.shaped) {
+                px(vc, ctx, r, r.path[0], topPx, w, r.rows, col, r.light[0]);
+                return;
+            }
+            int start = 0;
+            for (int row = 1; row <= r.rows; row++) {
+                if (row == r.rows || r.inset[row] != r.inset[start]) {
+                    px(vc, ctx, r, r.path[0], topPx - start, w, row - start, col, r.light[Math.min(r.light.length - 1, start / 16)], r.inset[start]);
+                    if (row < r.rows) {
+                        step(vc, ctx, r, r.path[0], topPx - row, r.inset[start], r.inset[row], col, r.light[Math.min(r.light.length - 1, row / 16)]);
+                    }
+                    start = row;
+                }
+            }
+        }
+
+        private void step(VertexConsumer vc, FxContext ctx, Face f, int uPx, int yPx, int from, int to, int col, int light) {
+            double a = f.plane - f.sign * from / 16.0;
+            double b = f.plane - f.sign * to / 16.0;
+            double n0 = Math.min(a, b);
+            double n1 = Math.max(a, b);
+            boolean onTop = to < from;
+            double y = yPx / 16.0 + (onTop ? OFF : -OFF);
+            double u0 = uPx / 16.0;
+            double u1 = (uPx + 2) / 16.0;
+            if (f.xFace) {
+                flat(vc, ctx, n0, n1, y, u0, u1, col, light, onTop ? 1 : -1);
+            } else {
+                flat(vc, ctx, u0, u1, y, n0, n1, col, light, onTop ? 1 : -1);
+            }
         }
 
         private static int inCell(Face f, int u) {
@@ -701,7 +808,7 @@ public final class SeepLayer implements FxLayer {
         }
 
         private void ringJoint(VertexConsumer vc, FxContext ctx, Face r, int colPx, int lw, long seed, double a, int light) {
-            int planePx = (int) Math.round(r.plane * 16);
+            int planePx = (int) Math.round(r.plane * 16) - r.sign * r.inset[0];
             double y = r.seepTop - OFF;
             for (int k = -lw; k <= lw; k++) {
                 int depth = Math.abs(k) <= 1 ? 2 : (FxNoise.hash(k + 80, seed) < 0.5 ? 1 : 0);
@@ -729,12 +836,12 @@ public final class SeepLayer implements FxLayer {
             int len = 2 + (int) (st.stainLen * 4);
             u0 = Math.max(cellMin + 4, Math.min(cellMin + 12 - len, u0));
             for (int k = 0; k < len; k++) {
-                px(vc, ctx, st, u0 + k, y, 1, 1, color(1, a * (k == 0 || k == len - 1 ? 0.75 : 1)), l);
+                px(vc, ctx, st, u0 + k, y, 1, 1, color(1, a * (k == 0 || k == len - 1 ? 0.75 : 1)), l, st.stainInset);
             }
             int dripU = u0 + len / 2;
             int dl = 2 + (int) (FxNoise.hash(10, seed) * 4);
             for (int k = 1; k <= dl; k++) {
-                px(vc, ctx, st, dripU, y - k, 1, 1, color(k == dl ? 1 : 2, a * (k == dl ? 0.75 : 1)), l);
+                px(vc, ctx, st, dripU, y - k, 1, 1, color(k == dl ? 1 : 2, a * (k == dl ? 0.75 : 1)), l, st.stainInset);
             }
         }
 
@@ -762,6 +869,10 @@ public final class SeepLayer implements FxLayer {
         }
 
         private void px(VertexConsumer vc, FxContext ctx, Face f, int uPx, int yPx, int wPx, int hPx, int col, int light) {
+            px(vc, ctx, f, uPx, yPx, wPx, hPx, col, light, 0);
+        }
+
+        private void px(VertexConsumer vc, FxContext ctx, Face f, int uPx, int yPx, int wPx, int hPx, int col, int light, int inset) {
             if (glow) {
                 light = LightTexture.FULL_BRIGHT;
             }
@@ -769,7 +880,7 @@ public final class SeepLayer implements FxLayer {
             double u1 = (uPx + wPx) / 16.0;
             double y1 = yPx / 16.0;
             double y0 = (yPx - hPx) / 16.0;
-            double p = f.plane + f.sign * OFF;
+            double p = f.plane - f.sign * inset / 16.0 + f.sign * OFF;
             if (f.xFace) {
                 FxMesh.quad(vc, ctx.pose, p, y1, u0, 0, 0, p, y1, u1, 1, 0, p, y0, u1, 1, 1, p, y0, u0, 0, 1, col, light, f.sign, 0, 0);
             } else {
