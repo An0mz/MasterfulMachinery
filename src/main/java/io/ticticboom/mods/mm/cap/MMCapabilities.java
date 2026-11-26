@@ -59,7 +59,7 @@ public class MMCapabilities {
                 registerPortCapability(event, beType, capability);
             }
             if (ModList.get().isLoaded("botania")) {
-                BotaniaCapabilities.registerManaReceiver(event, beType);
+                BotaniaCapabilities.registerManaPort(event, beType);
             }
             if (ModList.get().isLoaded("ae2")) {
                 Ae2Capabilities.registerNodeHost(event, beType);
