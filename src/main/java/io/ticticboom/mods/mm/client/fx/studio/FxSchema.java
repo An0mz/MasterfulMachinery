@@ -85,7 +85,7 @@ final class FxSchema {
                         choice("blend", "additive", "additive", "translucent"), toggle("glow", true), toggle("port_color", false),
                         num("pulse", "0", 0, 1, 0.01)},
                 new Field[]{anchor("from", "from"), anchor("to", "to"), text("links", ""), num("segments", "16", 1, 64, 1),
-                        num("arc", "0", 0, 2, 0.05), num("jitter", "0", 0, 1, 0.01), num("jitter_rate", "12", 0, 60, 1),
+                        num("arc", "0", 0, 2, 0.05), num("arc_angle", "0", 0, 360, 15), num("jitter", "0", 0, 1, 0.01), num("jitter_rate", "12", 0, 60, 1),
                         num("scroll", "1", -10, 10, 0.1), num("texture_length", "1", 0.1, 8, 0.1), num("pulse_speed", "2", 0, 10, 0.1),
                         num("flicker", "0", 0, 1, 0.01), num("taper", "0", 0, 1, 0.01)}));
         LAYERS.put("glow", build(

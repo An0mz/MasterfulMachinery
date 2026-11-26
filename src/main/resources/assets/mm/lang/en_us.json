@@ -853,6 +853,8 @@
   "gui.mm.effect_studio.f.segments.tip": "How many pieces the beam is made of. More is smoother but slower.",
   "gui.mm.effect_studio.f.arc": "Curve",
   "gui.mm.effect_studio.f.arc.tip": "How much the beam bows. 0 is straight.",
+  "gui.mm.effect_studio.f.arc_angle": "Curve direction",
+  "gui.mm.effect_studio.f.arc_angle.tip": "Which way the beam bows, in degrees around the beam. 0 is up, 90 is to the side, 180 is down.",
   "gui.mm.effect_studio.f.jitter": "Shake",
   "gui.mm.effect_studio.f.jitter.tip": "How much the beam wiggles. 0 is steady.",
   "gui.mm.effect_studio.f.jitter_rate": "Shake speed",

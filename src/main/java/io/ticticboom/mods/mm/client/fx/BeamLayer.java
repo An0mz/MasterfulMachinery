@@ -21,6 +21,7 @@ public final class BeamLayer implements FxLayer {
     private final boolean glow;
     private final int segments;
     private final double arc;
+    private final double arcAngle;
     private final double jitter;
     private final double jitterRate;
     private final double scroll;
@@ -51,6 +52,7 @@ public final class BeamLayer implements FxLayer {
         glow = !json.has("glow") || json.get("glow").getAsBoolean();
         segments = Math.max(1, Math.min(MAX_SEGMENTS, json.has("segments") ? json.get("segments").getAsInt() : 16));
         arc = number(json, "arc", 0);
+        arcAngle = Math.toRadians(number(json, "arc_angle", 0));
         jitter = Math.max(0, number(json, "jitter", 0));
         jitterRate = Math.max(0, number(json, "jitter_rate", 12));
         scroll = number(json, "scroll", 1.0);
@@ -160,6 +162,9 @@ public final class BeamLayer implements FxLayer {
         final double p2x;
         final double p2y;
         final double p2z;
+        final double bowX;
+        final double bowY;
+        final double bowZ;
         final long seed;
         final double phase;
         final double[] px = new double[MAX_SEGMENTS + 1];
@@ -200,6 +205,20 @@ public final class BeamLayer implements FxLayer {
             this.p2x = uy * c1z - uz * c1y;
             this.p2y = uz * c1x - ux * c1z;
             this.p2z = ux * c1y - uy * c1x;
+            double hx = -uz;
+            double hz = ux;
+            double hl = Math.sqrt(hx * hx + hz * hz);
+            double cos = Math.cos(arcAngle);
+            double sin = Math.sin(arcAngle);
+            if (hl < 1e-3) {
+                this.bowX = p1x * sin;
+                this.bowY = cos;
+                this.bowZ = p1z * sin;
+            } else {
+                this.bowX = hx / hl * sin;
+                this.bowY = cos;
+                this.bowZ = hz / hl * sin;
+            }
         }
     }
 
@@ -270,9 +289,9 @@ public final class BeamLayer implements FxLayer {
                     double t = (double) k / segments;
                     double sag = arc * 4 * t * (1 - t);
                     double amp = jitter * Math.sin(Math.PI * t);
-                    beam.px[k] = beam.ax + beam.dx * t + (beam.p1x * beam.offA[k] + beam.p2x * beam.offB[k]) * amp;
-                    beam.py[k] = beam.ay + beam.dy * t + sag + (beam.p1y * beam.offA[k] + beam.p2y * beam.offB[k]) * amp;
-                    beam.pz[k] = beam.az + beam.dz * t + (beam.p1z * beam.offA[k] + beam.p2z * beam.offB[k]) * amp;
+                    beam.px[k] = beam.ax + beam.dx * t + beam.bowX * sag + (beam.p1x * beam.offA[k] + beam.p2x * beam.offB[k]) * amp;
+                    beam.py[k] = beam.ay + beam.dy * t + beam.bowY * sag + (beam.p1y * beam.offA[k] + beam.p2y * beam.offB[k]) * amp;
+                    beam.pz[k] = beam.az + beam.dz * t + beam.bowZ * sag + (beam.p1z * beam.offA[k] + beam.p2z * beam.offB[k]) * amp;
                 }
                 double lastX = 0, lastY = 0, lastZ = 0;
                 boolean haveSide = false;
