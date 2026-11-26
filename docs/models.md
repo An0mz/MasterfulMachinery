@@ -151,5 +151,6 @@ MMEvents.createStructures(event => {
 
 ## See also
 
+- [`effects.md`](effects.md) — animated machine effects and the Effect Studio.
 - [`reference.md`](reference.md) — every key and option.
 - [`single-block.md`](single-block.md) — single-block machines.

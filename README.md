@@ -22,4 +22,5 @@ It allows modpack developers to create custom multiblock machines through data/c
 - ProjectE EMC: [docs/projecte.md](docs/projecte.md)
 - Single-block machines: [docs/single-block.md](docs/single-block.md)
 - Machine looks, GeckoLib models and fluid volumes: [docs/models.md](docs/models.md)
+- Machine effects and the Effect Studio: [docs/effects.md](docs/effects.md)
 - Astral Sorcery starlight and lumen: [docs/astral-sorcery.md](docs/astral-sorcery.md)

@@ -680,5 +680,6 @@ JSON.
 - [`example.md`](example.md) — one machine built start to finish.
 - [`reference.md`](reference.md) — every key and option.
 - [`models.md`](models.md) — looks, GeckoLib models and fluid volumes.
+- [`effects.md`](effects.md) — animated machine effects and the Effect Studio.
 - [`single-block.md`](single-block.md) — machines in one block.
 - [`tiers.md`](tiers.md) — tiered machines, tier recipes and port tiers.
