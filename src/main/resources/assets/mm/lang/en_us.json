@@ -1000,6 +1000,8 @@
   "gui.mm.effect_studio.blocks.pick": "Pick",
   "gui.mm.effect_studio.blocks.done": "Done",
   "gui.mm.effect_studio.blocks.pick_tip": "Choose which blocks glow by clicking them in the view",
+  "gui.mm.effect_studio.blocks.clear": "Clear",
+  "gui.mm.effect_studio.blocks.clear_tip": "Unselect every block in this list",
   "gui.mm.effect_studio.click.pick": "Click blocks to turn the %s glow on or off (Enter or Esc when done)",
   "gui.mm.effect_studio.health.no_anchor": "Its anchor is missing. Remove the effect and place it again.",
   "gui.mm.effect_studio.health.no_block_above": "Hidden: no block above this point. Place it on the underside of a block.",

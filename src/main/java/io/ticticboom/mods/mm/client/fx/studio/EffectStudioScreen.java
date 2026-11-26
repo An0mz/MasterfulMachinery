@@ -1391,8 +1391,20 @@ public class EffectStudioScreen extends Screen {
                 String status = value.isJsonPrimitive()
                         ? Component.translatable("gui.mm.effect_studio.blocks.all", value.getAsString()).getString()
                         : Component.translatable("gui.mm.effect_studio.blocks.count", blockList(value).size()).getString();
-                rowLabels.add(new Object[]{px, ry + 3, font.plainSubstrByWidth(pretty(glow) + ": " + status, PANEL - 40), 0xFFFFE080});
                 boolean picking = glow.equals(pickingBlocks);
+                rowLabels.add(new Object[]{px, ry + 3, font.plainSubstrByWidth(picking ? status : pretty(glow) + ": " + status, PANEL - (picking ? 78 : 40)), 0xFFFFE080});
+                if (picking) {
+                    smallButtonTip(right - 74, ry, 36, Component.translatable("gui.mm.effect_studio.blocks.clear"),
+                            "blocks.clear_tip", () -> {
+                                if (blockList(anchors.get(glow)).isEmpty()) {
+                                    return;
+                                }
+                                remember();
+                                anchors.add(glow, blockJson(List.of()));
+                                session.dirty = true;
+                                rebuildWidgets();
+                            });
+                }
                 smallButtonTip(right - 36, ry, 36, Component.translatable(picking ? "gui.mm.effect_studio.blocks.done" : "gui.mm.effect_studio.blocks.pick"),
                         "blocks.pick_tip", () -> {
                             if (picking) {
