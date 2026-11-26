@@ -563,16 +563,16 @@ public final class SeepLayer implements FxLayer {
                     int in = insetAt(shape, f, sy, u);
                     if (!shape.isEmpty() && !fits(shape, f, sy, u)) {
                         int toward = u - f.cellMin < 8 ? 1 : -1;
-                        int found = -1;
-                        for (int d = 1; d < 15 && found < 0; d++) {
+                        int found = Integer.MIN_VALUE;
+                        for (int d = 1; d < 15 && found == Integer.MIN_VALUE; d++) {
                             if (fits(shape, f, sy, u + toward * d)) {
                                 found = u + toward * d;
                             } else if (fits(shape, f, sy, u - toward * d)) {
                                 found = u - toward * d;
                             }
                         }
-                        if (found < 0 && in < 0) {
-                            for (int d = 1; d < 16 && found < 0; d++) {
+                        if (found == Integer.MIN_VALUE && in < 0) {
+                            for (int d = 1; d < 16 && found == Integer.MIN_VALUE; d++) {
                                 if (insetAt(shape, f, sy, u + toward * d) >= 0) {
                                     found = u + toward * d;
                                 } else if (insetAt(shape, f, sy, u - toward * d) >= 0) {
@@ -580,7 +580,7 @@ public final class SeepLayer implements FxLayer {
                                 }
                             }
                         }
-                        if (found >= 0) {
+                        if (found != Integer.MIN_VALUE) {
                             u = found;
                             offset = u - f.path[row];
                             in = insetAt(shape, f, sy, u);
