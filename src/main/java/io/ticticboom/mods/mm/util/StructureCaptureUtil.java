@@ -11,6 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
@@ -87,7 +88,15 @@ public class StructureCaptureUtil {
         }
 
         int rotation = 0;
-        if (foundController != null) {
+        BlockState controllerState = foundController != null ? serverLevel.getBlockState(controllerPos) : null;
+        if (controllerState != null && controllerState.hasProperty(HorizontalDirectionalBlock.FACING)) {
+            rotation = switch (controllerState.getValue(HorizontalDirectionalBlock.FACING)) {
+                case EAST -> 90;
+                case SOUTH -> 180;
+                case WEST -> 270;
+                default -> 0;
+            };
+        } else if (foundController != null) {
             int ctrlRelX = controllerPos.getX() - minX;
             int ctrlRelZ = controllerPos.getZ() - minZ;
             for (int cand : new int[]{0,90,180,270}) {
