@@ -79,4 +79,9 @@ public final class FxContext {
         cursor.set(origin.getX() + x, origin.getY() + y, origin.getZ() + z);
         return !level.getBlockState(cursor).isAir();
     }
+
+    public boolean opaque(int x, int y, int z) {
+        cursor.set(origin.getX() + x, origin.getY() + y, origin.getZ() + z);
+        return level.getBlockState(cursor).isSolidRender(level, cursor);
+    }
 }

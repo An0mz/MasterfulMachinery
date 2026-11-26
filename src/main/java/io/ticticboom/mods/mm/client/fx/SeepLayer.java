@@ -333,6 +333,8 @@ public final class SeepLayer implements FxLayer {
         double crawl;
         boolean exposed;
         boolean stainExposed;
+        boolean hides;
+        boolean stainHides;
         boolean ringAbove;
         boolean rivulet;
         boolean stain;
@@ -419,14 +421,18 @@ public final class SeepLayer implements FxLayer {
                     }
                     int topBlock = (int) Math.round(f.seepTop);
                     boolean ok = f.spans || f.column.blockAbove;
+                    boolean hides = true;
                     for (int y = topBlock - 1; y >= (int) Math.round(f.column.top) && ok; y--) {
                         ok = ctx.passable(f.cellX + f.nx, y, f.cellZ + f.nz) && ctx.solid(f.cellX, y, f.cellZ);
+                        hides &= ok && ctx.opaque(f.cellX, y, f.cellZ);
                     }
+                    f.hides = hides;
                     changed |= f.exposed != ok;
                     f.exposed = ok;
                     f.ringAbove = ctx.solid(f.cellX + f.nx, topBlock, f.cellZ + f.nz);
                     int by = (int) Math.floor(f.stainY - 0.001);
                     f.stainExposed = ctx.solid(f.cellX, by, f.cellZ) && ctx.passable(f.cellX + f.nx, by, f.cellZ + f.nz);
+                    f.stainHides = ctx.opaque(f.cellX, by, f.cellZ);
                     f.stainLight = ctx.light(f.cellX + f.nx + 0.5, by + 0.5, f.cellZ + f.nz + 0.5);
                     if (ok) {
                         mask |= 1 << (d % 4);
@@ -517,13 +523,15 @@ public final class SeepLayer implements FxLayer {
                     vc = ctx.buffers.getBuffer(renderType);
                 }
                 for (Face f : list) {
+                    boolean behind = ((f.xFace ? ctx.cameraX : ctx.cameraZ) - f.plane) * f.sign <= 0;
                     if (f.rivulet && f.exposed) {
+                        boolean facing = !behind || !f.hides;
                         if (ctx.lod == 0) {
-                            rivulet(vc, ctx, f, ws);
-                        } else {
+                            rivulet(vc, ctx, f, ws, facing);
+                        } else if (facing) {
                             simpleRivulet(vc, ctx, f, ws);
                         }
-                    } else if (f.stain && f.stainExposed && ctx.lod < 2) {
+                    } else if ((!behind || !f.stainHides) && f.stain && f.stainExposed && ctx.lod < 2) {
                         stain(vc, ctx, f, ws);
                     }
                 }
@@ -533,7 +541,7 @@ public final class SeepLayer implements FxLayer {
             }
         }
 
-        private void rivulet(VertexConsumer vc, FxContext ctx, Face r, double ws) {
+        private void rivulet(VertexConsumer vc, FxContext ctx, Face r, double ws, boolean facing) {
             long seed = r.seed;
             int[] col = r.path;
             int rows = r.rows;
@@ -545,49 +553,11 @@ public final class SeepLayer implements FxLayer {
             int light0 = r.light[0];
 
             int lw = 2 + (int) (FxNoise.hash(1, seed) * 3);
-            for (int k = -lw; k <= lw; k++) {
-                if (FxNoise.hash(k + 50, seed) < 0.25 && Math.abs(k) > 1) {
-                    continue;
-                }
-                px(vc, ctx, r, inCell(r, col[0] + k), topPx, 1, Math.abs(k) <= 1 ? 2 : 1, color(1, a), light0);
-            }
-            int side = FxNoise.hash(2, seed) < 0.5 ? -lw : lw;
-            int sideLen = 2 + (int) (FxNoise.hash(3, seed) * 4);
-            for (int k = 0; k < sideLen; k++) {
-                boolean last = k == sideLen - 1;
-                px(vc, ctx, r, inCell(r, col[0] + side), topPx - 1 - k, 1, 1, color(last ? 1 : 2, a * (last ? 0.7 : 1)), light0);
+            if (facing) {
+                walls(vc, ctx, r, ws, a, moved, period, topPx, lw, light0);
             }
             if (r.ringAbove) {
                 ringJoint(vc, ctx, r, col[0], lw, seed, a, light0);
-            }
-            for (int row = 0; row < rows; row++) {
-                int y = topPx - row;
-                int l = r.light[Math.min(r.light.length - 1, row / 16)];
-                int x = col[row];
-                int ph = Math.floorMod(row - moved, period);
-                boolean bead = ph < 3;
-                boolean wide = ws > 0.5 || FxNoise.hash(row + 200, seed) < 0.2 + 0.6 * ws;
-                boolean wider = ws > 0.4 && FxNoise.hash(row + 400, seed) < 0.45 * ws;
-                int core = ws > 0.6 ? 4 : (ws > 0.3 ? 3 : 2);
-                if (ws > 0.3 && Math.floorMod(row - moved * 2, 5) == 0) {
-                    core = 5;
-                }
-                if (wider && !bead) {
-                    px(vc, ctx, r, x - 1, y, 1, 1, color(1, a * 0.9), l);
-                }
-                if (bead) {
-                    px(vc, ctx, r, x - 1, y, 1, 1, color(1, a), l);
-                    px(vc, ctx, r, x, y, 1, 1, color(ph == 0 ? 4 : 3, a), l);
-                    px(vc, ctx, r, x + 1, y, 1, 1, color(2, a), l);
-                } else {
-                    px(vc, ctx, r, x, y, 1, 1, color(core, a), l);
-                    if (wide) {
-                        px(vc, ctx, r, x + 1, y, 1, 1, color(ws > 0.5 ? 2 : 1, a * 0.95), l);
-                    }
-                }
-                if (row > 0 && col[row - 1] != x) {
-                    px(vc, ctx, r, Math.min(x, col[row - 1]), y + 1, 1, 1, color(2, a), l);
-                }
             }
             int edgeU = col[rows - 1];
             int inward = -r.sign;
@@ -624,6 +594,99 @@ public final class SeepLayer implements FxLayer {
                 double ez = r.xFace ? (edgeU + 0.5) / 16.0 : r.plane - r.sign * 0.5 / 16;
                 double hh = 0.5 / 16 * (1 + phEdge * 0.5);
                 FxMesh.box(vc, ctx.pose, ex, r.column.top - hh, ez, 0.5 / 16, hh, color(3, a), glow ? LightTexture.FULL_BRIGHT : underLight);
+            }
+        }
+
+        private void walls(VertexConsumer vc, FxContext ctx, Face r, double ws, double a, int moved, int period, int topPx, int lw, int light0) {
+            long seed = r.seed;
+            int[] col = r.path;
+            int rows = r.rows;
+            for (int k = -lw; k <= lw; k++) {
+                if (FxNoise.hash(k + 50, seed) < 0.25 && Math.abs(k) > 1) {
+                    continue;
+                }
+                px(vc, ctx, r, inCell(r, col[0] + k), topPx, 1, Math.abs(k) <= 1 ? 2 : 1, color(1, a), light0);
+            }
+            int side = FxNoise.hash(2, seed) < 0.5 ? -lw : lw;
+            int sideLen = 2 + (int) (FxNoise.hash(3, seed) * 4);
+            for (int k = 0; k < sideLen; k++) {
+                boolean last = k == sideLen - 1;
+                px(vc, ctx, r, inCell(r, col[0] + side), topPx - 1 - k, 1, 1, color(last ? 1 : 2, a * (last ? 0.7 : 1)), light0);
+            }
+            int runX = Integer.MIN_VALUE;
+            int coreTop = 0;
+            int coreLen = 0;
+            int coreCol = 0;
+            int coreLight = 0;
+            int wideTop = 0;
+            int wideLen = 0;
+            int wideCol = 0;
+            int wideLight = 0;
+            for (int row = 0; row < rows; row++) {
+                int y = topPx - row;
+                int l = r.light[Math.min(r.light.length - 1, row / 16)];
+                int x = col[row];
+                int ph = Math.floorMod(row - moved, period);
+                boolean bead = ph < 3;
+                boolean wide = ws > 0.5 || FxNoise.hash(row + 200, seed) < 0.2 + 0.6 * ws;
+                boolean wider = ws > 0.4 && FxNoise.hash(row + 400, seed) < 0.45 * ws;
+                int core = ws > 0.6 ? 4 : (ws > 0.3 ? 3 : 2);
+                if (ws > 0.3 && Math.floorMod(row - moved * 2, 5) == 0) {
+                    core = 5;
+                }
+                if (x != runX) {
+                    if (coreLen > 0) {
+                        px(vc, ctx, r, runX, coreTop, 1, coreLen, coreCol, coreLight);
+                    }
+                    if (wideLen > 0) {
+                        px(vc, ctx, r, runX + 1, wideTop, 1, wideLen, wideCol, wideLight);
+                    }
+                    coreLen = 0;
+                    wideLen = 0;
+                    runX = x;
+                }
+                if (wider && !bead) {
+                    px(vc, ctx, r, x - 1, y, 1, 1, color(1, a * 0.9), l);
+                }
+                if (bead) {
+                    px(vc, ctx, r, x - 1, y, 1, 1, color(1, a), l);
+                }
+                int cc = bead ? color(ph == 0 ? 4 : 3, a) : color(core, a);
+                if (coreLen > 0 && (cc != coreCol || l != coreLight)) {
+                    px(vc, ctx, r, x, coreTop, 1, coreLen, coreCol, coreLight);
+                    coreLen = 0;
+                }
+                if (coreLen == 0) {
+                    coreTop = y;
+                    coreCol = cc;
+                    coreLight = l;
+                }
+                coreLen++;
+                if (bead || wide) {
+                    int sc = bead ? color(2, a) : color(ws > 0.5 ? 2 : 1, a * 0.95);
+                    if (wideLen > 0 && (sc != wideCol || l != wideLight)) {
+                        px(vc, ctx, r, x + 1, wideTop, 1, wideLen, wideCol, wideLight);
+                        wideLen = 0;
+                    }
+                    if (wideLen == 0) {
+                        wideTop = y;
+                        wideCol = sc;
+                        wideLight = l;
+                    }
+                    wideLen++;
+                } else if (wideLen > 0) {
+                    px(vc, ctx, r, x + 1, wideTop, 1, wideLen, wideCol, wideLight);
+                    wideLen = 0;
+                }
+                if (row > 0 && col[row - 1] != x) {
+                    px(vc, ctx, r, Math.min(x, col[row - 1]), y + 1, 1, 1, color(2, a), l);
+                }
+            }
+            if (coreLen > 0) {
+                px(vc, ctx, r, runX, coreTop, 1, coreLen, coreCol, coreLight);
+            }
+            if (wideLen > 0) {
+                px(vc, ctx, r, runX + 1, wideTop, 1, wideLen, wideCol, wideLight);
             }
         }
 
