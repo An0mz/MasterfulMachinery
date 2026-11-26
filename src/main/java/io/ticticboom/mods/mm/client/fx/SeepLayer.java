@@ -524,8 +524,10 @@ public final class SeepLayer implements FxLayer {
                         continue;
                     }
                     int end = Math.min(f.join, o.join);
-                    for (int row = Math.max(f.skip, o.skip); row < end; row++) {
-                        if (Math.abs(f.track[row] - o.track[row]) <= 2) {
+                    int first = Math.max(f.skip, o.skip);
+                    for (int row = first; row < end; row++) {
+                        boolean settled = row == first || f.track[row - 1] == f.track[row] && f.inset[row - 1] == f.inset[row];
+                        if (settled && Math.abs(f.track[row] - o.track[row]) <= 2) {
                             f.join = row;
                             break;
                         }
