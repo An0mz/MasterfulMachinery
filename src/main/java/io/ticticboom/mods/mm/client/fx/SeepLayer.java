@@ -799,6 +799,11 @@ public final class SeepLayer implements FxLayer {
             int wideLen = 0;
             int wideCol = 0;
             int wideLight = 0;
+            int edgeTop = 0;
+            int edgeLen = 0;
+            int edgeCol = 0;
+            int edgeLight = 0;
+            int edgeIn = 0;
             for (int row = s; row < r.join; row++) {
                 int y = topPx - row;
                 int l = r.light[Math.min(r.light.length - 1, row / 16)];
@@ -819,15 +824,30 @@ public final class SeepLayer implements FxLayer {
                     if (wideLen > 0) {
                         px(vc, ctx, r, runX + 1, wideTop, 1, wideLen, wideCol, wideLight, wideIn);
                     }
+                    if (edgeLen > 0) {
+                        px(vc, ctx, r, runX - 1, edgeTop, 1, edgeLen, edgeCol, edgeLight, edgeIn);
+                    }
                     coreLen = 0;
                     wideLen = 0;
+                    edgeLen = 0;
                     runX = x;
                 }
-                if (wider && !bead) {
-                    px(vc, ctx, r, x - 1, y, 1, 1, color(1, a * 0.9), l, in);
-                }
-                if (bead) {
-                    px(vc, ctx, r, x - 1, y, 1, 1, color(1, a), l, in);
+                if (bead || wider) {
+                    int edge = bead ? color(1, a) : color(1, a * 0.9);
+                    if (edgeLen > 0 && (edge != edgeCol || l != edgeLight || in != edgeIn)) {
+                        px(vc, ctx, r, x - 1, edgeTop, 1, edgeLen, edgeCol, edgeLight, edgeIn);
+                        edgeLen = 0;
+                    }
+                    if (edgeLen == 0) {
+                        edgeTop = y;
+                        edgeCol = edge;
+                        edgeLight = l;
+                        edgeIn = in;
+                    }
+                    edgeLen++;
+                } else if (edgeLen > 0) {
+                    px(vc, ctx, r, x - 1, edgeTop, 1, edgeLen, edgeCol, edgeLight, edgeIn);
+                    edgeLen = 0;
                 }
                 int cc = bead ? color(ph == 0 ? 4 : 3, a) : color(core, a);
                 if (coreLen > 0 && (cc != coreCol || l != coreLight || in != coreIn)) {
@@ -872,6 +892,9 @@ public final class SeepLayer implements FxLayer {
             }
             if (wideLen > 0) {
                 px(vc, ctx, r, runX + 1, wideTop, 1, wideLen, wideCol, wideLight, wideIn);
+            }
+            if (edgeLen > 0) {
+                px(vc, ctx, r, runX - 1, edgeTop, 1, edgeLen, edgeCol, edgeLight, edgeIn);
             }
         }
 
