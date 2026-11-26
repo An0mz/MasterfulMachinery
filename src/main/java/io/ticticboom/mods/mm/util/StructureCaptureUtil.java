@@ -376,7 +376,7 @@ public class StructureCaptureUtil {
 
     private static String buildKubeJs(String id, JsonObject root, Map<Character, JsonObject> keyDefs) {
         StringBuilder sb = new StringBuilder();
-        sb.append("priority: 1;\n");
+        sb.append("// priority: 1\n");
         sb.append("MMEvents.createStructures((event) => {\n");
         sb.append("  event\n");
         // prefer controller name (if present) for create id and display name
