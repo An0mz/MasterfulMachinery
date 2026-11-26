@@ -62,6 +62,7 @@ public class EffectStudioScreen extends Screen {
     private static final Set<String> NOTES = Set.of("drip_working", "hidden_now");
     private static final Set<String> DERIVED = Set.of("floor", "landing", "sky");
     private static final Set<String> VERTICAL = Set.of("floor", "seep_top");
+    private static final java.util.regex.Pattern OWN_HEIGHT = java.util.regex.Pattern.compile(".+_spot(_\\d+)?_(floor|top)");
     private static final int[] SPOT_COLORS = {0xFF40E0FF, 0xFFFFD040, 0xFFFF60C0, 0xFF3AFF7A, 0xFFFF7A1A, 0xFFA040FF};
 
     private final EffectStudio.Session session;
@@ -1551,10 +1552,14 @@ public class EffectStudioScreen extends Screen {
         return effect.getAsJsonObject("anchors");
     }
 
+    private static boolean vertical(String name) {
+        return VERTICAL.contains(name) || OWN_HEIGHT.matcher(name).matches();
+    }
+
     private static List<String> spotNames(JsonObject anchors) {
         var names = new ArrayList<String>();
         for (var entry : anchors.entrySet()) {
-            if (entry.getValue().isJsonArray() && !DERIVED.contains(entry.getKey()) && !VERTICAL.contains(entry.getKey())) {
+            if (entry.getValue().isJsonArray() && !DERIVED.contains(entry.getKey()) && !vertical(entry.getKey())) {
                 names.add(entry.getKey());
             }
         }
@@ -1823,8 +1828,44 @@ public class EffectStudioScreen extends Screen {
         session.dirty = true;
     }
 
+    private static boolean ownHeights(@Nullable JsonObject layer, String spot) {
+        if (layer == null) {
+            return false;
+        }
+        String type = layer.has("type") ? layer.get("type").getAsString() : "";
+        String key = type.equals("seep") ? "top" : type.equals("drip") || type.equals("pool") || type.equals("stream") ? "to" : null;
+        String anchorKey = type.equals("stream") ? "from" : "at";
+        if (key == null || !spot.equals(anchorName(layer, anchorKey))) {
+            return false;
+        }
+        String current = anchorName(layer, key);
+        if (current != null && vertical(current)) {
+            layer.addProperty(key, spot + (key.equals("top") ? "_top" : "_floor"));
+            return true;
+        }
+        return false;
+    }
+
     private void changed(String name) {
         JsonObject anchors = selectedAnchors();
+        JsonObject fx = base(selectedId());
+        if (fx != null && fx.has("layers")) {
+            for (JsonElement element : fx.getAsJsonArray("layers")) {
+                JsonObject layer = element.getAsJsonObject();
+                String type = layer.has("type") ? layer.get("type").getAsString() : "";
+                String spot = anchorName(layer, type.equals("stream") ? "from" : "at");
+                if (!name.equals(spot)) {
+                    continue;
+                }
+                String own = anchorName(layer, type.equals("seep") ? "top" : "to");
+                if (own != null && OWN_HEIGHT.matcher(own).matches()) {
+                    JsonElement value = autoAll(type.equals("seep") ? "seep_top" : "floor", anchors.get(name), null, null);
+                    if (value != null) {
+                        anchors.add(own, value);
+                    }
+                }
+            }
+        }
         if (name.equals(sourceName(anchors))) {
             JsonElement source = anchors.get(name);
             for (String derived : DERIVED) {
@@ -1861,6 +1902,9 @@ public class EffectStudioScreen extends Screen {
         remember();
         if (firstOfNew) {
             swapNewSpot(true);
+            if (ownHeights(newSpotLayer(), newSpot)) {
+                rescale(newSpotId);
+            }
         }
         var origin = model.layout().getCharGrid().getControllerPos();
         Vec3 at = snap(hit);
@@ -1997,14 +2041,23 @@ public class EffectStudioScreen extends Screen {
                 continue;
             }
             if (value.isJsonArray()) {
-                boolean vertical = VERTICAL.contains(name);
+                boolean vertical = vertical(name);
                 List<double[]> points = pointsOf(value);
                 for (int i = 0; i < points.size(); i++) {
                     double[] p = points.get(i);
                     result.add(new Handle(name, i, p[0], p[1], p[2], vertical));
                 }
             } else if (value.isJsonPrimitive() && value.getAsJsonPrimitive().isNumber()) {
-                result.add(new Handle(name, -1, hx, value.getAsDouble(), hz, true));
+                double x = hx;
+                double z = hz;
+                if (OWN_HEIGHT.matcher(name).matches()) {
+                    List<double[]> own = pointsOf(anchors.get(name.substring(0, name.lastIndexOf('_'))));
+                    if (!own.isEmpty()) {
+                        x = own.get(0)[0];
+                        z = own.get(0)[2];
+                    }
+                }
+                result.add(new Handle(name, -1, x, value.getAsDouble(), z, true));
             }
         }
         return result;
@@ -2332,6 +2385,13 @@ public class EffectStudioScreen extends Screen {
                     double[] q = list.get(Math.min(h.index(), list.size() - 1));
                     copyAnchors.add(aligned, aligned.equals("floor") || aligned.equals("seep_top") ? new JsonPrimitive(q[1]) : point(q[0], q[1], q[2]));
                 }
+            }
+        }
+        for (String suffix : new String[]{"_floor", "_top"}) {
+            JsonElement value = copyAnchors.get(h.name() + suffix);
+            if (value != null && value.isJsonArray() && !value.getAsJsonArray().isEmpty() && value.getAsJsonArray().get(0).isJsonArray()) {
+                List<double[]> list = pointsOf(value);
+                copyAnchors.add(h.name() + suffix, new JsonPrimitive(list.get(Math.min(h.index(), list.size() - 1))[1]));
             }
         }
         removePoint(h);
