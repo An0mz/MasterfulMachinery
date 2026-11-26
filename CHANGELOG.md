@@ -7,31 +7,42 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 ## [1.21.1-0.19.0] - 2026-11-22
 
 ### Added
-- **Machine effects.** A structure can show animated effects on the formed machine: liquid streams,
-  drips, falling drops, pools and ripples, blood seeping down the sides of blocks, particles such as
-  smoke, steam and sparks, beams and arcs, and glowing faces and halos. Effects follow the machine's
-  idle and working state and can take their colour from a port's fluid, or its texture with
-  `"port_texture": true` on a stream, drip, drops, pool or ripple layer. Put an effect file at
-  `assets/<namespace>/mm_fx/<name>.json` in a resource pack or `kubejs/assets` (its textures come from
-  your pack), then attach it to a structure with `.effect({ fx: 'mypack:kiln_fire', anchors: { ... } })`
-  in KubeJS or a `data/<namespace>/mm/structure_effects/<name>.json` file.
-- **Effect Studio.** Hold the Effect Wand and right-click any block of a formed machine (operators only) to build
-  effects on the real machine. Drag a preset or part from the library onto the machine, drag its
-  points into place, select several points with Ctrl-click or a drag box to move, center or delete them
-  together, center a point between several block faces, connect arcs between points, pick
-  which blocks glow and which sides of a block bleed, and turn a layer off for a single spot. The Look tab sets amount, size and speed (separately
-  for idle and working), colour and particle direction, and Reroll gives a new random look. The
-  Advanced tab names every setting in plain words with a hover explanation, and uses sliders, colour
-  swatches and a texture picker; an Expert switch shows the raw settings. Layers are added from a list
-  of plain choices. On the Layers tab, click a fluid port of the machine to make an effect use its fluid's
-  colour and look, and preview it with water or lava. Save your
-  own presets to reuse them on other machines. Opening another machine asks first if the current one
-  has unsaved changes. Save writes the effect files into `kubejs/`; on a
-  dedicated server, copy the saved `kubejs/data/<namespace>/mm/structure_effects` files to the server.
-- **Effect settings.** Under `[effects]` in the client config, or on the Client page of the mod's
-  config screen: `quality` (Low, Medium or High, Medium by default), `viewDistance`, `particleAmount`
-  and `maxParticles`. Bind "Cycle machine effect quality" in Controls to switch quality in game. F3
-  shows how much frame time machine effects take.
+- **Added a new Effect Studio.** Build animated effects right on a formed machine and see them live.
+  - **Effects.** Liquid streams, drips, falling drops, pools and ripples, liquid seeping down the sides of
+    blocks, particles such as smoke, steam and sparks, beams and arcs, and glowing faces and halos.
+    Effects follow the machine's idle and working state.
+  - **Opening it.** Hold the Effect Wand and right-click any block of a formed machine (operators only).
+  - **Placing.** Drag a preset or part from the library onto the machine, then drag its points into
+    place. Select several points with Ctrl-click or a drag box to move, centre or delete them together,
+    centre a point between several block faces, connect arcs between points, pick which blocks glow,
+    and turn a layer off for a single spot.
+  - **Spots.** Each layer can use the effect's spots or get a spot of its own with the + next to its
+    spot setting, so a seep doesn't have to follow the drips. A new drip, pool or stream spot gets its
+    own floor, and a new seep spot its own top.
+  - **Seeping sides.** Pick which sides of a block bleed and how many lines run down each side. Put a
+    spot on the corner between blocks, such as the middle of a 2x2 pillar, to make every block around
+    it seep. Seeping sides take a colour, a texture's colour or a port fluid's look.
+  - **Look tab.** Amount, size and speed (separately for idle and working), colour and particle
+    direction. Reroll gives a new random look.
+  - **Advanced tab.** Every setting named in plain words with a hover explanation, using sliders,
+    colour swatches and a texture picker. The picker has search, a fluid texture filter, a button that
+    opens your texture folder, and Reload. An Expert switch shows the raw settings, and layers are added
+    from a list of plain choices.
+  - **Fluid ports.** On the Layers tab, click a fluid port of the machine to make an effect use its
+    fluid's colour and look, and preview it with water or lava. Add `"port_texture": true` to a stream,
+    drip, drops, pool or ripple layer to draw the fluid's own texture.
+  - **Presets and saving.** Save your own presets to reuse them on other machines. Opening another
+    machine asks first if the current one has unsaved changes. Save writes the effect files into
+    `kubejs/`. On a dedicated server, copy the saved `kubejs/data/<namespace>/mm/structure_effects`
+    files to the server.
+  - **Effect files.** Put an effect file at `assets/<namespace>/mm_fx/<name>.json` in a resource pack or
+    `kubejs/assets` (its textures come from your pack), then attach it to a structure with
+    `.effect({ fx: 'mypack:kiln_fire', anchors: { ... } })` in KubeJS or a
+    `data/<namespace>/mm/structure_effects/<name>.json` file.
+  - **Settings.** Under `[effects]` in the client config, or on the Client page of the mod's config
+    screen: `quality` (Low, Medium or High, Medium by default), `viewDistance`, `particleAmount` and
+    `maxParticles`. Bind "Cycle machine effect quality" in Controls to switch quality in game. F3 shows
+    how much frame time machine effects take.
 - **Particles visual.** `.particles({ ... })` spawns any particle over a region of the machine, while
   it works by default (`when`), with `rate`, `velocity`, `offset` and `spread`.
 - **Flex recipes.** An `mm:input/flex` input takes any items matching its ingredient, and an
@@ -66,10 +77,6 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 - The game crashing when the structure preview showed a structure whose controller doesn't exist.
 - Macaw's Bridges blocks losing their direction in captured structures. Recapture structures that
   use them.
-- The Effect Studio showing blocks facing the wrong way, Macaw's Bridges without their rails, and
-  other blocks in their default look instead of how they're placed on the machine.
-- Effect Studio presets such as Bleeding Block showing missing textures. The textures now come with
-  the mod.
 
 ## [1.21.1-0.18.1] - 2026-11-16
 
