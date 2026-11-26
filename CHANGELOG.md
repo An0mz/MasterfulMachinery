@@ -4,18 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on "Keep a Changelog" and this project follows [Semantic Versioning](https://semver.org/).
 
-## [1.21.1-0.19.0] - 2026-11-22
+## [1.21.1-0.19.0] - 2026-11-26
 
 ### Added
 - **Added a new Effect Studio.** Build animated effects right on a formed machine and see them live.
   - **Effects.** Liquid streams, drips, falling drops, pools and ripples, liquid seeping down the sides of
     blocks, particles such as smoke, steam and sparks, beams and arcs, and glowing faces and halos.
-    Effects follow the machine's idle and working state.
+    Effects follow the machine's idle and working state. Arcs can bow up, sideways or down with Curve
+    direction.
   - **Opening it.** Hold the Effect Wand and right-click any block of a formed machine (operators only).
   - **Placing.** Drag a preset or part from the library onto the machine, then drag its points into
     place. Select several points with Ctrl-click or a drag box to move, centre or delete them together,
-    centre a point between several block faces, connect arcs between points, pick which blocks glow,
-    and turn a layer off for a single spot.
+    centre a point between several block faces, connect arcs between points, pick which blocks glow
+    (Clear unselects them all), and turn a layer off for a single spot.
   - **Spots.** Each layer can use the effect's spots or get a spot of its own with the + next to its
     spot setting, so a seep doesn't have to follow the drips. A new drip, pool or stream spot gets its
     own floor, and a new seep spot its own top.
@@ -78,6 +79,9 @@ The format is based on "Keep a Changelog" and this project follows [Semantic Ver
 - The game crashing when the structure preview showed a structure whose controller doesn't exist.
 - Macaw's Bridges blocks losing their direction in captured structures. Recapture structures that
   use them.
+- Captured structures with the controller away from the edge, such as in the middle of the machine,
+  pasting with the controller facing the wrong way. Recapture them.
+- Captured KubeJS scripts starting with `priority: 1;` instead of the `// priority: 1` header.
 
 ## [1.21.1-0.18.1] - 2026-11-16
 
